@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Org Detail</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f8fafc; color: #1e293b; min-height: 100vh; }
+
+    /* Nav */
+    nav { background: #0f172a; padding: 0 24px; display: flex; align-items: center; gap: 24px; height: 52px; }
+    nav a { color: #94a3b8; text-decoration: none; font-size: 14px; font-weight: 500; }
+    nav a:hover { color: #e2e8f0; }
+    nav .logo { color: #e2e8f0; font-weight: 700; font-size: 16px; margin-right: 8px; }
+
+    /* Page layout */
+    .page { padding: 24px; max-width: 1100px; margin: 0 auto; }
+    .back-link { font-size: 13px; color: #64748b; text-decoration: none; display: inline-flex; align-items: center; gap: 4px; margin-bottom: 16px; }
+    .back-link:hover { color: #2563eb; }
+
+    /* Cards */
+    .card { background: #fff; border: 1px solid #e2e8f0; border-radius: 8px; margin-bottom: 20px; overflow: visible; }
+    .card-header { padding: 14px 20px; border-bottom: 1px solid #f1f5f9; display: flex; justify-content: space-between; align-items: center; }
+    .card-title { font-size: 15px; font-weight: 600; color: #1e293b; }
+    .card-body { padding: 20px; }
+
+    /* Org heading */
+    .org-heading { font-size: 24px; font-weight: 700; color: #0f172a; margin-bottom: 4px; }
+    .org-subheading { font-size: 13px; color: #64748b; }
+
+    /* Field rows */
+    .field-row { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 12px; }
+    .field-label { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: #94a3b8; width: 100px; flex-shrink: 0; padding-top: 6px; }
+    .field-value { flex: 1; font-size: 14px; color: #1e293b; }
+    .field-value.editable { cursor: pointer; padding: 4px 8px; border-radius: 4px; min-height: 28px; }
+    .field-value.editable:hover { background: #f1f5f9; }
+    .field-edit input, .field-edit select, .field-edit textarea {
+      width: 100%; padding: 6px 8px; border: 1px solid #2563eb; border-radius: 4px;
+      font-size: 14px; font-family: inherit; outline: none; background: #fff;
+    }
+    .field-edit textarea { resize: vertical; min-height: 60px; }
+    .save-row { display: flex; gap: 8px; margin-top: 6px; }
+    .btn { padding: 6px 14px; font-size: 13px; border-radius: 5px; border: none; cursor: pointer; font-weight: 500; }
+    .btn-primary { background: #2563eb; color: #fff; }
+    .btn-primary:hover { background: #1d4ed8; }
+    .btn-ghost { background: #f1f5f9; color: #475569; border: 1px solid #e2e8f0; }
+    .btn-ghost:hover { background: #e2e8f0; }
+    .btn-sm { padding: 4px 10px; font-size: 12px; }
+
+    /* Contacts */
+    .contact-list { display: flex; flex-direction: column; gap: 12px; }
+    .contact-card { border: 1px solid #e2e8f0; border-radius: 6px; padding: 14px 16px; background: #fafafa; }
+    .contact-name { font-weight: 600; font-size: 14px; color: #1e293b; margin-bottom: 6px; }
+    .contact-fields { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 8px; }
+    .contact-field { font-size: 13px; }
+    .contact-field .lbl { color: #94a3b8; font-size: 11px; text-transform: uppercase; font-weight: 600; }
+    .contact-field .val { color: #1e293b; margin-top: 1px; }
+    .contact-field .val.editable { cursor: pointer; padding: 2px 4px; border-radius: 3px; }
+    .contact-field .val.editable:hover { background: #f1f5f9; }
+    .contact-field input { width: 100%; padding: 4px 6px; border: 1px solid #2563eb; border-radius: 4px; font-size: 13px; font-family: inherit; outline: none; }
+
+    /* Add contact form */
+    .add-form { border: 1px dashed #cbd5e1; border-radius: 6px; padding: 16px; margin-top: 12px; }
+    .add-form-title { font-size: 13px; font-weight: 600; color: #64748b; margin-bottom: 12px; }
+    .form-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 10px; margin-bottom: 12px; }
+    .form-group { display: flex; flex-direction: column; gap: 4px; }
+    .form-group label { font-size: 11px; font-weight: 600; text-transform: uppercase; color: #94a3b8; }
+    .form-group input, .form-group select { padding: 6px 8px; border: 1px solid #e2e8f0; border-radius: 4px; font-size: 13px; font-family: inherit; outline: none; }
+    .form-group input:focus, .form-group select:focus { border-color: #2563eb; }
+
+    /* Prospect cards */
+    .prospect-list { display: flex; flex-direction: column; gap: 12px; }
+    .prospect-card { border: 1px solid #e2e8f0; border-radius: 6px; overflow: hidden; }
+    .prospect-card-header { padding: 10px 16px; background: #f8fafc; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; }
+    .prospect-offering { font-size: 13px; font-weight: 600; color: #475569; }
+    .prospect-fields { padding: 14px 16px; display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; }
+    .p-field { font-size: 13px; }
+    .p-field .lbl { color: #94a3b8; font-size: 11px; text-transform: uppercase; font-weight: 600; }
+    .p-field .val { color: #1e293b; margin-top: 2px; cursor: pointer; padding: 2px 6px; border-radius: 3px; }
+    .p-field .val:hover { background: #f1f5f9; }
+    .p-field .val.readonly { cursor: default; }
+    .p-field .val.readonly:hover { background: none; }
+    .p-field input, .p-field select { width: 100%; padding: 4px 6px; border: 1px solid #2563eb; border-radius: 4px; font-size: 13px; font-family: inherit; outline: none; }
+
+    /* Badges */
+    .badge { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 600; }
+    .urgency-High { background: #fef2f2; color: #dc2626; }
+    .urgency-Med { background: #fffbeb; color: #d97706; }
+    .urgency-Low { background: #f1f5f9; color: #6b7280; }
+    .stage-7, .stage-8 { background: #f0fdf4; color: #16a34a; }
+    .stage-5, .stage-6 { background: #eff6ff; color: #2563eb; }
+    .stage-3, .stage-4 { background: #f1f5f9; color: #64748b; }
+    .stage-1, .stage-2 { background: #f8fafc; color: #94a3b8; }
+
+    /* Add offering form */
+    .add-offering-form { display: flex; gap: 10px; align-items: flex-end; margin-top: 12px; flex-wrap: wrap; }
+    .add-offering-form select { padding: 7px 10px; border: 1px solid #e2e8f0; border-radius: 5px; font-size: 13px; font-family: inherit; outline: none; }
+    .add-offering-form select:focus { border-color: #2563eb; }
+
+    /* Feedback */
+    @keyframes flash-green { 0%,100% { background: inherit; } 50% { background: #d1fae5; } }
+    @keyframes flash-red { 0%,100% { background: inherit; } 50% { background: #fee2e2; } }
+    .flash-ok { animation: flash-green 0.5s ease; }
+    .flash-err { animation: flash-red 0.5s ease; }
+
+    /* Error / empty */
+    .muted { color: #94a3b8; font-size: 13px; }
+    .error-msg { color: #dc2626; font-size: 13px; margin-top: 6px; }
+  </style>
+</head>
+<body>
+
+<nav>
+  <span class="logo">AREC</span>
+  <a href="/">Dashboard</a>
+  <a href="/crm">CRM</a>
+</nav>
+
+<div class="page">
+  <a href="/crm" class="back-link">← Pipeline</a>
+
+  <div id="loading" class="muted">Loading...</div>
+  <div id="main-content" style="display:none">
+
+    <!-- Section 1: Org Profile -->
+    <div class="card" id="org-card">
+      <div class="card-body">
+        <h1 class="org-heading" id="org-name-heading"></h1>
+
+        <div class="field-row" style="margin-top:16px">
+          <span class="field-label">Type</span>
+          <div class="field-value" id="type-display"></div>
+        </div>
+
+        <div class="field-row">
+          <span class="field-label">Notes</span>
+          <div class="field-value" id="notes-display"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Section 2: Contacts -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">Contacts</span>
+      </div>
+      <div class="card-body">
+        <div class="contact-list" id="contact-list"></div>
+
+        <!-- Add Contact form -->
+        <div class="add-form" id="add-contact-form">
+          <div class="add-form-title">Add Contact</div>
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Name *</label>
+              <input type="text" id="new-contact-name" placeholder="Full name">
+            </div>
+            <div class="form-group">
+              <label>Title / Role</label>
+              <input type="text" id="new-contact-role" placeholder="e.g. Portfolio Manager">
+            </div>
+            <div class="form-group">
+              <label>Email</label>
+              <input type="email" id="new-contact-email" placeholder="email@example.com">
+            </div>
+            <div class="form-group">
+              <label>Type</label>
+              <select id="new-contact-type">
+                <option value="investor">investor</option>
+                <option value="internal">internal</option>
+                <option value="advisor">advisor</option>
+              </select>
+            </div>
+          </div>
+          <button class="btn btn-primary btn-sm" onclick="addContact()">Add Contact</button>
+          <span class="error-msg" id="contact-error" style="display:none"></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Section 3: Prospects -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">Prospects</span>
+      </div>
+      <div class="card-body">
+        <div class="prospect-list" id="prospect-list"></div>
+
+        <!-- Add to Offering form -->
+        <div class="add-offering-form" id="add-offering-form">
+          <div class="form-group">
+            <label style="font-size:11px;font-weight:600;text-transform:uppercase;color:#94a3b8">Add to Offering</label>
+            <select id="offering-select">
+              <option value="">Select offering...</option>
+            </select>
+          </div>
+          <button class="btn btn-primary btn-sm" onclick="addToOffering()">Add</button>
+          <span class="error-msg" id="offering-error" style="display:none"></span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+const ORG_NAME = {{ org_name | tojson }};
+const CONFIG = {
+  stages: {{ config.stages | tojson }},
+  urgency_levels: {{ config.urgency_levels | tojson }},
+  team: {{ config.team | tojson }},
+  closing_options: {{ config.closing_options | tojson }},
+  org_types: {{ config.org_types | tojson }},
+};
+const ALL_OFFERINGS = {{ offerings | tojson }};
+
+let orgData = {};
+let contacts = [];
+let prospects = [];
+
+const EDITABLE_PROSPECT_FIELDS = ['stage', 'urgency', 'target', 'assigned_to', 'next_action', 'notes', 'closing'];
+const PROSPECT_DISPLAY_FIELDS = [
+  { key: 'Stage', editable: true },
+  { key: 'Urgency', editable: true },
+  { key: 'Target', editable: true },
+  { key: 'Committed', editable: false },
+  { key: 'Primary Contact', editable: false },
+  { key: 'Closing', editable: true },
+  { key: 'Assigned To', editable: true },
+  { key: 'Next Action', editable: true },
+  { key: 'Notes', editable: true },
+  { key: 'Last Touch', editable: false },
+];
+const PROSPECT_DROPDOWNS = {
+  'Stage': CONFIG.stages,
+  'Urgency': [...CONFIG.urgency_levels, ''],
+  'Assigned To': [...CONFIG.team, ''],
+  'Closing': [...CONFIG.closing_options, ''],
+};
+
+// ---------------------------------------------------------------------------
+// Init
+// ---------------------------------------------------------------------------
+
+async function init() {
+  const resp = await fetch(`/crm/api/org/${encodeURIComponent(ORG_NAME)}`);
+  const data = await resp.json();
+  orgData = data.org;
+  contacts = data.contacts;
+  prospects = data.prospects;
+
+  document.getElementById('loading').style.display = 'none';
+  document.getElementById('main-content').style.display = '';
+
+  renderOrgProfile();
+  renderContacts();
+  renderProspects();
+  renderOfferingDropdown();
+}
+
+function escHtml(str) {
+  return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ---------------------------------------------------------------------------
+// Section 1: Org Profile
+// ---------------------------------------------------------------------------
+
+function renderOrgProfile() {
+  document.getElementById('org-name-heading').textContent = ORG_NAME;
+  document.title = ORG_NAME + ' — CRM';
+
+  const typeEl = document.getElementById('type-display');
+  const notesEl = document.getElementById('notes-display');
+
+  const typeVal = orgData['Type'] || '';
+  const notesVal = orgData['Notes'] || '';
+
+  typeEl.innerHTML = `<span class="editable" onclick="startOrgEdit('type', this)">${typeVal || '<span class=\'muted\'>—</span>'}</span>`;
+  notesEl.innerHTML = `<span class="editable" onclick="startOrgEdit('notes', this)">${notesVal || '<span class=\'muted\'>—</span>'}</span>`;
+}
+
+function startOrgEdit(field, el) {
+  const current = field === 'type' ? (orgData['Type'] || '') : (orgData['Notes'] || '');
+  let input;
+  if (field === 'type') {
+    input = document.createElement('select');
+    ['', ...CONFIG.org_types].forEach(opt => {
+      const o = document.createElement('option');
+      o.value = opt;
+      o.textContent = opt || '(none)';
+      if (opt === current) o.selected = true;
+      input.appendChild(o);
+    });
+  } else {
+    input = document.createElement('textarea');
+    input.value = current;
+    input.rows = 3;
+  }
+  input.style.cssText = 'width:100%;padding:6px 8px;border:1px solid #2563eb;border-radius:4px;font-size:14px;font-family:inherit;outline:none;';
+
+  const saveBtn = document.createElement('button');
+  saveBtn.textContent = 'Save';
+  saveBtn.className = 'btn btn-primary btn-sm';
+  saveBtn.style.marginTop = '6px';
+
+  const cancelBtn = document.createElement('button');
+  cancelBtn.textContent = 'Cancel';
+  cancelBtn.className = 'btn btn-ghost btn-sm';
+  cancelBtn.style.marginLeft = '6px';
+  cancelBtn.style.marginTop = '6px';
+
+  const container = el.parentNode;
+  container.innerHTML = '';
+  container.appendChild(input);
+  container.appendChild(document.createElement('br'));
+  container.appendChild(saveBtn);
+  container.appendChild(cancelBtn);
+  input.focus();
+
+  saveBtn.onclick = () => saveOrgField(field, input.value, container);
+  cancelBtn.onclick = renderOrgProfile;
+}
+
+async function saveOrgField(field, value, container) {
+  const body = {};
+  body[field] = value;
+  const resp = await fetch(`/crm/api/org/${encodeURIComponent(ORG_NAME)}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  if (resp.ok) {
+    const updated = await resp.json();
+    if (updated['Type'] !== undefined) orgData['Type'] = updated['Type'];
+    if (updated['Notes'] !== undefined) orgData['Notes'] = updated['Notes'];
+    renderOrgProfile();
+  } else {
+    const err = document.createElement('div');
+    err.className = 'error-msg';
+    err.textContent = 'Save failed';
+    container.appendChild(err);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Section 2: Contacts
+// ---------------------------------------------------------------------------
+
+function renderContacts() {
+  const list = document.getElementById('contact-list');
+  if (!contacts.length) {
+    list.innerHTML = '<p class="muted">No contacts linked yet.</p>';
+    return;
+  }
+  list.innerHTML = contacts.map((c, idx) => `
+    <div class="contact-card">
+      <div class="contact-name">${escHtml(c.name)}</div>
+      <div class="contact-fields">
+        ${renderContactField(idx, 'role', 'Role', c.role)}
+        ${renderContactField(idx, 'email', 'Email', c.email)}
+        ${renderContactField(idx, 'phone', 'Phone', c.phone)}
+      </div>
+    </div>
+  `).join('');
+}
+
+function renderContactField(idx, field, label, value) {
+  return `
+    <div class="contact-field">
+      <div class="lbl">${label}</div>
+      <div class="val editable" id="cf-${idx}-${field}" onclick="startContactEdit(${idx}, '${field}', this)">
+        ${value || '<span class="muted">—</span>'}
+      </div>
+    </div>
+  `;
+}
+
+function startContactEdit(idx, field, el) {
+  const contact = contacts[idx];
+  const current = contact[field] || '';
+  const input = document.createElement('input');
+  input.type = field === 'email' ? 'email' : 'text';
+  input.value = current;
+
+  el.innerHTML = '';
+  el.appendChild(input);
+  input.focus();
+  input.select();
+
+  async function save() {
+    const val = input.value.trim();
+    if (val === current) { renderContacts(); return; }
+    const resp = await fetch(`/crm/api/contact/${encodeURIComponent(ORG_NAME)}/${encodeURIComponent(contact.name)}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ [field]: val }),
+    });
+    if (resp.ok) {
+      contacts[idx][field] = val;
+      renderContacts();
+      const card = document.querySelector('.contact-card');
+      if (card) { card.classList.add('flash-ok'); setTimeout(() => card.classList.remove('flash-ok'), 600); }
+    } else {
+      renderContacts();
+    }
+  }
+
+  input.addEventListener('blur', save);
+  input.addEventListener('keydown', e => {
+    if (e.key === 'Enter') { e.preventDefault(); save(); }
+    if (e.key === 'Escape') { renderContacts(); }
+  });
+}
+
+async function addContact() {
+  const name = document.getElementById('new-contact-name').value.trim();
+  const role = document.getElementById('new-contact-role').value.trim();
+  const email = document.getElementById('new-contact-email').value.trim();
+  const type = document.getElementById('new-contact-type').value;
+  const errEl = document.getElementById('contact-error');
+  errEl.style.display = 'none';
+
+  if (!name) {
+    errEl.textContent = 'Name is required.';
+    errEl.style.display = '';
+    return;
+  }
+
+  const resp = await fetch('/crm/api/contact', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name, org: ORG_NAME, email, role, type }),
+  });
+  if (resp.ok) {
+    const person = await resp.json();
+    contacts.push(person);
+    renderContacts();
+    document.getElementById('new-contact-name').value = '';
+    document.getElementById('new-contact-role').value = '';
+    document.getElementById('new-contact-email').value = '';
+  } else {
+    const err = await resp.json();
+    errEl.textContent = err.error || 'Failed to add contact.';
+    errEl.style.display = '';
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Section 3: Prospects
+// ---------------------------------------------------------------------------
+
+function renderProspects() {
+  const list = document.getElementById('prospect-list');
+  if (!prospects.length) {
+    list.innerHTML = '<p class="muted" style="margin-bottom:12px">No prospect records yet.</p>';
+    return;
+  }
+  list.innerHTML = prospects.map((p, idx) => {
+    const stageNum = parseInt(p.Stage) || 0;
+    const stageClass = stageNum >= 7 ? 'stage-7' : stageNum >= 5 ? 'stage-5' : stageNum >= 3 ? 'stage-3' : 'stage-1';
+    const fields = PROSPECT_DISPLAY_FIELDS.map(f => {
+      const val = p[f.key] || '';
+      let displayVal;
+      if (f.key === 'Urgency' && val) {
+        displayVal = `<span class="badge urgency-${val}">${val}</span>`;
+      } else if (f.key === 'Stage' && val) {
+        displayVal = `<span class="badge ${stageClass}">${val}</span>`;
+      } else {
+        displayVal = escHtml(val) || '<span class="muted">—</span>';
+      }
+      const editableClass = f.editable ? 'editable' : 'readonly';
+      const onclick = f.editable ? `onclick="startProspectEdit(${idx}, '${f.key}', this)"` : '';
+      return `
+        <div class="p-field">
+          <div class="lbl">${f.key}</div>
+          <div class="val ${editableClass}" id="pf-${idx}-${f.key.replace(/ /g,'-')}" ${onclick}>${displayVal}</div>
+        </div>
+      `;
+    }).join('');
+    return `
+      <div class="prospect-card">
+        <div class="prospect-card-header">
+          <span class="prospect-offering">${escHtml(p.offering)}</span>
+          <span class="muted" style="font-size:12px">Last touch: ${escHtml(p['Last Touch'] || '—')}</span>
+        </div>
+        <div class="prospect-fields">${fields}</div>
+      </div>
+    `;
+  }).join('');
+}
+
+function startProspectEdit(idx, field, el) {
+  const p = prospects[idx];
+  const current = p[field] || '';
+  let input;
+
+  if (PROSPECT_DROPDOWNS[field]) {
+    input = document.createElement('select');
+    PROSPECT_DROPDOWNS[field].forEach(opt => {
+      const o = document.createElement('option');
+      o.value = opt;
+      o.textContent = opt || '(none)';
+      if (opt === current) o.selected = true;
+      input.appendChild(o);
+    });
+  } else {
+    input = document.createElement('input');
+    input.type = 'text';
+    input.value = current;
+  }
+
+  el.innerHTML = '';
+  el.appendChild(input);
+  input.focus();
+  if (input.tagName === 'INPUT') input.select();
+
+  async function save() {
+    const val = input.value;
+    if (val === current) { renderProspects(); return; }
+    const resp = await fetch('/crm/api/prospect/field', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        org: ORG_NAME,
+        offering: p.offering,
+        field: field.toLowerCase().replace(/ /g, '_'),
+        value: val,
+      }),
+    });
+    if (resp.ok) {
+      const updated = await resp.json();
+      Object.assign(prospects[idx], updated);
+      renderProspects();
+    } else {
+      renderProspects();
+    }
+  }
+
+  input.addEventListener('blur', save);
+  input.addEventListener('keydown', e => {
+    if (e.key === 'Enter') { e.preventDefault(); save(); }
+    if (e.key === 'Escape') { renderProspects(); }
+  });
+}
+
+function renderOfferingDropdown() {
+  const existingOfferings = new Set(prospects.map(p => p.offering.toLowerCase()));
+  const available = ALL_OFFERINGS.filter(o => !existingOfferings.has(o.name.toLowerCase()));
+  const sel = document.getElementById('offering-select');
+  sel.innerHTML = '<option value="">Select offering...</option>';
+  available.forEach(o => {
+    const opt = document.createElement('option');
+    opt.value = o.name;
+    opt.textContent = o.name;
+    sel.appendChild(opt);
+  });
+  const formEl = document.getElementById('add-offering-form');
+  if (!available.length) {
+    formEl.style.display = 'none';
+  }
+}
+
+async function addToOffering() {
+  const offering = document.getElementById('offering-select').value;
+  const errEl = document.getElementById('offering-error');
+  errEl.style.display = 'none';
+  if (!offering) {
+    errEl.textContent = 'Select an offering.';
+    errEl.style.display = '';
+    return;
+  }
+  const resp = await fetch('/crm/api/prospect', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ org: ORG_NAME, offering, stage: '1. Prospect', target: '$0' }),
+  });
+  if (resp.ok) {
+    const created = await resp.json();
+    prospects.push(created);
+    renderProspects();
+    renderOfferingDropdown();
+  } else {
+    const err = await resp.json();
+    errEl.textContent = err.error || 'Failed to add.';
+    errEl.style.display = '';
+  }
+}
+
+init();
+</script>
+</body>
+</html>

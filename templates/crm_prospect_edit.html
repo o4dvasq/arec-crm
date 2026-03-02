@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Edit Prospect</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0f172a; color: #e2e8f0; min-height: 100vh; }
+
+    nav { background: #0a0f1e; border-bottom: 1px solid #1e293b; padding: 0 24px; display: flex; align-items: center; gap: 24px; height: 52px; }
+    nav a { color: #94a3b8; text-decoration: none; font-size: 14px; font-weight: 500; }
+    nav a:hover { color: #e2e8f0; }
+    nav .logo { color: #e2e8f0; font-weight: 700; font-size: 16px; margin-right: 8px; }
+
+    .page { padding: 32px 24px; max-width: 640px; margin: 0 auto; }
+    .back-link { font-size: 13px; color: #64748b; text-decoration: none; display: inline-flex; align-items: center; gap: 4px; margin-bottom: 20px; }
+    .back-link:hover { color: #94a3b8; }
+
+    .page-header { margin-bottom: 28px; }
+    .page-header h1 { font-size: 22px; font-weight: 700; color: #f1f5f9; margin-bottom: 4px; }
+    .page-header .offering-label { font-size: 13px; color: #64748b; }
+
+    /* Form card */
+    .form-card { background: #1e293b; border: 1px solid #334155; border-radius: 10px; overflow: hidden; }
+    .form-section { padding: 20px 24px; border-bottom: 1px solid #334155; }
+    .form-section:last-of-type { border-bottom: none; }
+
+    .field-row { display: flex; align-items: center; gap: 16px; margin-bottom: 14px; }
+    .field-row:last-child { margin-bottom: 0; }
+    .field-label { width: 130px; flex-shrink: 0; font-size: 13px; color: #94a3b8; font-weight: 500; }
+    .field-control { flex: 1; }
+
+    input[type=text], select, textarea {
+      width: 100%;
+      padding: 8px 10px;
+      background: #0f172a;
+      border: 1px solid #334155;
+      border-radius: 6px;
+      color: #e2e8f0;
+      font-size: 14px;
+      font-family: inherit;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    input[type=text]:focus, select:focus, textarea:focus { border-color: #2563eb; }
+    select { cursor: pointer; }
+    textarea { resize: vertical; }
+
+    /* Select option styling */
+    select option { background: #1e293b; color: #e2e8f0; }
+
+    /* Last touch */
+    .readonly-field { padding: 8px 10px; font-size: 14px; color: #64748b; }
+    .readonly-hint { font-size: 11px; color: #475569; margin-top: 3px; }
+
+    /* Add contact inline form */
+    .add-contact-inline { margin-top: 10px; padding: 12px; background: #0f172a; border: 1px solid #334155; border-radius: 6px; display: none; }
+    .add-contact-inline.visible { display: block; }
+    .add-contact-inline .row { display: flex; gap: 8px; align-items: flex-end; flex-wrap: wrap; }
+    .add-contact-inline .row input { flex: 1; min-width: 140px; }
+    .btn-add { padding: 8px 14px; background: #2563eb; color: #fff; border: none; border-radius: 5px; font-size: 13px; cursor: pointer; white-space: nowrap; }
+    .btn-add:hover { background: #1d4ed8; }
+    .add-contact-inline .hint { font-size: 11px; color: #475569; margin-bottom: 8px; }
+
+    /* Footer buttons */
+    .form-footer { padding: 16px 24px; display: flex; justify-content: flex-end; gap: 10px; border-top: 1px solid #334155; }
+    .btn { padding: 9px 20px; font-size: 14px; border-radius: 6px; border: none; cursor: pointer; font-weight: 500; }
+    .btn-cancel { background: #1e293b; color: #94a3b8; border: 1px solid #334155; }
+    .btn-cancel:hover { color: #e2e8f0; border-color: #475569; }
+    .btn-save { background: #2563eb; color: #fff; }
+    .btn-save:hover { background: #1d4ed8; }
+    .btn-save:disabled { background: #1e3a5f; color: #64748b; cursor: default; }
+
+    .error-banner { background: #450a0a; border: 1px solid #7f1d1d; color: #fca5a5; padding: 10px 14px; border-radius: 6px; font-size: 13px; margin-bottom: 16px; display: none; }
+  </style>
+</head>
+<body>
+
+<nav>
+  <span class="logo">AREC</span>
+  <a href="/">Dashboard</a>
+  <a href="/crm">CRM</a>
+</nav>
+
+<div class="page">
+  <a href="/crm" class="back-link">← Back to Pipeline</a>
+
+  <div class="page-header">
+    <h1>{{ org }}</h1>
+    <div class="offering-label">{{ offering }}</div>
+  </div>
+
+  <div class="error-banner" id="error-banner"></div>
+
+  <div class="form-card">
+
+    <!-- Top fields -->
+    <div class="form-section">
+      <div class="field-row">
+        <label class="field-label" for="field-stage">Stage</label>
+        <div class="field-control">
+          <select id="field-stage">
+            <option value="">— Select —</option>
+            {% for s in config.stages %}
+            <option value="{{ s }}" {% if prospect.Stage == s %}selected{% endif %}>{{ s }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+
+      <div class="field-row">
+        <label class="field-label" for="field-urgency">Urgency</label>
+        <div class="field-control">
+          <select id="field-urgency">
+            <option value="">— None —</option>
+            {% for u in config.urgency_levels %}
+            <option value="{{ u }}" {% if prospect.Urgency == u %}selected{% endif %}>{{ u }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+
+      <div class="field-row">
+        <label class="field-label" for="field-target">Target</label>
+        <div class="field-control">
+          <input type="text" id="field-target" value="{{ prospect.Target or '' }}" placeholder="$0">
+        </div>
+      </div>
+
+      <div class="field-row">
+        <label class="field-label" for="field-committed">Committed</label>
+        <div class="field-control">
+          <input type="text" id="field-committed" value="{{ prospect.Committed or '' }}" placeholder="$0">
+        </div>
+      </div>
+
+      <div class="field-row">
+        <label class="field-label" for="field-closing">Closing</label>
+        <div class="field-control">
+          <select id="field-closing">
+            <option value="">— None —</option>
+            {% for c in config.closing_options %}
+            <option value="{{ c }}" {% if prospect.Closing == c %}selected{% endif %}>{{ c }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+
+      <div class="field-row">
+        <label class="field-label" for="field-assigned_to">Assigned To</label>
+        <div class="field-control">
+          <select id="field-assigned_to">
+            <option value="">— None —</option>
+            {% for member in config.team %}
+            <option value="{{ member }}" {% if prospect['Assigned To'] == member %}selected{% endif %}>{{ member }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+
+      <div class="field-row">
+        <label class="field-label" for="field-primary_contact">Primary Contact</label>
+        <div class="field-control">
+          <select id="field-primary_contact" onchange="handleContactSelectChange(this)">
+            <option value="">— Select —</option>
+            {% for contact in contacts %}
+            <option value="{{ contact.name }}"
+                    {% if prospect['Primary Contact'] == contact.name %}selected{% endif %}>
+              {{ contact.name }}{% if contact.role %} ({{ contact.role }}){% endif %}
+            </option>
+            {% endfor %}
+            <option value="__add_new__">+ Add new contact...</option>
+          </select>
+          <!-- Inline add-contact form (Delta 3) -->
+          <div id="add-contact-form" class="add-contact-inline">
+            <div class="hint">Create a new contact and link them to this org.</div>
+            <div class="row">
+              <input type="text" id="new-contact-name" placeholder="Full name *">
+              <input type="text" id="new-contact-email" placeholder="Email (optional)">
+              <button class="btn-add" onclick="addNewContact()">Add</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Text areas -->
+    <div class="form-section">
+      <div class="field-row">
+        <label class="field-label" for="field-next_action">Next Action</label>
+        <div class="field-control">
+          <textarea id="field-next_action" rows="2">{{ prospect['Next Action'] or '' }}</textarea>
+        </div>
+      </div>
+
+      <div class="field-row">
+        <label class="field-label" for="field-notes">Notes</label>
+        <div class="field-control">
+          <textarea id="field-notes" rows="4">{{ prospect.Notes or '' }}</textarea>
+        </div>
+      </div>
+    </div>
+
+    <!-- Last touch (read-only) -->
+    <div class="form-section">
+      <div class="field-row">
+        <span class="field-label">Last Touch</span>
+        <div class="field-control">
+          <div class="readonly-field">{{ prospect['Last Touch'] or '—' }}</div>
+          <div class="readonly-hint">Auto-updated to today on save</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="form-footer">
+      <button class="btn btn-cancel" onclick="window.location.href='/crm'">Cancel</button>
+      <button class="btn btn-save" id="save-btn" onclick="saveProspect()">Save</button>
+    </div>
+
+  </div>
+</div>
+
+<script>
+const ORG = {{ org | tojson }};
+const OFFERING = {{ offering | tojson }};
+
+function handleContactSelectChange(sel) {
+  const form = document.getElementById('add-contact-form');
+  if (sel.value === '__add_new__') {
+    form.classList.add('visible');
+    document.getElementById('new-contact-name').focus();
+  } else {
+    form.classList.remove('visible');
+  }
+}
+
+async function addNewContact() {
+  const name = document.getElementById('new-contact-name').value.trim();
+  const email = document.getElementById('new-contact-email').value.trim();
+  if (!name) {
+    document.getElementById('new-contact-name').focus();
+    return;
+  }
+
+  const resp = await fetch('/crm/api/contact', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name, org: ORG, email, role: '', type: 'LP Prospect' }),
+  });
+
+  if (resp.ok) {
+    const data = await resp.json();
+    const select = document.getElementById('field-primary_contact');
+    // Insert new option before the "add new" option
+    const addNewOpt = select.querySelector('option[value="__add_new__"]');
+    const opt = new Option(name, name, true, true);
+    select.insertBefore(opt, addNewOpt);
+    // Hide inline form
+    document.getElementById('add-contact-form').classList.remove('visible');
+    document.getElementById('new-contact-name').value = '';
+    document.getElementById('new-contact-email').value = '';
+  } else {
+    const err = await resp.json().catch(() => ({}));
+    showError(err.error || 'Failed to add contact.');
+  }
+}
+
+async function saveProspect() {
+  const btn = document.getElementById('save-btn');
+  btn.disabled = true;
+  btn.textContent = 'Saving…';
+
+  const primaryContact = document.getElementById('field-primary_contact').value;
+  const fields = {
+    stage:           document.getElementById('field-stage').value,
+    urgency:         document.getElementById('field-urgency').value,
+    target:          document.getElementById('field-target').value,
+    committed:       document.getElementById('field-committed').value,
+    closing:         document.getElementById('field-closing').value,
+    assigned_to:     document.getElementById('field-assigned_to').value,
+    primary_contact: primaryContact === '__add_new__' ? '' : primaryContact,
+    next_action:     document.getElementById('field-next_action').value,
+    notes:           document.getElementById('field-notes').value,
+  };
+
+  const resp = await fetch('/crm/api/prospect/save', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ org: ORG, offering: OFFERING, fields }),
+  });
+
+  if (resp.ok) {
+    window.location.href = '/crm';
+  } else {
+    const err = await resp.json().catch(() => ({}));
+    showError(err.error || 'Save failed. Please try again.');
+    btn.disabled = false;
+    btn.textContent = 'Save';
+  }
+}
+
+function showError(msg) {
+  const banner = document.getElementById('error-banner');
+  banner.textContent = msg;
+  banner.style.display = '';
+  setTimeout(() => { banner.style.display = 'none'; }, 5000);
+}
+</script>
+</body>
+</html>

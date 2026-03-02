@@ -1,0 +1,949 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CRM Pipeline</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f8fafc; color: #1e293b; min-height: 100vh; }
+
+    /* Nav */
+    nav { background: #0f172a; padding: 0 24px; display: flex; align-items: center; gap: 24px; height: 52px; }
+    nav a { color: #94a3b8; text-decoration: none; font-size: 14px; font-weight: 500; }
+    nav a:hover { color: #e2e8f0; }
+    nav .logo { color: #e2e8f0; font-weight: 700; font-size: 16px; margin-right: 8px; }
+
+    /* Layout */
+    .page { padding: 20px 24px; max-width: 1400px; margin: 0 auto; }
+
+    /* Tabs */
+    .tabs { display: flex; gap: 0; margin-bottom: 0; border-bottom: 2px solid #e2e8f0; }
+    .tab { padding: 10px 20px; cursor: pointer; font-size: 14px; font-weight: 500; color: #64748b; border-bottom: 2px solid transparent; margin-bottom: -2px; user-select: none; }
+    .tab:hover { color: #1e293b; }
+    .tab.active { color: #2563eb; border-bottom-color: #2563eb; }
+    .tab-meta { font-size: 11px; color: #94a3b8; margin-top: 2px; }
+
+    /* Fund summary bar */
+    .fund-bar { background: #fff; border: 1px solid #e2e8f0; border-top: none; padding: 10px 16px; display: flex; gap: 32px; align-items: center; flex-wrap: wrap; margin-bottom: 12px; }
+    .fund-stat { font-size: 13px; color: #64748b; }
+    .fund-stat strong { color: #1e293b; }
+
+    /* Filters */
+    .filters { display: flex; gap: 10px; margin-bottom: 12px; flex-wrap: wrap; align-items: center; }
+    .filters input[type=text] { padding: 6px 10px; border: 1px solid #e2e8f0; border-radius: 6px; font-size: 13px; width: 200px; outline: none; }
+    .filters input[type=text]:focus { border-color: #2563eb; }
+    .filters select { padding: 6px 10px; border: 1px solid #e2e8f0; border-radius: 6px; font-size: 13px; background: #fff; outline: none; cursor: pointer; }
+    .filters select:focus { border-color: #2563eb; }
+    .toggle-label { font-size: 13px; color: #64748b; display: flex; align-items: center; gap: 6px; cursor: pointer; }
+
+    /* Unmatched panel */
+    .unmatched-panel { background: #fff; border: 1px solid #fbbf24; border-radius: 8px; margin-bottom: 16px; overflow: hidden; }
+    .unmatched-header { padding: 10px 16px; background: #fffbeb; display: flex; justify-content: space-between; align-items: center; cursor: pointer; font-size: 13px; font-weight: 600; color: #92400e; }
+    .unmatched-body { padding: 0 16px 12px; display: none; }
+    .unmatched-body.open { display: block; }
+    .unmatched-row { display: flex; gap: 12px; padding: 8px 0; border-bottom: 1px solid #f1f5f9; font-size: 13px; align-items: center; flex-wrap: wrap; }
+    .unmatched-row:last-child { border-bottom: none; }
+    .unmatched-row .info { flex: 1; min-width: 200px; }
+    .unmatched-row .actions { display: flex; gap: 8px; align-items: center; }
+    .btn-sm { padding: 4px 10px; font-size: 12px; border-radius: 4px; border: 1px solid #e2e8f0; background: #fff; cursor: pointer; }
+    .btn-sm:hover { background: #f1f5f9; }
+    .btn-sm.danger { border-color: #fca5a5; color: #dc2626; }
+    .btn-sm.danger:hover { background: #fef2f2; }
+
+    /* Table */
+    .table-wrap { background: #fff; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; }
+    table { width: 100%; border-collapse: collapse; }
+    thead { background: #f8fafc; }
+    th { padding: 10px 14px; text-align: left; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: #64748b; border-bottom: 1px solid #e2e8f0; cursor: pointer; user-select: none; white-space: nowrap; }
+    th:hover { color: #1e293b; }
+    td { padding: 10px 14px; font-size: 13px; border-bottom: 1px solid #f1f5f9; vertical-align: middle; }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: #f8fafc; }
+    tr { cursor: pointer; }
+
+    /* Badges */
+    .badge { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 600; }
+    .urgency-High { background: #fef2f2; color: #dc2626; }
+    .urgency-Med { background: #fffbeb; color: #d97706; }
+    .urgency-Low { background: #f1f5f9; color: #6b7280; }
+    .stage-badge { background: #eff6ff; color: #2563eb; }
+
+    /* Stage colors */
+    .stage-7, .stage-8 { background: #f0fdf4; color: #16a34a; }
+    .stage-5, .stage-6 { background: #eff6ff; color: #2563eb; }
+    .stage-3, .stage-4 { background: #fafafa; color: #64748b; }
+    .stage-1, .stage-2 { background: #f8fafc; color: #94a3b8; }
+
+    /* Editable cells */
+    td.editable { position: relative; }
+    td.editable:hover::after { content: '✎'; position: absolute; right: 6px; top: 50%; transform: translateY(-50%); font-size: 11px; color: #94a3b8; }
+    .cell-input { width: 100%; padding: 4px 6px; border: 1px solid #2563eb; border-radius: 4px; font-size: 13px; font-family: inherit; outline: none; background: #fff; }
+    .cell-select { width: 100%; padding: 4px 6px; border: 1px solid #2563eb; border-radius: 4px; font-size: 13px; font-family: inherit; outline: none; background: #fff; cursor: pointer; }
+
+    /* Save feedback */
+    @keyframes flash-green { 0%,100% { background: inherit; } 50% { background: #d1fae5; } }
+    @keyframes flash-red { 0%,100% { background: inherit; } 50% { background: #fee2e2; } }
+    .flash-ok { animation: flash-green 0.6s ease; }
+    .flash-err { animation: flash-red 0.6s ease; }
+
+    /* Empty state */
+    .empty-state { text-align: center; padding: 60px 20px; color: #94a3b8; }
+
+    /* Mobile */
+    @media (max-width: 768px) {
+      .filters { gap: 8px; }
+      .filters input[type=text] { width: 150px; }
+    }
+
+    /* Org click modal */
+    .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 200; }
+    .modal-overlay.hidden { display: none; }
+    .modal-card { background: #1e1e3a; border: 1px solid #2a2a4a; border-radius: 12px; padding: 24px; width: 360px; text-align: center; }
+    .modal-card h3 { color: #fff; margin: 0 0 8px; font-size: 18px; }
+    .modal-card p { color: #94a3b8; margin: 0 0 20px; font-size: 14px; }
+    .modal-buttons { display: flex; gap: 12px; margin-bottom: 16px; }
+    .modal-btn { flex: 1; display: flex; flex-direction: column; align-items: center; padding: 16px 12px; border-radius: 8px; text-decoration: none; min-height: 44px; transition: background 0.15s; }
+    .modal-btn strong { font-size: 15px; }
+    .modal-btn span { font-size: 12px; color: #94a3b8; margin-top: 4px; }
+    .modal-btn-primary { background: #2563eb; color: #fff; }
+    .modal-btn-primary:hover { background: #1d4ed8; }
+    .modal-btn-secondary { background: #334155; color: #fff; }
+    .modal-btn-secondary:hover { background: #475569; }
+    .modal-cancel { background: none; border: none; color: #64748b; cursor: pointer; font-size: 13px; }
+    .modal-cancel:hover { color: #94a3b8; }
+    .org-link { color: inherit; text-decoration: none; font-weight: 500; }
+    .org-link:hover { color: #2563eb; }
+
+    /* Column manager button */
+    .btn-columns {
+      background: #334155;
+      color: #e2e8f0;
+      border: 1px solid #475569;
+      border-radius: 6px;
+      padding: 6px 14px;
+      cursor: pointer;
+      font-size: 13px;
+    }
+    .btn-columns:hover { background: #475569; }
+
+    /* Column manager wrapper */
+    .col-manager-wrap { position: relative; margin-left: auto; }
+
+    /* Column manager panel */
+    .column-manager-panel {
+      position: absolute;
+      top: calc(100% + 4px);
+      right: 0;
+      width: 240px;
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 8px;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+      z-index: 100;
+      max-height: 400px;
+      overflow-y: auto;
+    }
+    .column-manager-panel.hidden { display: none; }
+
+    /* Panel header */
+    .col-panel-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 12px;
+      border-bottom: 1px solid #334155;
+      color: #e2e8f0;
+      font-weight: 600;
+      font-size: 13px;
+      position: sticky;
+      top: 0;
+      background: #1e293b;
+    }
+    .col-panel-header button { background: none; border: none; cursor: pointer; color: #94a3b8; font-size: 16px; line-height: 1; padding: 0; }
+    .col-panel-header button:hover { color: #e2e8f0; }
+
+    /* Panel rows */
+    .col-row {
+      display: flex;
+      align-items: center;
+      padding: 8px 12px;
+      gap: 10px;
+      cursor: default;
+      user-select: none;
+      color: #e2e8f0;
+      font-size: 13px;
+    }
+    .col-row:hover { background: rgba(255, 255, 255, 0.05); }
+    .col-row.dragging { opacity: 0.4; }
+    .col-row.drag-over { border-top: 2px solid #2563eb; }
+
+    /* Drag handle */
+    .drag-handle {
+      color: #64748b;
+      cursor: grab;
+      font-size: 14px;
+      padding: 2px 4px;
+      flex-shrink: 0;
+    }
+    .col-row.locked .drag-handle { cursor: default; color: #334155; }
+
+    /* Reset button */
+    .col-reset-btn {
+      display: block;
+      width: 100%;
+      padding: 10px 12px;
+      border: none;
+      border-top: 1px solid #334155;
+      background: none;
+      color: #64748b;
+      cursor: pointer;
+      font-size: 12px;
+      text-align: left;
+    }
+    .col-reset-btn:hover { color: #94a3b8; background: rgba(255, 255, 255, 0.03); }
+
+    /* Shake animation for minimum column enforcement */
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      25% { transform: translateX(-4px); }
+      75% { transform: translateX(4px); }
+    }
+    .shake { animation: shake 0.3s ease; }
+
+    /* Right-aligned numeric columns */
+    td.col-target_display,
+    td.col-committed_display { text-align: right; }
+    th.col-target_display,
+    th.col-committed_display { text-align: right; }
+  </style>
+</head>
+<body>
+
+<nav>
+  <span class="logo">AREC</span>
+  <a href="/">Dashboard</a>
+  <a href="/crm" style="color:#e2e8f0">CRM</a>
+</nav>
+
+<div class="page">
+
+  <!-- Offering tabs -->
+  <div class="tabs" id="tabs"></div>
+
+  <!-- Fund summary bar -->
+  <div class="fund-bar" id="fund-bar">
+    <span class="fund-stat">Loading...</span>
+  </div>
+
+  <!-- Unmatched panel -->
+  <div class="unmatched-panel" id="unmatched-panel" style="display:none">
+    <div class="unmatched-header" onclick="toggleUnmatched()">
+      <span id="unmatched-title">&#9888; Unmatched Emails</span>
+      <span>&#9662;</span>
+    </div>
+    <div class="unmatched-body" id="unmatched-body"></div>
+  </div>
+
+  <!-- Filters + Column manager -->
+  <div class="filters">
+    <input type="text" id="search" placeholder="Search org..." oninput="applyFilters()">
+    <select id="filter-stage" onchange="applyFilters()">
+      <option value="">All Stages</option>
+      {% for stage in config.stages %}
+      <option value="{{ stage }}">{{ stage }}</option>
+      {% endfor %}
+    </select>
+    <select id="filter-urgency" onchange="applyFilters()">
+      <option value="">All Urgency</option>
+      {% for u in config.urgency_levels %}
+      <option value="{{ u }}">{{ u }}</option>
+      {% endfor %}
+    </select>
+    <select id="filter-assigned" onchange="applyFilters()">
+      <option value="">All Assigned</option>
+      {% for member in config.team %}
+      <option value="{{ member }}">{{ member }}</option>
+      {% endfor %}
+    </select>
+    <select id="filter-type" onchange="applyFilters()">
+      <option value="">All Types</option>
+      {% for t in config.org_types %}
+      <option value="{{ t }}">{{ t }}</option>
+      {% endfor %}
+    </select>
+    <label class="toggle-label">
+      <input type="checkbox" id="include-closed" onchange="reloadProspects()"> Include Closed
+    </label>
+    <div class="col-manager-wrap">
+      <button class="btn-columns" onclick="toggleColumnPanel()">Columns &#9660;</button>
+      <div class="column-manager-panel hidden" id="col-panel">
+        <div class="col-panel-header">
+          <span>Columns</span>
+          <button onclick="closeColumnPanel()">&#x2715;</button>
+        </div>
+        <div id="col-panel-rows"></div>
+        <button class="col-reset-btn" onclick="resetColumns()">Reset to defaults</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Org click modal -->
+  <div id="org-click-modal" class="modal-overlay hidden">
+    <div class="modal-card">
+      <h3 id="modal-org-name"></h3>
+      <p>What would you like to update?</p>
+      <div class="modal-buttons">
+        <a id="modal-prospect-btn" class="modal-btn modal-btn-primary" href="#">
+          <strong>Prospect</strong>
+          <span>Stage, target, urgency, etc.</span>
+        </a>
+        <a id="modal-org-btn" class="modal-btn modal-btn-secondary" href="#">
+          <strong>Org</strong>
+          <span>Contacts, type, notes</span>
+        </a>
+      </div>
+      <button id="modal-cancel" class="modal-cancel">Cancel</button>
+    </div>
+  </div>
+
+  <!-- Pipeline table -->
+  <div class="table-wrap">
+    <table id="pipeline-table">
+      <thead>
+        <tr id="table-header-row"></tr>
+      </thead>
+      <tbody id="pipeline-body">
+        <tr><td colspan="5" class="empty-state">Loading pipeline...</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+</div>
+
+<script>
+const CONFIG = {
+  stages: {{ config.stages | tojson }},
+  urgency_levels: {{ config.urgency_levels | tojson }},
+  team: {{ config.team | tojson }},
+  closing_options: {{ config.closing_options | tojson }},
+};
+const OFFERINGS = {{ offerings | tojson }};
+const URGENCY_ORDER = { 'High': 0, 'Med': 1, 'Low': 2, '': 3 };
+
+// Maps column key → API response field name
+const FIELD_MAP = {
+  org:               'org',
+  urgency:           'Urgency',
+  stage:             'Stage',
+  target_display:    'Target',
+  next_action:       'Next Action',
+  org_type:          'Type',
+  assigned_to:       'Assigned To',
+  closing:           'Closing',
+  primary_contact:   'Primary Contact',
+  last_touch:        'Last Touch',
+  committed_display: 'Committed',
+  notes:             'Notes',
+};
+
+// Maps column key → PATCH API field name
+const PATCH_FIELD_MAP = {
+  urgency:        'urgency',
+  stage:          'stage',
+  target_display: 'target',
+  next_action:    'next_action',
+  assigned_to:    'assigned_to',
+  closing:        'closing',
+};
+
+// Column keys that support inline editing
+const EDITABLE_KEYS = new Set(['urgency', 'stage', 'target_display', 'next_action', 'assigned_to', 'closing']);
+
+// Dropdown options keyed by column key
+const DROPDOWN_FIELDS_BY_KEY = {
+  stage:       CONFIG.stages,
+  urgency:     [...CONFIG.urgency_levels, ''],
+  assigned_to: [...CONFIG.team, ''],
+  closing:     [...CONFIG.closing_options, ''],
+};
+
+// ---------------------------------------------------------------------------
+// Column config
+// ---------------------------------------------------------------------------
+
+const DEFAULT_COLUMNS = [
+  { key: 'org',              label: 'Organization',    visible: true,  locked: true  },
+  { key: 'urgency',          label: 'Urgency',         visible: true,  locked: false },
+  { key: 'stage',            label: 'Stage',           visible: true,  locked: false },
+  { key: 'target_display',   label: 'Expected',        visible: true,  locked: false },
+  { key: 'next_action',      label: 'Next Action',     visible: true,  locked: false },
+  { key: 'org_type',         label: 'Type',            visible: false, locked: false },
+  { key: 'assigned_to',      label: 'Assigned To',     visible: false, locked: false },
+  { key: 'closing',          label: 'Closing',         visible: false, locked: false },
+  { key: 'primary_contact',  label: 'Primary Contact', visible: false, locked: false },
+  { key: 'last_touch',       label: 'Last Touch',      visible: false, locked: false },
+  { key: 'committed_display',label: 'Committed',       visible: false, locked: false },
+  { key: 'notes',            label: 'Notes',           visible: false, locked: false },
+];
+
+let columnConfig = loadColumnConfig();
+
+function saveColumnConfig() {
+  const toSave = columnConfig.map(c => ({ key: c.key, visible: c.visible }));
+  localStorage.setItem('crm_column_config', JSON.stringify(toSave));
+}
+
+function loadColumnConfig() {
+  const saved = localStorage.getItem('crm_column_config');
+  if (!saved) return DEFAULT_COLUMNS.map(c => ({ ...c }));
+  try {
+    const parsed = JSON.parse(saved);
+    const savedKeys = parsed.map(c => c.key);
+    const merged = parsed
+      .map(c => {
+        const def = DEFAULT_COLUMNS.find(d => d.key === c.key);
+        if (!def) return null;
+        return { ...def, visible: c.visible };
+      })
+      .filter(Boolean);
+    // Append any new columns added since last save
+    DEFAULT_COLUMNS.forEach(d => {
+      if (!savedKeys.includes(d.key)) merged.push({ ...d });
+    });
+    // Ensure org is always first
+    const orgIdx = merged.findIndex(c => c.key === 'org');
+    if (orgIdx > 0) merged.unshift(merged.splice(orgIdx, 1)[0]);
+    return merged;
+  } catch {
+    return DEFAULT_COLUMNS.map(c => ({ ...c }));
+  }
+}
+
+// ---------------------------------------------------------------------------
+// State
+// ---------------------------------------------------------------------------
+
+let allProspects = [];
+let filteredProspects = [];
+let currentOffering = '';
+let sortField = '';
+let sortDir = 1;
+let editingCell = null;
+let dragSrcKey = null;
+
+// ---------------------------------------------------------------------------
+// Init
+// ---------------------------------------------------------------------------
+
+async function init() {
+  renderTabs();
+  const stored = localStorage.getItem('crm_offering');
+  currentOffering = stored && OFFERINGS.find(o => o.name === stored) ? stored : OFFERINGS[0]?.name || '';
+  setActiveTab(currentOffering);
+  await reloadProspects();
+  loadUnmatched();
+
+  // Close column panel on outside click
+  document.addEventListener('click', e => {
+    if (!e.target.closest('.col-manager-wrap')) closeColumnPanel();
+  });
+}
+
+function renderTabs() {
+  const container = document.getElementById('tabs');
+  container.innerHTML = OFFERINGS.map(o => `
+    <div class="tab" id="tab-${o.name}" onclick="switchOffering('${o.name.replace(/'/g, "\\'")}')">
+      ${o.name}
+    </div>
+  `).join('');
+}
+
+function setActiveTab(offering) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  const tab = document.getElementById('tab-' + offering);
+  if (tab) tab.classList.add('active');
+}
+
+async function switchOffering(offering) {
+  currentOffering = offering;
+  localStorage.setItem('crm_offering', offering);
+  setActiveTab(offering);
+  await reloadProspects();
+}
+
+// ---------------------------------------------------------------------------
+// Data loading
+// ---------------------------------------------------------------------------
+
+async function reloadProspects() {
+  const includeClosed = document.getElementById('include-closed').checked;
+  const url = `/crm/api/prospects?offering=${encodeURIComponent(currentOffering)}&include_closed=${includeClosed}`;
+  const resp = await fetch(url);
+  allProspects = await resp.json();
+  defaultSort();
+  applyFilters();
+  loadFundSummary();
+}
+
+async function loadFundSummary() {
+  const resp = await fetch(`/crm/api/fund-summary?offering=${encodeURIComponent(currentOffering)}`);
+  const s = await resp.json();
+  document.getElementById('fund-bar').innerHTML = `
+    <span class="fund-stat"><strong>${s.prospect_count}</strong> active prospects</span>
+    <span class="fund-stat">Pipeline: <strong>${s.total_target_fmt}</strong></span>
+    <span class="fund-stat">Committed: <strong>${s.total_committed_fmt}</strong></span>
+    <span class="fund-stat">Fund Target: <strong>${s.fund_target_fmt}</strong></span>
+  `;
+}
+
+async function loadUnmatched() {
+  const resp = await fetch('/crm/api/unmatched');
+  const items = await resp.json();
+  const panel = document.getElementById('unmatched-panel');
+  if (!items.length) { panel.style.display = 'none'; return; }
+  panel.style.display = '';
+  document.getElementById('unmatched-title').textContent = `⚠ ${items.length} Unmatched Email${items.length > 1 ? 's' : ''}`;
+  const body = document.getElementById('unmatched-body');
+  body.innerHTML = items.map(item => `
+    <div class="unmatched-row" id="ur-${encodeURIComponent(item.participant_email)}">
+      <div class="info">
+        <strong>${item.participant_name || item.participant_email}</strong>
+        <span style="color:#64748b;margin-left:8px">&lt;${item.participant_email}&gt;</span>
+        <div style="color:#94a3b8;font-size:12px;margin-top:2px">${item.subject || ''} · ${item.date || ''}</div>
+      </div>
+      <div class="actions">
+        <button class="btn-sm" onclick="dismissUnmatched('${item.participant_email}')">Dismiss</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function toggleUnmatched() {
+  document.getElementById('unmatched-body').classList.toggle('open');
+}
+
+async function dismissUnmatched(email) {
+  await fetch(`/crm/api/unmatched/${encodeURIComponent(email)}`, { method: 'DELETE' });
+  document.getElementById('ur-' + encodeURIComponent(email))?.remove();
+  const remaining = document.querySelectorAll('.unmatched-row').length;
+  if (!remaining) document.getElementById('unmatched-panel').style.display = 'none';
+}
+
+// ---------------------------------------------------------------------------
+// Column manager panel
+// ---------------------------------------------------------------------------
+
+function toggleColumnPanel() {
+  const panel = document.getElementById('col-panel');
+  if (panel.classList.contains('hidden')) {
+    renderColumnPanel();
+    panel.classList.remove('hidden');
+  } else {
+    panel.classList.add('hidden');
+  }
+}
+
+function closeColumnPanel() {
+  document.getElementById('col-panel').classList.add('hidden');
+}
+
+function renderColumnPanel() {
+  const container = document.getElementById('col-panel-rows');
+  container.innerHTML = columnConfig.map(col => `
+    <div class="col-row${col.locked ? ' locked' : ''}" data-key="${col.key}">
+      <span class="drag-handle">&#9776;</span>
+      <input type="checkbox" ${col.visible ? 'checked' : ''} ${col.locked ? 'disabled' : ''} onchange="toggleColumnVisible('${col.key}')">
+      <span>${escHtml(col.label)}</span>
+    </div>
+  `).join('');
+
+  // Non-locked rows are draggable
+  container.querySelectorAll('.col-row:not(.locked)').forEach(row => {
+    row.setAttribute('draggable', 'true');
+    row.addEventListener('dragstart', onDragStart);
+    row.addEventListener('dragend', onDragEnd);
+  });
+
+  // All rows are valid drop targets
+  container.querySelectorAll('.col-row').forEach(row => {
+    row.addEventListener('dragover', onDragOver);
+    row.addEventListener('dragleave', onDragLeave);
+    row.addEventListener('drop', onDrop);
+  });
+}
+
+function toggleColumnVisible(key) {
+  const col = columnConfig.find(c => c.key === key);
+  if (!col || col.locked) return;
+
+  if (col.visible) {
+    // Prevent hiding the last visible non-locked column
+    const visibleNonLocked = columnConfig.filter(c => !c.locked && c.visible);
+    if (visibleNonLocked.length <= 1) {
+      const checkbox = document.querySelector(`.col-row[data-key="${key}"] input[type=checkbox]`);
+      if (checkbox) {
+        checkbox.classList.remove('shake');
+        void checkbox.offsetWidth; // force reflow to restart animation
+        checkbox.classList.add('shake');
+        setTimeout(() => checkbox.classList.remove('shake'), 400);
+      }
+      return;
+    }
+  }
+
+  col.visible = !col.visible;
+  const checkbox = document.querySelector(`.col-row[data-key="${key}"] input[type=checkbox]`);
+  if (checkbox) checkbox.checked = col.visible;
+  renderTable();
+  saveColumnConfig();
+}
+
+function resetColumns() {
+  columnConfig = DEFAULT_COLUMNS.map(c => ({ ...c }));
+  saveColumnConfig();
+  renderColumnPanel();
+  renderTable();
+}
+
+// ---------------------------------------------------------------------------
+// Drag and drop
+// ---------------------------------------------------------------------------
+
+function onDragStart() {
+  dragSrcKey = this.dataset.key;
+  this.classList.add('dragging');
+}
+
+function onDragOver(e) {
+  e.preventDefault();
+  document.querySelectorAll('.col-row').forEach(r => r.classList.remove('drag-over'));
+  this.classList.add('drag-over');
+}
+
+function onDragLeave() {
+  this.classList.remove('drag-over');
+}
+
+function onDrop(e) {
+  e.preventDefault();
+  document.querySelectorAll('.col-row').forEach(r => r.classList.remove('drag-over', 'dragging'));
+  const targetKey = this.dataset.key;
+  if (!dragSrcKey || dragSrcKey === targetKey) return;
+
+  const srcIdx = columnConfig.findIndex(c => c.key === dragSrcKey);
+  const tgtIdx = columnConfig.findIndex(c => c.key === targetKey);
+  if (srcIdx === -1 || tgtIdx === -1) return;
+
+  const [moved] = columnConfig.splice(srcIdx, 1);
+  const newTgtIdx = columnConfig.findIndex(c => c.key === targetKey);
+  columnConfig.splice(newTgtIdx, 0, moved);
+
+  // Ensure org is always first
+  const orgIdx = columnConfig.findIndex(c => c.key === 'org');
+  if (orgIdx > 0) columnConfig.unshift(columnConfig.splice(orgIdx, 1)[0]);
+
+  dragSrcKey = null;
+  renderColumnPanel();
+  renderTable();
+  saveColumnConfig();
+}
+
+function onDragEnd() {
+  document.querySelectorAll('.col-row').forEach(r => r.classList.remove('dragging', 'drag-over'));
+  dragSrcKey = null;
+}
+
+// ---------------------------------------------------------------------------
+// Filtering & sorting
+// ---------------------------------------------------------------------------
+
+function defaultSort() {
+  sortField = '__default__';
+  sortDir = 1;
+  allProspects.sort((a, b) => {
+    const ua = URGENCY_ORDER[a.Urgency] ?? 3;
+    const ub = URGENCY_ORDER[b.Urgency] ?? 3;
+    if (ua !== ub) return ua - ub;
+    const sa = parseInt(a.Stage) || 0;
+    const sb = parseInt(b.Stage) || 0;
+    return sb - sa;
+  });
+}
+
+function sortBy(colKey) {
+  const apiField = FIELD_MAP[colKey];
+  if (!apiField) return;
+
+  if (sortField === colKey) {
+    sortDir *= -1;
+  } else {
+    sortField = colKey;
+    sortDir = 1;
+  }
+
+  filteredProspects.sort((a, b) => {
+    let va = a[apiField] || '';
+    let vb = b[apiField] || '';
+    if (colKey === 'urgency') {
+      va = URGENCY_ORDER[va] ?? 3;
+      vb = URGENCY_ORDER[vb] ?? 3;
+      return (va - vb) * sortDir;
+    }
+    if (colKey === 'stage') {
+      va = parseInt(va) || 0;
+      vb = parseInt(vb) || 0;
+      return (va - vb) * sortDir;
+    }
+    return String(va).localeCompare(String(vb)) * sortDir;
+  });
+  renderTable();
+}
+
+function applyFilters() {
+  const search = document.getElementById('search').value.toLowerCase();
+  const stage = document.getElementById('filter-stage').value;
+  const urgency = document.getElementById('filter-urgency').value;
+  const assigned = document.getElementById('filter-assigned').value;
+
+  filteredProspects = allProspects.filter(p => {
+    if (search && !p.org.toLowerCase().includes(search)) return false;
+    if (stage && p.Stage !== stage) return false;
+    if (urgency && p.Urgency !== urgency) return false;
+    if (assigned && p['Assigned To'] !== assigned) return false;
+    return true;
+  });
+  renderTable();
+}
+
+// ---------------------------------------------------------------------------
+// Rendering
+// ---------------------------------------------------------------------------
+
+function renderTableHeader() {
+  const visibleCols = columnConfig.filter(c => c.visible);
+  const tr = document.getElementById('table-header-row');
+  tr.innerHTML = visibleCols.map(col =>
+    `<th class="col-${col.key}" onclick="sortBy('${col.key}')">${escHtml(col.label)} <span id="sort-${col.key}"></span></th>`
+  ).join('');
+
+  // Restore sort indicator after re-render
+  if (sortField && sortField !== '__default__') {
+    const indicator = document.getElementById('sort-' + sortField);
+    if (indicator) indicator.textContent = sortDir === 1 ? ' ↑' : ' ↓';
+  }
+}
+
+function buildCellContent(col, p) {
+  const val = p[FIELD_MAP[col.key]];
+  switch (col.key) {
+    case 'urgency':
+      return val
+        ? `<span class="badge urgency-${escHtml(val)}">${escHtml(val)}</span>`
+        : '<span style="color:#94a3b8">—</span>';
+
+    case 'stage': {
+      const stageNum = parseInt(val) || 0;
+      const cls = stageNum >= 7 ? 'stage-7' : stageNum >= 5 ? 'stage-5' : stageNum >= 3 ? 'stage-3' : 'stage-1';
+      return val
+        ? `<span class="badge ${cls}">${escHtml(val)}</span>`
+        : '<span style="color:#94a3b8">—</span>';
+    }
+
+    case 'target_display':
+    case 'committed_display':
+      return escHtml(val || '—');
+
+    case 'next_action':
+    case 'notes': {
+      if (!val) return '—';
+      const display = val.length > 60 ? val.slice(0, 60) + '…' : val;
+      return `<span title="${escHtml(val)}">${escHtml(display)}</span>`;
+    }
+
+    case 'last_touch': {
+      if (!val) return '—';
+      const d = new Date(val);
+      const days = isNaN(d) ? null : Math.floor((Date.now() - d.getTime()) / 86400000);
+      const dotColor = days === null ? '#94a3b8' : days <= 7 ? '#16a34a' : days <= 14 ? '#d97706' : '#dc2626';
+      const dot = `<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${dotColor};margin-right:5px;vertical-align:middle"></span>`;
+      return dot + escHtml(val);
+    }
+
+    case 'org_type':
+      return val
+        ? `<span class="badge" style="background:#f0f4ff;color:#4f46e5;font-size:10px">${escHtml(val)}</span>`
+        : '<span style="color:#94a3b8">—</span>';
+
+    default:
+      return escHtml(val || '—');
+  }
+}
+
+function renderCell(col, p, idx) {
+  // Org cell has special structure for the click modal
+  if (col.key === 'org') {
+    const safeOrg = escHtml(p.org);
+    return `<td class="col-org org-cell" data-org="${safeOrg}" data-offering="${escHtml(p.offering)}" data-col-key="org"><a href="#" class="org-link">${safeOrg}</a></td>`;
+  }
+  const isEditable = EDITABLE_KEYS.has(col.key);
+  const extraClass = isEditable ? ' editable' : '';
+  const onclickAttr = isEditable ? ` onclick="startEdit(event, ${idx}, '${col.key}')"` : '';
+  return `<td class="col-${col.key}${extraClass}" data-col-key="${col.key}"${onclickAttr}>${buildCellContent(col, p)}</td>`;
+}
+
+function renderTableRow(p, idx) {
+  const visibleCols = columnConfig.filter(c => c.visible);
+  const cells = visibleCols.map(col => renderCell(col, p, idx)).join('');
+  return `<tr data-idx="${idx}">${cells}</tr>`;
+}
+
+function renderTable() {
+  renderTableHeader();
+  const tbody = document.getElementById('pipeline-body');
+  const visibleCols = columnConfig.filter(c => c.visible);
+  if (!filteredProspects.length) {
+    tbody.innerHTML = `<tr><td colspan="${visibleCols.length}" class="empty-state">No prospects match the current filters</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = filteredProspects.map((p, idx) => renderTableRow(p, idx)).join('');
+}
+
+function escHtml(str) {
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+// ---------------------------------------------------------------------------
+// Inline editing
+// ---------------------------------------------------------------------------
+
+function startEdit(event, idx, colKey) {
+  event.stopPropagation();
+  if (editingCell) cancelEdit();
+
+  const p = filteredProspects[idx];
+  const tr = document.querySelector(`tr[data-idx="${idx}"]`);
+  const td = tr ? tr.querySelector(`td[data-col-key="${colKey}"]`) : null;
+  if (!td) return;
+
+  const apiField = FIELD_MAP[colKey];
+  const originalHTML = td.innerHTML;
+  const currentVal = p[apiField] || '';
+
+  let input;
+  if (DROPDOWN_FIELDS_BY_KEY[colKey]) {
+    input = document.createElement('select');
+    input.className = 'cell-select';
+    DROPDOWN_FIELDS_BY_KEY[colKey].forEach(opt => {
+      const o = document.createElement('option');
+      o.value = opt;
+      o.textContent = opt || '(none)';
+      if (opt === currentVal) o.selected = true;
+      input.appendChild(o);
+    });
+  } else {
+    input = document.createElement('input');
+    input.type = 'text';
+    input.className = 'cell-input';
+    input.value = currentVal;
+  }
+
+  td.innerHTML = '';
+  td.appendChild(input);
+  input.focus();
+  if (input.tagName === 'INPUT') input.select();
+
+  editingCell = { td, colKey, idx, originalHTML, input };
+
+  input.addEventListener('blur', () => saveEdit());
+  input.addEventListener('keydown', e => {
+    if (e.key === 'Enter') { e.preventDefault(); saveEdit(); }
+    if (e.key === 'Escape') { cancelEdit(); }
+  });
+}
+
+function cancelEdit() {
+  if (!editingCell) return;
+  editingCell.td.innerHTML = editingCell.originalHTML;
+  editingCell = null;
+}
+
+async function saveEdit() {
+  if (!editingCell) return;
+  const { td, colKey, idx, originalHTML, input } = editingCell;
+  const p = filteredProspects[idx];
+  const apiField = FIELD_MAP[colKey];
+  const patchField = PATCH_FIELD_MAP[colKey];
+  const newVal = input.value;
+  editingCell = null;
+
+  if (newVal === (p[apiField] || '')) {
+    td.innerHTML = originalHTML;
+    return;
+  }
+
+  td.innerHTML = '<span style="color:#94a3b8;font-size:12px">saving…</span>';
+
+  const resp = await fetch('/crm/api/prospect/field', {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ org: p.org, offering: currentOffering, field: patchField, value: newVal }),
+  });
+
+  if (resp.ok) {
+    const updated = await resp.json();
+    Object.assign(p, updated);
+    const col = columnConfig.find(c => c.key === colKey);
+    td.innerHTML = buildCellContent(col, p);
+    td.classList.add('flash-ok');
+    setTimeout(() => td.classList.remove('flash-ok'), 700);
+  } else {
+    td.innerHTML = originalHTML;
+    td.classList.add('flash-err');
+    setTimeout(() => td.classList.remove('flash-err'), 700);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Org click modal
+// ---------------------------------------------------------------------------
+
+document.addEventListener('click', function(e) {
+  const orgLink = e.target.closest('.org-link');
+  if (!orgLink) return;
+  e.preventDefault();
+
+  const cell = orgLink.closest('.org-cell');
+  const orgName = cell.dataset.org;
+  const offering = cell.dataset.offering;
+
+  document.getElementById('modal-org-name').textContent = orgName;
+  document.getElementById('modal-prospect-btn').href =
+    '/crm/prospect/' + encodeURIComponent(offering) + '/' + encodeURIComponent(orgName);
+  document.getElementById('modal-org-btn').href =
+    '/crm/org/' + encodeURIComponent(orgName);
+
+  document.getElementById('org-click-modal').classList.remove('hidden');
+});
+
+document.getElementById('modal-cancel').addEventListener('click', function() {
+  document.getElementById('org-click-modal').classList.add('hidden');
+});
+document.getElementById('org-click-modal').addEventListener('click', function(e) {
+  if (e.target === this) this.classList.add('hidden');
+});
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') {
+    document.getElementById('org-click-modal').classList.add('hidden');
+    closeColumnPanel();
+  }
+});
+
+init();
+</script>
+</body>
+</html>
