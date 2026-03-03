@@ -4,13 +4,16 @@ Flask app — productivity dashboard (port 3001) + CRM blueprint.
 
 import os
 import sys
+import re
+import json
+import glob as globmod
 
 # Allow imports from app/
 APP_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if APP_DIR not in sys.path:
     sys.path.insert(0, APP_DIR)
 
-from datetime import date
+from datetime import date, datetime
 from flask import Flask, Blueprint, jsonify, request, render_template, redirect, url_for, abort
 from sources.crm_reader import (
     load_prospects, load_offerings, get_fund_summary, get_fund_summary_all,
@@ -30,18 +33,65 @@ app = Flask(
     static_folder=os.path.join(APP_DIR, "static"),
 )
 
+MEETINGS_DIR = os.path.join(PROJECT_ROOT, "meeting-summaries")
+CALENDAR_PATH = os.path.join(PROJECT_ROOT, "dashboard_calendar.json")
+
 # ---------------------------------------------------------------------------
-# Dashboard (stub)
+# Dashboard
 # ---------------------------------------------------------------------------
 
 @app.route('/')
 def dashboard():
-    tasks = _load_tasks()
-    return render_template('dashboard.html', tasks=tasks)
+    tasks_by_section = _load_tasks_grouped()
+    meetings = _load_recent_meetings(limit=10)
+    calendar = _load_calendar()
+    now = datetime.now()
+    return render_template(
+        'dashboard.html',
+        tasks_by_section=tasks_by_section,
+        meetings=meetings,
+        calendar=calendar,
+        now=now,
+    )
+
+
+def _load_tasks_grouped() -> list[dict]:
+    """Read TASKS.md and return tasks grouped by section."""
+    if not os.path.exists(TASKS_PATH):
+        return []
+    sections = []
+    current = None
+    with open(TASKS_PATH, encoding='utf-8') as f:
+        for line in f:
+            line = line.rstrip()
+            m = re.match(r'^## (.+)$', line)
+            if m:
+                name = m.group(1).strip()
+                current = {'name': name, 'tasks': []}
+                sections.append(current)
+                continue
+            if current is not None and (line.startswith('- [ ] ') or line.startswith('- [x] ')):
+                done = line.startswith('- [x] ')
+                text = line[6:].strip()
+                # Parse priority
+                priority = 'Med'
+                pm = re.match(r'\*\*\[(\w+)\]\*\*\s*', text)
+                if pm:
+                    priority = pm.group(1)
+                    text = text[pm.end():]
+                # Strip ~~...~~ for done items
+                text = re.sub(r'~~(.+?)~~', r'\1', text)
+                current['tasks'].append({
+                    'text': text,
+                    'done': done,
+                    'priority': priority,
+                    'raw': line[6:].strip(),
+                })
+    return sections
 
 
 def _load_tasks() -> list[dict]:
-    """Read TASKS.md and return top-level task lines."""
+    """Read TASKS.md and return top-level task lines (flat, for API)."""
     if not os.path.exists(TASKS_PATH):
         return []
     tasks = []
@@ -52,6 +102,54 @@ def _load_tasks() -> list[dict]:
                 done = line.startswith('- [x] ')
                 tasks.append({'text': line[6:].strip(), 'done': done})
     return tasks[:50]
+
+
+def _load_recent_meetings(limit=10) -> list[dict]:
+    """Load recent meeting summaries from markdown files."""
+    if not os.path.isdir(MEETINGS_DIR):
+        return []
+    files = sorted(globmod.glob(os.path.join(MEETINGS_DIR, "*.md")), reverse=True)
+    meetings = []
+    for fp in files[:limit]:
+        fname = os.path.basename(fp)
+        # Parse date and title from filename: YYYY-MM-DD-title-slug.md
+        m = re.match(r'(\d{4}-\d{2}-\d{2})-(.+)\.md$', fname)
+        if not m:
+            continue
+        meeting_date = m.group(1)
+        slug = m.group(2)
+        title = slug.replace('-', ' ').title()
+        attendees = ''
+        notion_url = ''
+        with open(fp, encoding='utf-8') as f:
+            for line in f:
+                if line.startswith('**Attendees:**'):
+                    attendees = line.split(':', 1)[1].strip()
+                if line.startswith('**Source:**'):
+                    um = re.search(r'\[.*?\]\((https?://[^\)]+)\)', line)
+                    if um:
+                        notion_url = um.group(1)
+                if attendees and notion_url:
+                    break
+        meetings.append({
+            'date': meeting_date,
+            'title': title,
+            'attendees': attendees,
+            'url': notion_url,
+            'filename': fname,
+        })
+    return meetings
+
+
+def _load_calendar() -> list[dict]:
+    """Load today's calendar from JSON file (written by update process)."""
+    if not os.path.exists(CALENDAR_PATH):
+        return []
+    try:
+        with open(CALENDAR_PATH, encoding='utf-8') as f:
+            return json.load(f)
+    except (json.JSONDecodeError, IOError):
+        return []
 
 
 @app.route('/api/task/complete', methods=['POST'])
@@ -65,6 +163,31 @@ def task_complete():
     content = content.replace(f'- [ ] {task_text}', f'- [x] {task_text}', 1)
     with open(TASKS_PATH, 'w', encoding='utf-8') as f:
         f.write(content)
+    return jsonify({'ok': True})
+
+
+@app.route('/api/task/add', methods=['POST'])
+def task_add():
+    data = request.get_json(force=True)
+    text = data.get('text', '').strip()
+    priority = data.get('priority', 'Med').strip()
+    section = data.get('section', 'Active').strip()
+    if not text or not os.path.exists(TASKS_PATH):
+        return jsonify({'ok': False}), 400
+    with open(TASKS_PATH, 'r', encoding='utf-8') as f:
+        lines = f.readlines()
+    new_line = f'- [ ] **[{priority}]** {text}\n'
+    target = f'## {section}'
+    inserted = False
+    for i, ln in enumerate(lines):
+        if ln.strip() == target:
+            lines.insert(i + 1, new_line)
+            inserted = True
+            break
+    if not inserted:
+        lines.append(new_line)
+    with open(TASKS_PATH, 'w', encoding='utf-8') as f:
+        f.writelines(lines)
     return jsonify({'ok': True})
 
 

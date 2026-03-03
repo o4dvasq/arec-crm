@@ -1,0 +1,2817 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="AREC">
+  <meta name="theme-color" content="#1a1a2e">
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  <title>AREC</title>
+  <style>
+    /* ============================================================
+       CSS RESET & VARIABLES
+    ============================================================ */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #f8f9fa;
+      --header-bg: #1a1a2e;
+      --accent: #3b82f6;
+      --urgency-hi: #ef4444;
+      --urgency-med: #f59e0b;
+      --urgency-lo: #9ca3af;
+      --success: #22c55e;
+      --text-primary: #1f2937;
+      --text-secondary: #6b7280;
+      --text-on-dark: #ffffff;
+      --card-bg: #ffffff;
+      --border: #e5e7eb;
+      --font: -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif;
+      --tab-h: calc(56px + env(safe-area-inset-bottom));
+      --header-h: 56px;
+      --radius: 12px;
+      --shadow: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04);
+    }
+
+    html, body {
+      height: 100%;
+      font-family: var(--font);
+      background: var(--bg);
+      color: var(--text-primary);
+      -webkit-tap-highlight-color: transparent;
+      overscroll-behavior: none;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    /* ============================================================
+       APP SHELL
+    ============================================================ */
+    #app {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      height: 100dvh;
+    }
+
+    /* HEADER */
+    #header {
+      flex-shrink: 0;
+      height: var(--header-h);
+      background: var(--header-bg);
+      display: flex;
+      align-items: center;
+      padding: 0 16px;
+      padding-top: env(safe-area-inset-top);
+      gap: 12px;
+      z-index: 100;
+    }
+
+    #header-title {
+      flex: 1;
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--text-on-dark);
+      letter-spacing: 0.04em;
+    }
+
+    #sync-indicator {
+      width: 36px;
+      height: 36px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      cursor: pointer;
+      border-radius: 50%;
+    }
+
+    #sync-indicator.synced   { color: var(--success); }
+    #sync-indicator.syncing  { color: var(--accent); animation: spin 1s linear infinite; }
+    #sync-indicator.pending  { color: #f59e0b; }
+    #sync-indicator.error    { color: var(--urgency-hi); }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* CONTENT AREA */
+    #content {
+      flex: 1;
+      overflow-y: auto;
+      overflow-x: hidden;
+      -webkit-overflow-scrolling: touch;
+      position: relative;
+    }
+
+    /* TAB BAR */
+    #tab-bar {
+      flex-shrink: 0;
+      height: var(--tab-h);
+      background: var(--header-bg);
+      display: flex;
+      padding-bottom: env(safe-area-inset-bottom);
+      border-top: 1px solid rgba(255,255,255,0.1);
+      z-index: 100;
+    }
+
+    .tab-btn {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 3px;
+      background: none;
+      border: none;
+      color: rgba(255,255,255,0.5);
+      font-size: 10px;
+      font-family: var(--font);
+      cursor: pointer;
+      min-height: 44px;
+      padding: 6px 0;
+      transition: color 0.15s;
+    }
+
+    .tab-btn .tab-icon { font-size: 22px; }
+    .tab-btn.active { color: var(--accent); }
+
+    /* ============================================================
+       SETUP SCREEN
+    ============================================================ */
+    #setup-screen {
+      position: fixed;
+      inset: 0;
+      background: var(--header-bg);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 32px;
+      z-index: 1000;
+    }
+
+    #setup-screen.hidden { display: none; }
+
+    .setup-logo {
+      font-size: 48px;
+      font-weight: 800;
+      color: #fff;
+      letter-spacing: 0.1em;
+      margin-bottom: 8px;
+    }
+
+    .setup-tagline {
+      color: rgba(255,255,255,0.5);
+      font-size: 14px;
+      margin-bottom: 48px;
+    }
+
+    .setup-card {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: var(--radius);
+      padding: 24px;
+      width: 100%;
+      max-width: 360px;
+    }
+
+    .setup-label {
+      color: rgba(255,255,255,0.7);
+      font-size: 13px;
+      font-weight: 500;
+      margin-bottom: 12px;
+      line-height: 1.5;
+    }
+
+    .setup-input {
+      width: 100%;
+      background: rgba(255,255,255,0.1);
+      border: 1px solid rgba(255,255,255,0.2);
+      border-radius: 8px;
+      color: #fff;
+      font-size: 14px;
+      font-family: monospace;
+      padding: 12px;
+      outline: none;
+      margin-bottom: 16px;
+      min-height: 44px;
+    }
+
+    .setup-input::placeholder { color: rgba(255,255,255,0.3); }
+
+    .setup-btn {
+      width: 100%;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 600;
+      font-family: var(--font);
+      padding: 14px;
+      cursor: pointer;
+      min-height: 44px;
+    }
+
+    .setup-hint {
+      margin-top: 20px;
+      color: rgba(255,255,255,0.4);
+      font-size: 12px;
+      text-align: center;
+    }
+
+    /* ============================================================
+       TASKS TAB
+    ============================================================ */
+    #tasks-view { padding-bottom: 16px; }
+
+    /* Add task bar */
+    #add-task-bar {
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      background: var(--bg);
+      border-bottom: 1px solid var(--border);
+      padding: 10px 12px;
+    }
+
+    #add-task-row {
+      display: flex;
+      gap: 8px;
+    }
+
+    #new-task-input {
+      flex: 1;
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 12px;
+      font-size: 15px;
+      font-family: var(--font);
+      color: var(--text-primary);
+      outline: none;
+      min-height: 44px;
+      -webkit-user-select: text;
+      user-select: text;
+    }
+
+    #new-task-input::placeholder { color: var(--urgency-lo); }
+
+    #add-task-btn {
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-size: 20px;
+      font-weight: 600;
+      width: 44px;
+      height: 44px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+
+    #add-task-options {
+      display: none;
+      margin-top: 10px;
+      gap: 10px;
+      flex-direction: column;
+    }
+
+    #add-task-options.visible { display: flex; }
+
+    .add-options-row {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .add-options-label {
+      font-size: 12px;
+      color: var(--text-secondary);
+      width: 56px;
+      flex-shrink: 0;
+    }
+
+    .priority-toggle-group {
+      display: flex;
+      gap: 6px;
+    }
+
+    .priority-toggle-btn {
+      background: var(--border);
+      border: none;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      font-family: var(--font);
+      padding: 6px 12px;
+      cursor: pointer;
+      min-height: 32px;
+      color: var(--text-secondary);
+      transition: background 0.15s, color 0.15s;
+    }
+
+    .priority-toggle-btn.active-hi  { background: var(--urgency-hi); color: #fff; }
+    .priority-toggle-btn.active-med { background: var(--urgency-med); color: #fff; }
+    .priority-toggle-btn.active-lo  { background: var(--urgency-lo); color: #fff; }
+
+    #section-select {
+      flex: 1;
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 6px 10px;
+      font-size: 14px;
+      font-family: var(--font);
+      color: var(--text-primary);
+      outline: none;
+      min-height: 36px;
+      -webkit-appearance: none;
+      appearance: none;
+    }
+
+    #add-task-confirm-btn {
+      background: var(--success);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      font-family: var(--font);
+      padding: 0 16px;
+      min-height: 36px;
+      cursor: pointer;
+    }
+
+    /* Task sections */
+    .task-section { margin-bottom: 4px; }
+
+    .section-header {
+      display: flex;
+      align-items: center;
+      padding: 10px 16px;
+      gap: 8px;
+      background: var(--bg);
+      cursor: pointer;
+      min-height: 44px;
+      position: sticky;
+      top: 77px;
+      z-index: 40;
+    }
+
+    .section-header-name {
+      flex: 1;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+
+    .section-badge {
+      background: var(--border);
+      color: var(--text-secondary);
+      font-size: 11px;
+      font-weight: 600;
+      padding: 2px 7px;
+      border-radius: 10px;
+      min-width: 22px;
+      text-align: center;
+    }
+
+    .section-chevron {
+      font-size: 12px;
+      color: var(--urgency-lo);
+      transition: transform 0.2s;
+    }
+
+    .section-chevron.open { transform: rotate(90deg); }
+
+    .section-tasks { padding: 0 12px; }
+    .section-tasks.collapsed { display: none; }
+
+    /* Task cards */
+    .task-card-wrapper {
+      position: relative;
+      margin-bottom: 6px;
+      border-radius: var(--radius);
+      overflow: visible;
+    }
+
+    .task-swipe-bg {
+      position: absolute;
+      inset: 0;
+      background: var(--success);
+      border-radius: var(--radius);
+      display: flex;
+      align-items: center;
+      padding-left: 20px;
+      font-size: 20px;
+      color: #fff;
+      font-weight: 700;
+    }
+
+    .task-card {
+      position: relative;
+      background: var(--card-bg);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      display: flex;
+      align-items: center;
+      min-height: 52px;
+      padding: 10px 12px;
+      gap: 10px;
+      touch-action: pan-y;
+      will-change: transform;
+      transition: opacity 0.3s;
+    }
+
+    .task-card.completing {
+      opacity: 0;
+      transform: translateX(100%);
+      transition: opacity 0.3s, transform 0.3s;
+    }
+
+    .drag-handle {
+      color: var(--urgency-lo);
+      font-size: 16px;
+      padding: 4px 2px;
+      cursor: grab;
+      flex-shrink: 0;
+      touch-action: none;
+    }
+
+    .priority-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    .priority-dot.hi  { background: var(--urgency-hi); }
+    .priority-dot.med { background: var(--urgency-med); }
+    .priority-dot.lo  { background: var(--urgency-lo); }
+
+    .task-text {
+      flex: 1;
+      font-size: 15px;
+      color: var(--text-primary);
+      line-height: 1.4;
+      overflow: hidden;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+    }
+
+    .task-text.expanded { -webkit-line-clamp: unset; }
+    .task-text.done-text { text-decoration: line-through; color: var(--text-secondary); }
+
+    /* ============================================================
+       PIPELINE TAB
+    ============================================================ */
+    #pipeline-view { padding-bottom: 16px; }
+
+    /* Offering picker bar */
+    #offering-bar {
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      background: var(--header-bg);
+      padding: 10px 12px;
+    }
+
+    #offering-select-wrap {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+
+    #offering-select {
+      flex: 1;
+      background: rgba(255,255,255,0.1);
+      border: 1px solid rgba(255,255,255,0.2);
+      border-radius: 8px;
+      color: #fff;
+      font-size: 14px;
+      font-family: var(--font);
+      font-weight: 600;
+      padding: 8px 12px;
+      outline: none;
+      min-height: 44px;
+      -webkit-appearance: none;
+      appearance: none;
+    }
+
+    #offering-select option { background: var(--header-bg); }
+
+    #offering-summary {
+      color: rgba(255,255,255,0.7);
+      font-size: 12px;
+      font-weight: 500;
+      flex-shrink: 0;
+    }
+
+    #offering-progress-bar {
+      height: 4px;
+      background: rgba(255,255,255,0.15);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+
+    #offering-progress-fill {
+      height: 100%;
+      background: var(--accent);
+      border-radius: 2px;
+      transition: width 0.3s;
+    }
+
+    /* Search bar */
+    #pipeline-search-bar {
+      position: sticky;
+      top: 92px;
+      z-index: 45;
+      background: var(--bg);
+      padding: 10px 12px 6px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    #pipeline-search {
+      width: 100%;
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 12px;
+      font-size: 15px;
+      font-family: var(--font);
+      color: var(--text-primary);
+      outline: none;
+      min-height: 44px;
+      -webkit-user-select: text;
+      user-select: text;
+    }
+
+    #pipeline-search::placeholder { color: var(--urgency-lo); }
+
+    /* Filter chips */
+    #filter-bar {
+      padding: 8px 12px;
+      display: flex;
+      gap: 6px;
+      overflow-x: auto;
+      scrollbar-width: none;
+      -ms-overflow-style: none;
+      flex-wrap: nowrap;
+      align-items: center;
+    }
+
+    #filter-bar::-webkit-scrollbar { display: none; }
+
+    .filter-chip {
+      flex-shrink: 0;
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 500;
+      font-family: var(--font);
+      color: var(--text-secondary);
+      padding: 6px 12px;
+      cursor: pointer;
+      min-height: 32px;
+      white-space: nowrap;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .filter-chip.active {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #fff;
+    }
+
+    .filter-chip-clear { font-size: 14px; font-weight: 700; }
+
+    #clear-filters-btn {
+      flex-shrink: 0;
+      background: none;
+      border: none;
+      color: var(--accent);
+      font-size: 12px;
+      font-weight: 600;
+      font-family: var(--font);
+      cursor: pointer;
+      padding: 6px 4px;
+      min-height: 32px;
+    }
+
+    /* Inline filter dropdowns */
+    .filter-dropdown-wrap {
+      position: relative;
+    }
+
+    .filter-dropdown-menu {
+      display: none;
+      position: fixed;
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.15);
+      z-index: 200;
+      min-width: 180px;
+      max-height: 300px;
+      overflow-y: auto;
+    }
+
+    .filter-dropdown-menu.open { display: block; }
+
+    .filter-dropdown-item {
+      padding: 12px 16px;
+      font-size: 14px;
+      color: var(--text-primary);
+      cursor: pointer;
+      min-height: 44px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .filter-dropdown-item.selected { color: var(--accent); font-weight: 600; }
+    .filter-dropdown-item:active { background: var(--bg); }
+
+    /* Expanded filters */
+    #more-filters {
+      display: none;
+      padding: 0 12px 8px;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    #more-filters.open { display: flex; }
+
+    /* Prospect cards */
+    #prospects-list {
+      padding: 8px 12px;
+    }
+
+    .prospect-card {
+      background: var(--card-bg);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 14px;
+      margin-bottom: 8px;
+      cursor: pointer;
+      min-height: 44px;
+    }
+
+    .prospect-card:active { opacity: 0.85; }
+
+    .prospect-name {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 2px;
+    }
+
+    .prospect-type {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 6px;
+    }
+
+    .prospect-meta-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+      color: var(--text-secondary);
+      margin-bottom: 5px;
+      flex-wrap: wrap;
+    }
+
+    .prospect-meta-sep { color: var(--border); }
+
+    .prospect-urgency {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 13px;
+      font-weight: 500;
+    }
+
+    .prospect-urgency .dot { width: 8px; height: 8px; border-radius: 50%; }
+    .urgency-hi-dot { background: var(--urgency-hi); }
+    .urgency-med-dot { background: var(--urgency-med); }
+    .urgency-lo-dot { background: var(--urgency-lo); }
+
+    .prospect-next-action {
+      font-size: 13px;
+      color: var(--text-primary);
+      margin-bottom: 5px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .prospect-next-action::before { content: '→ '; color: var(--accent); }
+
+    .prospect-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 12px;
+      color: var(--text-secondary);
+    }
+
+    .staleness-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      display: inline-block;
+      margin-left: 6px;
+    }
+
+    .stale-green  { background: var(--success); }
+    .stale-yellow { background: var(--urgency-med); }
+    .stale-red    { background: var(--urgency-hi); }
+
+    /* ============================================================
+       EDIT SHEET (slide-up)
+    ============================================================ */
+    #edit-backdrop {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.4);
+      z-index: 300;
+    }
+
+    #edit-backdrop.open { display: block; }
+
+    #edit-sheet {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: var(--card-bg);
+      border-radius: 20px 20px 0 0;
+      max-height: 80vh;
+      overflow-y: auto;
+      z-index: 301;
+      transform: translateY(100%);
+      transition: transform 0.3s ease;
+      padding-bottom: env(safe-area-inset-bottom);
+    }
+
+    #edit-sheet.open { transform: translateY(0); }
+
+    .sheet-handle {
+      width: 40px;
+      height: 4px;
+      background: var(--border);
+      border-radius: 2px;
+      margin: 12px auto 0;
+    }
+
+    .sheet-header {
+      padding: 16px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .sheet-org-name {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin-bottom: 2px;
+    }
+
+    .sheet-org-type {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .sheet-body {
+      padding: 16px;
+    }
+
+    .sheet-field {
+      display: flex;
+      align-items: center;
+      margin-bottom: 12px;
+      gap: 12px;
+      min-height: 44px;
+    }
+
+    .sheet-field-label {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-secondary);
+      width: 80px;
+      flex-shrink: 0;
+    }
+
+    .sheet-field-value {
+      flex: 1;
+    }
+
+    .sheet-select {
+      width: 100%;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 9px 12px;
+      font-size: 14px;
+      font-family: var(--font);
+      color: var(--text-primary);
+      outline: none;
+      min-height: 40px;
+      -webkit-appearance: none;
+      appearance: none;
+    }
+
+    .sheet-input {
+      width: 100%;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 9px 12px;
+      font-size: 14px;
+      font-family: var(--font);
+      color: var(--text-primary);
+      outline: none;
+      min-height: 40px;
+      -webkit-user-select: text;
+      user-select: text;
+    }
+
+    .sheet-divider {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 16px 0 12px;
+    }
+
+    .sheet-section-label {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 8px;
+    }
+
+    .sheet-textarea {
+      width: 100%;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 12px;
+      font-size: 14px;
+      font-family: var(--font);
+      color: var(--text-primary);
+      outline: none;
+      min-height: 70px;
+      resize: none;
+      -webkit-user-select: text;
+      user-select: text;
+      line-height: 1.4;
+    }
+
+    .sheet-last-touch-label {
+      font-size: 12px;
+      color: var(--text-secondary);
+      margin-bottom: 12px;
+    }
+
+    .sheet-footer {
+      padding: 8px 16px 16px;
+      display: flex;
+      gap: 10px;
+    }
+
+    .sheet-save-btn {
+      flex: 1;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      font-size: 16px;
+      font-weight: 600;
+      font-family: var(--font);
+      padding: 14px;
+      cursor: pointer;
+      min-height: 48px;
+    }
+
+    .sheet-update-touch-btn {
+      background: var(--success);
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 600;
+      font-family: var(--font);
+      padding: 14px 16px;
+      cursor: pointer;
+      min-height: 48px;
+      white-space: nowrap;
+    }
+
+    /* ============================================================
+       ACTION SHEET (long press)
+    ============================================================ */
+    #action-backdrop {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.4);
+      z-index: 400;
+    }
+
+    #action-backdrop.open { display: block; }
+
+    #action-sheet {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: var(--card-bg);
+      border-radius: 20px 20px 0 0;
+      z-index: 401;
+      transform: translateY(100%);
+      transition: transform 0.25s ease;
+      padding: 8px 0;
+      padding-bottom: env(safe-area-inset-bottom);
+    }
+
+    #action-sheet.open { transform: translateY(0); }
+
+    .action-sheet-handle {
+      width: 40px;
+      height: 4px;
+      background: var(--border);
+      border-radius: 2px;
+      margin: 10px auto 6px;
+    }
+
+    .action-sheet-title {
+      padding: 8px 20px 12px;
+      font-size: 12px;
+      color: var(--text-secondary);
+      font-weight: 500;
+      text-overflow: ellipsis;
+      overflow: hidden;
+      white-space: nowrap;
+    }
+
+    .action-item {
+      display: flex;
+      align-items: center;
+      padding: 0 20px;
+      gap: 14px;
+      min-height: 52px;
+      cursor: pointer;
+      font-size: 16px;
+      color: var(--text-primary);
+      border-top: 1px solid var(--border);
+    }
+
+    .action-item:active { background: var(--bg); }
+    .action-item.destructive { color: var(--urgency-hi); }
+    .action-item-icon { font-size: 18px; width: 24px; text-align: center; }
+    .action-item-sub { display: flex; gap: 16px; flex-wrap: wrap; }
+    .action-sub-item { font-size: 14px; color: var(--accent); padding: 4px 0; min-height: 32px; display: flex; align-items: center; }
+
+    /* ============================================================
+       TOAST NOTIFICATIONS
+    ============================================================ */
+    #toast-container {
+      position: fixed;
+      bottom: calc(var(--tab-h) + 12px);
+      left: 12px;
+      right: 12px;
+      z-index: 500;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      pointer-events: none;
+    }
+
+    .toast {
+      background: var(--header-bg);
+      color: #fff;
+      padding: 12px 16px;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 500;
+      opacity: 0;
+      transform: translateY(10px);
+      transition: opacity 0.2s, transform 0.2s;
+      pointer-events: none;
+    }
+
+    .toast.visible { opacity: 1; transform: translateY(0); }
+
+    /* ============================================================
+       EMPTY STATE
+    ============================================================ */
+    .empty-state {
+      text-align: center;
+      padding: 60px 32px;
+      color: var(--text-secondary);
+    }
+
+    .empty-state-icon { font-size: 48px; margin-bottom: 12px; }
+    .empty-state-text { font-size: 16px; }
+
+    /* ============================================================
+       DRAG GHOST
+    ============================================================ */
+    #drag-ghost {
+      position: fixed;
+      pointer-events: none;
+      z-index: 600;
+      opacity: 0.85;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+      border-radius: var(--radius);
+      background: var(--card-bg);
+      padding: 10px 12px;
+      font-size: 15px;
+      color: var(--text-primary);
+      display: none;
+      max-width: calc(100vw - 24px);
+    }
+  </style>
+</head>
+<body>
+
+<!-- Setup Screen -->
+<div id="setup-screen">
+  <div class="setup-logo">AREC</div>
+  <div class="setup-tagline">Avila Real Estate Capital</div>
+  <div class="setup-card">
+    <div class="setup-label">
+      Paste your Dropbox access token below to connect the app.
+    </div>
+    <input
+      type="password"
+      id="token-input"
+      class="setup-input"
+      placeholder="sl.A..."
+      autocomplete="off"
+      autocorrect="off"
+      spellcheck="false"
+    >
+    <button class="setup-btn" id="connect-btn">Connect</button>
+  </div>
+  <div class="setup-hint">Get your token at dropbox.com/developers</div>
+</div>
+
+<!-- App Shell -->
+<div id="app" style="display:none">
+  <!-- Header -->
+  <div id="header">
+    <div id="header-title">AREC</div>
+    <div id="sync-indicator" class="synced" title="Sync status">✓</div>
+  </div>
+
+  <!-- Content -->
+  <div id="content">
+    <!-- Tasks Tab -->
+    <div id="tasks-view" style="display:none">
+      <div id="add-task-bar">
+        <div id="add-task-row">
+          <input
+            type="text"
+            id="new-task-input"
+            class=""
+            placeholder="Add a task..."
+            autocomplete="off"
+            autocorrect="off"
+            spellcheck="false"
+          >
+          <button id="add-task-btn" aria-label="Add task">+</button>
+        </div>
+        <div id="add-task-options">
+          <div class="add-options-row">
+            <span class="add-options-label">Section</span>
+            <select id="section-select"></select>
+            <button id="add-task-confirm-btn">Add</button>
+          </div>
+          <div class="add-options-row">
+            <span class="add-options-label">Priority</span>
+            <div class="priority-toggle-group">
+              <button class="priority-toggle-btn" data-p="Hi">Hi</button>
+              <button class="priority-toggle-btn active-med" data-p="Med">Med</button>
+              <button class="priority-toggle-btn" data-p="Lo">Lo</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div id="task-sections-container"></div>
+    </div>
+
+    <!-- Pipeline Tab -->
+    <div id="pipeline-view" style="display:none">
+      <div id="offering-bar">
+        <div id="offering-select-wrap">
+          <select id="offering-select"></select>
+          <span id="offering-summary"></span>
+        </div>
+        <div id="offering-progress-bar">
+          <div id="offering-progress-fill" style="width:0%"></div>
+        </div>
+      </div>
+      <div id="pipeline-search-bar">
+        <input
+          type="search"
+          id="pipeline-search"
+          placeholder="Search prospects..."
+          autocomplete="off"
+          autocorrect="off"
+          spellcheck="false"
+        >
+      </div>
+      <div id="filter-bar">
+        <div class="filter-dropdown-wrap" id="stage-filter-wrap">
+          <button class="filter-chip" id="stage-filter-btn">Stage ▾</button>
+          <div class="filter-dropdown-menu" id="stage-dropdown"></div>
+        </div>
+        <div class="filter-dropdown-wrap" id="urgency-filter-wrap">
+          <button class="filter-chip" id="urgency-filter-btn">Urgency ▾</button>
+          <div class="filter-dropdown-menu" id="urgency-dropdown"></div>
+        </div>
+        <button class="filter-chip" id="more-filters-btn">More ▼</button>
+        <button id="clear-filters-btn" style="display:none">Clear all</button>
+      </div>
+      <div id="more-filters">
+        <div class="filter-dropdown-wrap" id="type-filter-wrap">
+          <button class="filter-chip" id="type-filter-btn">Type ▾</button>
+          <div class="filter-dropdown-menu" id="type-dropdown"></div>
+        </div>
+        <div class="filter-dropdown-wrap" id="closing-filter-wrap">
+          <button class="filter-chip" id="closing-filter-btn">Closing ▾</button>
+          <div class="filter-dropdown-menu" id="closing-dropdown"></div>
+        </div>
+        <div class="filter-dropdown-wrap" id="assigned-filter-wrap">
+          <button class="filter-chip" id="assigned-filter-btn">Assigned ▾</button>
+          <div class="filter-dropdown-menu" id="assigned-dropdown"></div>
+        </div>
+      </div>
+      <div id="prospects-list"></div>
+    </div>
+  </div>
+
+  <!-- Tab Bar -->
+  <div id="tab-bar">
+    <button class="tab-btn active" data-tab="tasks" id="tab-tasks">
+      <span class="tab-icon">☑</span>
+      <span>Tasks</span>
+    </button>
+    <button class="tab-btn" data-tab="pipeline" id="tab-pipeline">
+      <span class="tab-icon">📊</span>
+      <span>Pipeline</span>
+    </button>
+  </div>
+</div>
+
+<!-- Edit Sheet (Prospect) -->
+<div id="edit-backdrop"></div>
+<div id="edit-sheet">
+  <div class="sheet-handle"></div>
+  <div class="sheet-header">
+    <div class="sheet-org-name" id="sheet-org-name"></div>
+    <div class="sheet-org-type" id="sheet-org-type"></div>
+  </div>
+  <div class="sheet-body" id="sheet-body"></div>
+  <div class="sheet-footer">
+    <button class="sheet-update-touch-btn" id="sheet-touch-btn">Touch ✓</button>
+    <button class="sheet-save-btn" id="sheet-save-btn">Save</button>
+  </div>
+</div>
+
+<!-- Action Sheet (Task long press) -->
+<div id="action-backdrop"></div>
+<div id="action-sheet">
+  <div class="action-sheet-handle"></div>
+  <div class="action-sheet-title" id="action-sheet-title"></div>
+  <div id="action-sheet-items"></div>
+</div>
+
+<!-- Drag Ghost -->
+<div id="drag-ghost"></div>
+
+<!-- Toast Container -->
+<div id="toast-container"></div>
+
+<script>
+'use strict';
+
+// ============================================================
+// CONSTANTS & STATE
+// ============================================================
+const DROPBOX_DOWNLOAD  = 'https://content.dropboxapi.com/2/files/download';
+const DROPBOX_UPLOAD    = 'https://content.dropboxapi.com/2/files/upload';
+const DROPBOX_META      = 'https://api.dropboxapi.com/2/files/get_metadata';
+
+const FILE_TASKS        = '/Tech/ClaudeProductivity/TASKS.md';
+const FILE_PROSPECTS    = '/Tech/ClaudeProductivity/crm/prospects.md';
+const FILE_ORGS         = '/Tech/ClaudeProductivity/crm/organizations.md';
+const FILE_CONFIG       = '/Tech/ClaudeProductivity/crm/config.md';
+const FILE_OFFERINGS    = '/Tech/ClaudeProductivity/crm/offerings.md';
+
+// App state
+let state = {
+  token: '',
+  activeTab: 'tasks',
+
+  // Tasks
+  taskSections: [],        // [{name, tasks: [{done, priority, text, raw}]}]
+  collapsedSections: {},   // {sectionName: true}
+  newTaskPriority: 'Med',
+
+  // Pipeline
+  offerings: [],           // [{name, target, hardCap}]
+  prospects: [],           // parsed prospect objects
+  organizations: {},       // {name: {type, notes}}
+  config: {},              // parsed config
+
+  selectedOffering: '',
+  filterStage: '',
+  filterUrgency: '',
+  filterType: '',
+  filterClosing: '',
+  filterAssigned: '',
+  searchQuery: '',
+  moreFiltersOpen: false,
+
+  // Editing
+  editingProspect: null,
+
+  // Sync
+  syncStatus: 'synced',    // synced | syncing | pending | error
+  pendingWrites: {},        // {path: content}
+  contentHashes: {},        // {path: hash}
+
+  // Drag
+  dragTask: null,
+  dragSectionName: '',
+  dragStartY: 0,
+  dragGhostEl: null,
+
+  // Long press
+  longPressTimer: null,
+  longPressTask: null,
+
+  // Action sheet
+  actionSheetMode: null,
+};
+
+// ============================================================
+// STORAGE HELPERS
+// ============================================================
+function loadFromStorage() {
+  try {
+    state.token = localStorage.getItem('arec_token') || '';
+    const cache = JSON.parse(localStorage.getItem('arec_cache') || '{}');
+    if (cache.taskSections)   state.taskSections   = cache.taskSections;
+    if (cache.offerings)      state.offerings       = cache.offerings;
+    if (cache.prospects)      state.prospects       = cache.prospects;
+    if (cache.organizations)  state.organizations   = cache.organizations;
+    if (cache.config)         state.config          = cache.config;
+    state.collapsedSections = JSON.parse(localStorage.getItem('arec_collapsed') || '{"Done":true}');
+    state.pendingWrites     = JSON.parse(localStorage.getItem('arec_pending')   || '{}');
+    state.contentHashes     = JSON.parse(localStorage.getItem('arec_hashes')   || '{}');
+    if (cache.selectedOffering) state.selectedOffering = cache.selectedOffering;
+  } catch(e) { console.warn('Storage load error', e); }
+}
+
+function saveCache() {
+  try {
+    const cache = {
+      taskSections:   state.taskSections,
+      offerings:      state.offerings,
+      prospects:      state.prospects,
+      organizations:  state.organizations,
+      config:         state.config,
+      selectedOffering: state.selectedOffering,
+    };
+    localStorage.setItem('arec_cache', JSON.stringify(cache));
+    localStorage.setItem('arec_collapsed', JSON.stringify(state.collapsedSections));
+    localStorage.setItem('arec_pending',   JSON.stringify(state.pendingWrites));
+    localStorage.setItem('arec_hashes',    JSON.stringify(state.contentHashes));
+  } catch(e) { console.warn('Storage save error', e); }
+}
+
+// ============================================================
+// DROPBOX API
+// ============================================================
+async function dropboxDownload(path) {
+  const resp = await fetch(DROPBOX_DOWNLOAD, {
+    method: 'POST',
+    headers: {
+      'Authorization':   `Bearer ${state.token}`,
+      'Dropbox-API-Arg': JSON.stringify({ path })
+    }
+  });
+  if (!resp.ok) throw new Error(`Download failed: ${resp.status}`);
+  return resp.text();
+}
+
+async function dropboxUpload(path, content) {
+  const resp = await fetch(DROPBOX_UPLOAD, {
+    method: 'POST',
+    headers: {
+      'Authorization':    `Bearer ${state.token}`,
+      'Dropbox-API-Arg':  JSON.stringify({ path, mode: 'overwrite', autorename: false }),
+      'Content-Type':     'application/octet-stream'
+    },
+    body: content
+  });
+  if (!resp.ok) throw new Error(`Upload failed: ${resp.status}`);
+  return resp.json();
+}
+
+async function dropboxGetMetadata(path) {
+  const resp = await fetch(DROPBOX_META, {
+    method: 'POST',
+    headers: {
+      'Authorization':  `Bearer ${state.token}`,
+      'Content-Type':   'application/json'
+    },
+    body: JSON.stringify({ path })
+  });
+  if (!resp.ok) throw new Error(`Metadata failed: ${resp.status}`);
+  return resp.json();
+}
+
+// ============================================================
+// PARSERS
+// ============================================================
+
+// --- TASKS.MD PARSER ---
+function parseTasksMd(text) {
+  const lines = text.split('\n');
+  const sections = [];
+  let currentSection = null;
+
+  for (const line of lines) {
+    const sectionMatch = line.match(/^## (.+)$/);
+    if (sectionMatch) {
+      currentSection = { name: sectionMatch[1].trim(), tasks: [], rawLines: [] };
+      sections.push(currentSection);
+      continue;
+    }
+
+    if (!currentSection) continue;
+
+    const taskMatch = line.match(/^- \[([ x])\] \*\*\[(\w+)\]\*\* (.+)$/);
+    if (taskMatch) {
+      const done     = taskMatch[1] === 'x';
+      const rawPrio  = taskMatch[2];
+      const text     = taskMatch[3];
+      const priority = normalizePriority(rawPrio);
+      currentSection.tasks.push({ done, priority, text, raw: line });
+    } else {
+      // Non-task lines stored in rawLines for preservation (e.g., "(none)")
+      currentSection.rawLines = currentSection.rawLines || [];
+      currentSection.rawLines.push(line);
+    }
+  }
+
+  return sections;
+}
+
+function normalizePriority(raw) {
+  const u = raw.toUpperCase();
+  if (u === 'HI' || u === 'HIGH') return 'Hi';
+  if (u === 'MED' || u === 'MEDIUM') return 'Med';
+  if (u === 'LO' || u === 'LOW') return 'Lo';
+  return raw;
+}
+
+function serializeTasksMd(sections) {
+  const lines = ['# Tasks', ''];
+  for (const section of sections) {
+    lines.push(`## ${section.name}`);
+    // Interleave tasks with raw non-task lines
+    // We store them in order they appear; simpler: just output tasks
+    if (section.tasks.length === 0) {
+      lines.push('(none)');
+    } else {
+      for (const task of section.tasks) {
+        lines.push(formatTaskLine(task));
+      }
+    }
+    lines.push('');
+  }
+  return lines.join('\n');
+}
+
+function formatTaskLine(task) {
+  const check  = task.done ? 'x' : ' ';
+  const prio   = task.priority;
+  let text     = task.text;
+  if (task.done && !text.startsWith('~~')) {
+    const today = new Date();
+    const dateStr = `${today.getMonth() + 1}/${today.getDate()}`;
+    text = `~~${text}~~ (${dateStr})`;
+  }
+  return `- [${check}] **[${prio}]** ${text}`;
+}
+
+// --- PROSPECTS.MD PARSER ---
+function parseProspectsMd(text) {
+  const lines = text.split('\n');
+  const prospects = [];
+  let currentOffering = '';
+  let currentProspect = null;
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+
+    const h2Match = line.match(/^## (.+)$/);
+    if (h2Match) {
+      currentOffering  = h2Match[1].trim();
+      currentProspect  = null;
+      continue;
+    }
+
+    const h3Match = line.match(/^### (.+)$/);
+    if (h3Match) {
+      if (currentProspect) prospects.push(currentProspect);
+      currentProspect = {
+        offering:       currentOffering,
+        name:           h3Match[1].trim(),
+        stage:          '',
+        target:         '',
+        committed:      '',
+        primaryContact: '',
+        closing:        '',
+        urgency:        '',
+        assignedTo:     '',
+        notes:          '',
+        nextAction:     '',
+        lastTouch:      '',
+        _lineStart:     i,  // line index of ### heading
+      };
+      continue;
+    }
+
+    if (!currentProspect) continue;
+
+    parseProspectField(line, currentProspect);
+  }
+
+  if (currentProspect) prospects.push(currentProspect);
+  return prospects;
+}
+
+function parseProspectField(line, prospect) {
+  const fieldMap = [
+    [/^- \*\*Stage:\*\* (.*)$/,          'stage'],
+    [/^- \*\*Target:\*\* (.*)$/,         'target'],
+    [/^- \*\*Committed:\*\* (.*)$/,      'committed'],
+    [/^- \*\*Primary Contact:\*\* (.*)$/,'primaryContact'],
+    [/^- \*\*Closing:\*\* (.*)$/,        'closing'],
+    [/^- \*\*Urgency:\*\* (.*)$/,        'urgency'],
+    [/^- \*\*Assigned To:\*\* (.*)$/,    'assignedTo'],
+    [/^- \*\*Notes:\*\* (.*)$/,          'notes'],
+    [/^- \*\*Next Action:\*\* (.*)$/,    'nextAction'],
+    [/^- \*\*Last Touch:\*\* (.*)$/,     'lastTouch'],
+  ];
+  for (const [rx, key] of fieldMap) {
+    const m = line.match(rx);
+    if (m) { prospect[key] = m[1].trim(); return; }
+  }
+}
+
+function serializeProspectsMd(prospects) {
+  // Group by offering
+  const byOffering = {};
+  for (const p of prospects) {
+    if (!byOffering[p.offering]) byOffering[p.offering] = [];
+    byOffering[p.offering].push(p);
+  }
+
+  const lines = ['# Prospects', ''];
+  for (const [offering, offeringProspects] of Object.entries(byOffering)) {
+    lines.push(`## ${offering}`, '');
+    for (const p of offeringProspects) {
+      lines.push(`### ${p.name}`);
+      lines.push(`- **Stage:** ${p.stage}`);
+      lines.push(`- **Target:** ${p.target}`);
+      lines.push(`- **Committed:** ${p.committed}`);
+      lines.push(`- **Primary Contact:** ${p.primaryContact}`);
+      lines.push(`- **Closing:** ${p.closing}`);
+      lines.push(`- **Urgency:** ${p.urgency}`);
+      lines.push(`- **Assigned To:** ${p.assignedTo}`);
+      lines.push(`- **Notes:** ${p.notes}`);
+      lines.push(`- **Next Action:** ${p.nextAction}`);
+      lines.push(`- **Last Touch:** ${p.lastTouch}`);
+      lines.push('');
+    }
+  }
+  return lines.join('\n');
+}
+
+// --- ORGANIZATIONS.MD PARSER ---
+function parseOrgsMd(text) {
+  const lines = text.split('\n');
+  const orgs  = {};
+  let currentOrg = null;
+
+  for (const line of lines) {
+    const h2Match = line.match(/^## (.+)$/);
+    if (h2Match) {
+      currentOrg = h2Match[1].trim();
+      orgs[currentOrg] = { type: '', notes: '' };
+      continue;
+    }
+    if (!currentOrg) continue;
+    const typeMatch  = line.match(/^- \*\*Type:\*\* (.*)$/);
+    const notesMatch = line.match(/^- \*\*Notes:\*\* (.*)$/);
+    if (typeMatch)  orgs[currentOrg].type  = typeMatch[1].trim();
+    if (notesMatch) orgs[currentOrg].notes = notesMatch[1].trim();
+  }
+  return orgs;
+}
+
+// --- CONFIG.MD PARSER ---
+function parseConfigMd(text) {
+  const lines  = text.split('\n');
+  const config = {
+    stages:     [],
+    terminalStages: [],
+    orgTypes:   [],
+    closingOptions: [],
+    urgencyLevels: [],
+    team:       [],
+  };
+
+  let currentSection = '';
+  for (const line of lines) {
+    const h2Match = line.match(/^## (.+)$/);
+    if (h2Match) { currentSection = h2Match[1].trim(); continue; }
+
+    const item = line.match(/^[-\d.] ?(.+)$/);
+    if (!item) continue;
+
+    const val = item[1].trim();
+    // Numbered stages: "0. Not Pursuing"
+    const stageMatch = line.match(/^(\d+)\. (.+)$/);
+
+    if (currentSection === 'Pipeline Stages' && stageMatch) {
+      config.stages.push(`${stageMatch[1]}. ${stageMatch[2].trim()}`);
+    } else if (currentSection === 'Terminal Stages') {
+      config.terminalStages.push(val);
+    } else if (currentSection === 'Organization Types') {
+      config.orgTypes.push(val);
+    } else if (currentSection === 'Closing Options') {
+      config.closingOptions.push(val);
+    } else if (currentSection === 'Urgency Levels') {
+      config.urgencyLevels.push(val);
+    } else if (currentSection === 'AREC Team') {
+      config.team.push(val);
+    }
+  }
+  return config;
+}
+
+// --- OFFERINGS.MD PARSER ---
+function parseOfferingsMd(text) {
+  const lines    = text.split('\n');
+  const offerings = [];
+  let current    = null;
+
+  for (const line of lines) {
+    const h2Match = line.match(/^## (.+)$/);
+    if (h2Match) {
+      if (current) offerings.push(current);
+      current = { name: h2Match[1].trim(), target: '', hardCap: '' };
+      continue;
+    }
+    if (!current) continue;
+    const targetMatch  = line.match(/^- \*\*Target:\*\* (.*)$/);
+    const hardCapMatch = line.match(/^- \*\*Hard Cap:\*\* (.*)$/);
+    if (targetMatch)  current.target  = targetMatch[1].trim();
+    if (hardCapMatch) current.hardCap = hardCapMatch[1].trim();
+  }
+  if (current) offerings.push(current);
+  return offerings;
+}
+
+// ============================================================
+// FORMATTING HELPERS
+// ============================================================
+function formatMoney(val) {
+  if (!val) return '';
+  const num = parseInt(val.replace(/[^0-9]/g, ''), 10);
+  if (isNaN(num)) return val;
+  if (num >= 1_000_000_000) return `$${(num / 1_000_000_000).toFixed(1).replace(/\.0$/, '')}B`;
+  if (num >= 1_000_000)     return `$${(num / 1_000_000).toFixed(0)}M`;
+  if (num >= 1_000)         return `$${(num / 1_000).toFixed(0)}K`;
+  return `$${num.toLocaleString()}`;
+}
+
+function parseMoney(val) {
+  if (!val) return 0;
+  const s = val.replace(/[^0-9.BMKbmk]/g, '').toUpperCase();
+  if (s.endsWith('B')) return parseFloat(s) * 1_000_000_000;
+  if (s.endsWith('M')) return parseFloat(s) * 1_000_000;
+  if (s.endsWith('K')) return parseFloat(s) * 1_000;
+  return parseFloat(s) || 0;
+}
+
+function formatDate(isoDate) {
+  if (!isoDate) return '';
+  try {
+    const d = new Date(isoDate + 'T12:00:00');
+    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  } catch { return isoDate; }
+}
+
+function daysSince(isoDate) {
+  if (!isoDate) return 999;
+  try {
+    const d    = new Date(isoDate + 'T12:00:00');
+    const now  = new Date();
+    const diff = (now - d) / (1000 * 60 * 60 * 24);
+    return Math.floor(diff);
+  } catch { return 999; }
+}
+
+function stalenessDot(isoDate) {
+  const days = daysSince(isoDate);
+  if (days <= 7)  return '<span class="staleness-dot stale-green"></span>';
+  if (days <= 14) return '<span class="staleness-dot stale-yellow"></span>';
+  return '<span class="staleness-dot stale-red"></span>';
+}
+
+function urgencyNum(urgency) {
+  const u = (urgency || '').toLowerCase();
+  if (u === 'high') return 3;
+  if (u === 'med')  return 2;
+  if (u === 'low')  return 1;
+  return 0;
+}
+
+function stageNum(stage) {
+  const m = (stage || '').match(/^(\d+)/);
+  return m ? parseInt(m[1], 10) : -1;
+}
+
+function urgencyDotClass(urgency) {
+  const u = (urgency || '').toLowerCase();
+  if (u === 'high') return 'urgency-hi-dot';
+  if (u === 'med')  return 'urgency-med-dot';
+  return 'urgency-lo-dot';
+}
+
+// ============================================================
+// SYNC ENGINE
+// ============================================================
+function setSyncStatus(status) {
+  state.syncStatus = status;
+  const el = document.getElementById('sync-indicator');
+  el.className = status;
+  const icons = { synced: '✓', syncing: '↻', pending: '⚠', error: '✗' };
+  el.textContent = icons[status] || '?';
+}
+
+async function syncAll() {
+  if (!navigator.onLine) {
+    setSyncStatus('pending');
+    return;
+  }
+  setSyncStatus('syncing');
+
+  const files = [FILE_TASKS, FILE_PROSPECTS, FILE_ORGS, FILE_CONFIG, FILE_OFFERINGS];
+  let anyError = false;
+
+  for (const path of files) {
+    try {
+      const meta = await dropboxGetMetadata(path);
+      const newHash = meta.content_hash || '';
+      if (newHash && newHash === state.contentHashes[path]) continue; // unchanged
+
+      const content = await dropboxDownload(path);
+      state.contentHashes[path] = newHash;
+
+      // Parse and update state
+      if (path === FILE_TASKS)     { state.taskSections  = parseTasksMd(content); }
+      if (path === FILE_PROSPECTS) { state.prospects     = parseProspectsMd(content); }
+      if (path === FILE_ORGS)      { state.organizations = parseOrgsMd(content); }
+      if (path === FILE_CONFIG)    { state.config        = parseConfigMd(content); }
+      if (path === FILE_OFFERINGS) {
+        state.offerings = parseOfferingsMd(content);
+        if (!state.selectedOffering && state.offerings.length > 0) {
+          state.selectedOffering = state.offerings[0].name;
+        }
+      }
+    } catch(e) {
+      console.warn(`Sync error for ${path}:`, e);
+      anyError = true;
+    }
+  }
+
+  saveCache();
+  renderCurrentTab();
+
+  // Flush pending writes
+  if (Object.keys(state.pendingWrites).length > 0) {
+    await flushPendingWrites();
+  }
+
+  setSyncStatus(anyError ? 'error' : 'synced');
+}
+
+async function writeFile(path, content) {
+  // Optimistic local update
+  state.pendingWrites[path] = content;
+  saveCache();
+  setSyncStatus('pending');
+
+  if (!navigator.onLine) {
+    showToast('Saved offline — will sync when online');
+    return;
+  }
+
+  try {
+    await dropboxUpload(path, content);
+    delete state.pendingWrites[path];
+    saveCache();
+    setSyncStatus('synced');
+  } catch(e) {
+    console.warn('Write failed:', e);
+    setSyncStatus('error');
+    showToast('Upload failed — will retry');
+  }
+}
+
+async function flushPendingWrites() {
+  for (const [path, content] of Object.entries(state.pendingWrites)) {
+    try {
+      await dropboxUpload(path, content);
+      delete state.pendingWrites[path];
+    } catch(e) {
+      console.warn('Flush failed for', path, e);
+    }
+  }
+  saveCache();
+}
+
+// ============================================================
+// TOAST
+// ============================================================
+function showToast(msg, duration = 2500) {
+  const container = document.getElementById('toast-container');
+  const el = document.createElement('div');
+  el.className = 'toast';
+  el.textContent = msg;
+  container.appendChild(el);
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => { el.classList.add('visible'); });
+  });
+  setTimeout(() => {
+    el.classList.remove('visible');
+    setTimeout(() => el.remove(), 300);
+  }, duration);
+}
+
+// ============================================================
+// TAB NAVIGATION
+// ============================================================
+function switchTab(tab) {
+  state.activeTab = tab;
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.tab === tab);
+  });
+  document.getElementById('tasks-view').style.display    = tab === 'tasks'    ? 'block' : 'none';
+  document.getElementById('pipeline-view').style.display = tab === 'pipeline' ? 'block' : 'none';
+  closeAllDropdowns();
+}
+
+function renderCurrentTab() {
+  if (state.activeTab === 'tasks')    renderTasks();
+  if (state.activeTab === 'pipeline') renderPipeline();
+}
+
+// ============================================================
+// TASKS RENDERING
+// ============================================================
+function renderTasks() {
+  const container = document.getElementById('task-sections-container');
+  container.innerHTML = '';
+
+  // Populate section selector
+  const sectionSelect = document.getElementById('section-select');
+  const prevSection   = sectionSelect.value;
+  sectionSelect.innerHTML = '';
+  const doneLast = [...state.taskSections].sort((a, b) => {
+    if (a.name === 'Done' && b.name !== 'Done') return 1;
+    if (b.name === 'Done' && a.name !== 'Done') return -1;
+    return 0;
+  });
+  for (const section of doneLast) {
+    if (section.name !== 'Done') {
+      const opt = document.createElement('option');
+      opt.value = section.name;
+      opt.textContent = section.name;
+      if (section.name === prevSection) opt.selected = true;
+      sectionSelect.appendChild(opt);
+    }
+  }
+
+  if (state.taskSections.length === 0) {
+    container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">☑</div><div class="empty-state-text">No tasks yet</div></div>';
+    return;
+  }
+
+  // Put Done section at end
+  const sections = [...state.taskSections].sort((a, b) => {
+    if (a.name === 'Done' && b.name !== 'Done') return 1;
+    if (b.name === 'Done' && a.name !== 'Done') return -1;
+    return 0;
+  });
+
+  for (const section of sections) {
+    container.appendChild(buildSectionEl(section));
+  }
+}
+
+function buildSectionEl(section) {
+  const wrapper  = document.createElement('div');
+  wrapper.className = 'task-section';
+  wrapper.dataset.section = section.name;
+
+  const isCollapsed = !!state.collapsedSections[section.name];
+
+  // Header
+  const header = document.createElement('div');
+  header.className = 'section-header';
+  header.innerHTML = `
+    <span class="section-chevron ${isCollapsed ? '' : 'open'}">▶</span>
+    <span class="section-header-name">${escHtml(section.name)}</span>
+    <span class="section-badge">${section.tasks.length}</span>
+  `;
+  header.addEventListener('click', () => toggleSection(section.name));
+  wrapper.appendChild(header);
+
+  // Tasks container
+  const tasksEl = document.createElement('div');
+  tasksEl.className = `section-tasks ${isCollapsed ? 'collapsed' : ''}`;
+  tasksEl.dataset.section = section.name;
+
+  for (let i = 0; i < section.tasks.length; i++) {
+    const taskEl = buildTaskCard(section.tasks[i], section.name, i);
+    tasksEl.appendChild(taskEl);
+  }
+
+  wrapper.appendChild(tasksEl);
+  return wrapper;
+}
+
+function buildTaskCard(task, sectionName, index) {
+  const wrapper = document.createElement('div');
+  wrapper.className = 'task-card-wrapper';
+
+  const swipeBg = document.createElement('div');
+  swipeBg.className = 'task-swipe-bg';
+  swipeBg.textContent = '✓';
+  wrapper.appendChild(swipeBg);
+
+  const card = document.createElement('div');
+  card.className = 'task-card';
+
+  const prio = task.priority.toLowerCase();
+  card.innerHTML = `
+    <div class="drag-handle" aria-label="Drag">⠿</div>
+    <div class="priority-dot ${prio}"></div>
+    <div class="task-text ${task.done ? 'done-text' : ''}">${escHtml(task.text.replace(/~~(.+?)~~/g, '$1'))}</div>
+  `;
+
+  // Swipe to complete
+  if (!task.done) {
+    attachSwipeToComplete(card, wrapper, task, sectionName, index);
+  }
+
+  // Long press
+  attachLongPress(card, task, sectionName, index);
+
+  // Tap to expand long text
+  const textEl = card.querySelector('.task-text');
+  textEl.addEventListener('click', (e) => {
+    e.stopPropagation();
+    textEl.classList.toggle('expanded');
+  });
+
+  // Drag handle
+  const handle = card.querySelector('.drag-handle');
+  attachDragHandle(handle, task, sectionName, index, card);
+
+  wrapper.appendChild(card);
+  return wrapper;
+}
+
+function attachSwipeToComplete(card, wrapper, task, sectionName, index) {
+  let startX = 0, startY = 0, currentX = 0;
+  let isSwiping = false;
+
+  card.addEventListener('touchstart', (e) => {
+    startX = e.touches[0].clientX;
+    startY = e.touches[0].clientY;
+    currentX = 0;
+    isSwiping = false;
+  }, { passive: true });
+
+  card.addEventListener('touchmove', (e) => {
+    const dx = e.touches[0].clientX - startX;
+    const dy = e.touches[0].clientY - startY;
+
+    if (!isSwiping && Math.abs(dx) > 8) {
+      if (Math.abs(dx) > Math.abs(dy)) {
+        isSwiping = true;
+      } else {
+        return; // vertical scroll
+      }
+    }
+
+    if (!isSwiping) return;
+    if (dx < 0) return; // only right swipe
+
+    currentX = dx;
+    card.style.transform = `translateX(${Math.min(dx, 120)}px)`;
+    card.style.transition = 'none';
+  }, { passive: true });
+
+  card.addEventListener('touchend', () => {
+    card.style.transition = '';
+    if (currentX > 80) {
+      completeTask(sectionName, index, card, wrapper);
+    } else {
+      card.style.transform = '';
+    }
+    isSwiping = false;
+    currentX = 0;
+  });
+}
+
+function completeTask(sectionName, taskIndex, cardEl, wrapperEl) {
+  const section = state.taskSections.find(s => s.name === sectionName);
+  if (!section) return;
+
+  const task = section.tasks[taskIndex];
+  if (!task || task.done) return;
+
+  // Animate
+  cardEl.classList.add('completing');
+
+  setTimeout(() => {
+    // Move task to Done section
+    section.tasks.splice(taskIndex, 1);
+    task.done = true;
+
+    let doneSection = state.taskSections.find(s => s.name === 'Done');
+    if (!doneSection) {
+      doneSection = { name: 'Done', tasks: [] };
+      state.taskSections.push(doneSection);
+    }
+    doneSection.tasks.push(task);
+
+    saveCache();
+    persistTasks();
+    renderTasks();
+    showToast('Task completed');
+  }, 300);
+}
+
+function toggleSection(name) {
+  if (state.collapsedSections[name]) {
+    delete state.collapsedSections[name];
+  } else {
+    state.collapsedSections[name] = true;
+  }
+  saveCache();
+  renderTasks();
+}
+
+// ============================================================
+// TASK ACTIONS
+// ============================================================
+function attachLongPress(card, task, sectionName, index) {
+  let timer = null;
+  let didMove = false;
+
+  card.addEventListener('touchstart', (e) => {
+    didMove = false;
+    timer = setTimeout(() => {
+      if (!didMove) {
+        navigator.vibrate && navigator.vibrate(40);
+        showTaskActionSheet(task, sectionName, index);
+      }
+    }, 500);
+  }, { passive: true });
+
+  card.addEventListener('touchmove', () => {
+    didMove = true;
+    clearTimeout(timer);
+  }, { passive: true });
+
+  card.addEventListener('touchend', () => clearTimeout(timer), { passive: true });
+  card.addEventListener('touchcancel', () => clearTimeout(timer), { passive: true });
+}
+
+function showTaskActionSheet(task, sectionName, taskIndex) {
+  const actionSheet   = document.getElementById('action-sheet');
+  const actionBackdrop = document.getElementById('action-backdrop');
+  const titleEl       = document.getElementById('action-sheet-title');
+  const itemsEl       = document.getElementById('action-sheet-items');
+
+  titleEl.textContent = task.text.replace(/~~(.+?)~~/g, '$1');
+  itemsEl.innerHTML   = '';
+
+  // Priority submenu
+  const prioItem = document.createElement('div');
+  prioItem.className = 'action-item';
+  prioItem.innerHTML = `
+    <span class="action-item-icon">🎯</span>
+    <span>Change Priority</span>
+    <div class="action-item-sub" style="margin-left:auto">
+      <span class="action-sub-item" data-action="prio-Hi">Hi</span>
+      <span class="action-sub-item" data-action="prio-Med">Med</span>
+      <span class="action-sub-item" data-action="prio-Lo">Lo</span>
+    </div>
+  `;
+  itemsEl.appendChild(prioItem);
+
+  // Move to section submenu
+  const moveItem = document.createElement('div');
+  moveItem.className = 'action-item';
+  const sections = state.taskSections.filter(s => s.name !== 'Done' && s.name !== sectionName);
+  const subsHtml = sections.map(s => `<span class="action-sub-item" data-action="move-${s.name}">${escHtml(s.name)}</span>`).join('');
+  moveItem.innerHTML = `
+    <span class="action-item-icon">↗</span>
+    <span>Move to</span>
+    <div class="action-item-sub" style="margin-left:auto">${subsHtml}</div>
+  `;
+  itemsEl.appendChild(moveItem);
+
+  // Delete
+  const delItem = document.createElement('div');
+  delItem.className = 'action-item destructive';
+  delItem.innerHTML = `<span class="action-item-icon">🗑</span><span>Delete</span>`;
+  delItem.addEventListener('click', () => {
+    deleteTask(sectionName, taskIndex);
+    closeActionSheet();
+  });
+  itemsEl.appendChild(delItem);
+
+  // Handle submenu taps
+  itemsEl.querySelectorAll('[data-action]').forEach(el => {
+    el.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const action = el.dataset.action;
+      if (action.startsWith('prio-')) {
+        changeTaskPriority(sectionName, taskIndex, action.replace('prio-', ''));
+      } else if (action.startsWith('move-')) {
+        moveTaskToSection(sectionName, taskIndex, action.replace('move-', ''));
+      }
+      closeActionSheet();
+    });
+  });
+
+  actionBackdrop.classList.add('open');
+  actionSheet.classList.add('open');
+
+  actionBackdrop.onclick = closeActionSheet;
+}
+
+function closeActionSheet() {
+  document.getElementById('action-sheet').classList.remove('open');
+  document.getElementById('action-backdrop').classList.remove('open');
+}
+
+function changeTaskPriority(sectionName, taskIndex, newPriority) {
+  const section = state.taskSections.find(s => s.name === sectionName);
+  if (!section) return;
+  section.tasks[taskIndex].priority = newPriority;
+  saveCache();
+  persistTasks();
+  renderTasks();
+  showToast(`Priority set to ${newPriority}`);
+}
+
+function moveTaskToSection(fromSection, taskIndex, toSection) {
+  const from = state.taskSections.find(s => s.name === fromSection);
+  const to   = state.taskSections.find(s => s.name === toSection);
+  if (!from || !to) return;
+  const [task] = from.tasks.splice(taskIndex, 1);
+  to.tasks.push(task);
+  saveCache();
+  persistTasks();
+  renderTasks();
+  showToast(`Moved to ${toSection}`);
+}
+
+function deleteTask(sectionName, taskIndex) {
+  const section = state.taskSections.find(s => s.name === sectionName);
+  if (!section) return;
+  section.tasks.splice(taskIndex, 1);
+  saveCache();
+  persistTasks();
+  renderTasks();
+  showToast('Task deleted');
+}
+
+// ============================================================
+// DRAG TO REORDER
+// ============================================================
+function attachDragHandle(handle, task, sectionName, taskIndex, cardEl) {
+  let startY = 0;
+  let ghost  = null;
+
+  handle.addEventListener('touchstart', (e) => {
+    e.stopPropagation();
+    startY = e.touches[0].clientY;
+
+    ghost = document.getElementById('drag-ghost');
+    ghost.textContent = task.text.replace(/~~(.+?)~~/g, '$1');
+    ghost.style.display = 'block';
+    ghost.style.left    = '12px';
+    ghost.style.top     = `${e.touches[0].clientY - 20}px`;
+    ghost.style.width   = `${cardEl.offsetWidth}px`;
+
+    cardEl.style.opacity = '0.4';
+  }, { passive: false });
+
+  handle.addEventListener('touchmove', (e) => {
+    e.preventDefault();
+    const y   = e.touches[0].clientY;
+    ghost.style.top = `${y - 20}px`;
+  }, { passive: false });
+
+  handle.addEventListener('touchend', (e) => {
+    ghost.style.display = 'none';
+    cardEl.style.opacity = '';
+
+    // Find drop target
+    const y       = e.changedTouches[0].clientY;
+    const section = state.taskSections.find(s => s.name === sectionName);
+    if (!section) return;
+
+    const tasksContainer = document.querySelector(`.section-tasks[data-section="${sectionName}"]`);
+    if (!tasksContainer) return;
+
+    const cards = Array.from(tasksContainer.querySelectorAll('.task-card-wrapper'));
+    let dropIndex = section.tasks.length;
+
+    for (let i = 0; i < cards.length; i++) {
+      const rect = cards[i].getBoundingClientRect();
+      if (y < rect.top + rect.height / 2) {
+        dropIndex = i;
+        break;
+      }
+    }
+
+    if (dropIndex !== taskIndex) {
+      const [removed] = section.tasks.splice(taskIndex, 1);
+      const insertAt   = dropIndex > taskIndex ? dropIndex - 1 : dropIndex;
+      section.tasks.splice(insertAt, 0, removed);
+      saveCache();
+      persistTasks();
+      renderTasks();
+    }
+  }, { passive: false });
+}
+
+// ============================================================
+// ADD TASK
+// ============================================================
+function initAddTask() {
+  const input       = document.getElementById('new-task-input');
+  const addBtn      = document.getElementById('add-task-btn');
+  const options     = document.getElementById('add-task-options');
+  const confirmBtn  = document.getElementById('add-task-confirm-btn');
+  const prioButtons = document.querySelectorAll('.priority-toggle-btn');
+
+  addBtn.addEventListener('click', () => {
+    if (!input.value.trim()) return;
+    options.classList.add('visible');
+    input.focus();
+  });
+
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && input.value.trim()) {
+      if (options.classList.contains('visible')) {
+        submitNewTask();
+      } else {
+        options.classList.add('visible');
+      }
+    }
+  });
+
+  prioButtons.forEach(btn => {
+    btn.addEventListener('click', () => {
+      state.newTaskPriority = btn.dataset.p;
+      prioButtons.forEach(b => {
+        b.className = 'priority-toggle-btn';
+      });
+      btn.classList.add(`active-${btn.dataset.p.toLowerCase()}`);
+    });
+  });
+
+  confirmBtn.addEventListener('click', submitNewTask);
+}
+
+function submitNewTask() {
+  const input      = document.getElementById('new-task-input');
+  const sectionSel = document.getElementById('section-select');
+  const text       = input.value.trim();
+  if (!text) return;
+
+  const sectionName = sectionSel.value;
+  const section     = state.taskSections.find(s => s.name === sectionName);
+  if (!section) { showToast('Select a section'); return; }
+
+  section.tasks.push({ done: false, priority: state.newTaskPriority, text, raw: '' });
+
+  input.value = '';
+  document.getElementById('add-task-options').classList.remove('visible');
+  saveCache();
+  persistTasks();
+  renderTasks();
+  showToast('Task added');
+}
+
+function persistTasks() {
+  const md = serializeTasksMd(state.taskSections);
+  writeFile(FILE_TASKS, md);
+}
+
+// ============================================================
+// PIPELINE RENDERING
+// ============================================================
+function renderPipeline() {
+  renderOfferingBar();
+  renderProspectsList();
+}
+
+function renderOfferingBar() {
+  const select   = document.getElementById('offering-select');
+  const summary  = document.getElementById('offering-summary');
+  const fillEl   = document.getElementById('offering-progress-fill');
+
+  // Populate dropdown
+  const prevVal = select.value;
+  select.innerHTML = '';
+  for (const o of state.offerings) {
+    const opt = document.createElement('option');
+    opt.value = o.name;
+    opt.textContent = o.name;
+    select.appendChild(opt);
+  }
+  if (state.selectedOffering) select.value = state.selectedOffering;
+
+  // Calculate committed sum for selected offering
+  const offering = state.offerings.find(o => o.name === state.selectedOffering);
+  if (!offering) { summary.textContent = ''; fillEl.style.width = '0%'; return; }
+
+  const offeringProspects = state.prospects.filter(p => p.offering === state.selectedOffering);
+  const committed = offeringProspects.reduce((sum, p) => sum + parseMoney(p.committed), 0);
+  const target    = parseMoney(offering.target);
+
+  const pct = target > 0 ? Math.min(100, (committed / target) * 100) : 0;
+  fillEl.style.width = `${pct.toFixed(1)}%`;
+  summary.textContent = `${formatMoney(String(committed))} / ${formatMoney(offering.target)} (${pct.toFixed(0)}%)`;
+
+  // Populate filter dropdowns
+  populateFilterDropdowns();
+}
+
+function populateFilterDropdowns() {
+  const stages   = state.config.stages || [];
+  const urgencies = state.config.urgencyLevels || ['High', 'Med', 'Low'];
+  const types    = state.config.orgTypes || [];
+  const closings = state.config.closingOptions || [];
+  const team     = state.config.team || [];
+
+  buildDropdown('stage-dropdown',    stages,    'stage',    state.filterStage);
+  buildDropdown('urgency-dropdown',  urgencies, 'urgency',  state.filterUrgency);
+  buildDropdown('type-dropdown',     types,     'type',     state.filterType);
+  buildDropdown('closing-dropdown',  closings,  'closing',  state.filterClosing);
+  buildDropdown('assigned-dropdown', team,      'assigned', state.filterAssigned);
+}
+
+function buildDropdown(containerId, items, filterKey, currentValue) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+  container.innerHTML = '';
+
+  const clearItem = document.createElement('div');
+  clearItem.className = `filter-dropdown-item ${!currentValue ? 'selected' : ''}`;
+  clearItem.textContent = 'All';
+  clearItem.addEventListener('click', () => {
+    setFilter(filterKey, '');
+    closeAllDropdowns();
+  });
+  container.appendChild(clearItem);
+
+  for (const item of items) {
+    const el = document.createElement('div');
+    el.className = `filter-dropdown-item ${item === currentValue ? 'selected' : ''}`;
+    el.textContent = item;
+    el.addEventListener('click', () => {
+      setFilter(filterKey, item === currentValue ? '' : item);
+      closeAllDropdowns();
+    });
+    container.appendChild(el);
+  }
+}
+
+function setFilter(key, value) {
+  if (key === 'stage')    state.filterStage    = value;
+  if (key === 'urgency')  state.filterUrgency  = value;
+  if (key === 'type')     state.filterType     = value;
+  if (key === 'closing')  state.filterClosing  = value;
+  if (key === 'assigned') state.filterAssigned = value;
+  updateFilterChips();
+  renderProspectsList();
+}
+
+function updateFilterChips() {
+  const activeFilters = [
+    state.filterStage, state.filterUrgency, state.filterType,
+    state.filterClosing, state.filterAssigned
+  ].filter(Boolean);
+
+  // Update chip labels
+  document.getElementById('stage-filter-btn').classList.toggle('active', !!state.filterStage);
+  document.getElementById('stage-filter-btn').textContent = state.filterStage || 'Stage ▾';
+
+  document.getElementById('urgency-filter-btn').classList.toggle('active', !!state.filterUrgency);
+  document.getElementById('urgency-filter-btn').textContent = state.filterUrgency || 'Urgency ▾';
+
+  document.getElementById('type-filter-btn').classList.toggle('active', !!state.filterType);
+  document.getElementById('type-filter-btn').textContent = state.filterType || 'Type ▾';
+
+  document.getElementById('closing-filter-btn').classList.toggle('active', !!state.filterClosing);
+  document.getElementById('closing-filter-btn').textContent = state.filterClosing || 'Closing ▾';
+
+  document.getElementById('assigned-filter-btn').classList.toggle('active', !!state.filterAssigned);
+  document.getElementById('assigned-filter-btn').textContent = state.filterAssigned || 'Assigned ▾';
+
+  const clearBtn = document.getElementById('clear-filters-btn');
+  clearBtn.style.display = activeFilters.length > 0 ? 'block' : 'none';
+}
+
+function clearAllFilters() {
+  state.filterStage    = '';
+  state.filterUrgency  = '';
+  state.filterType     = '';
+  state.filterClosing  = '';
+  state.filterAssigned = '';
+  updateFilterChips();
+  renderProspectsList();
+}
+
+function closeAllDropdowns() {
+  document.querySelectorAll('.filter-dropdown-menu').forEach(el => el.classList.remove('open'));
+}
+
+function toggleDropdown(dropdownId, btnEl) {
+  const dropdown = document.getElementById(dropdownId);
+  const isOpen   = dropdown.classList.contains('open');
+  closeAllDropdowns();
+  if (!isOpen) {
+    const rect = btnEl.getBoundingClientRect();
+    dropdown.style.top  = `${rect.bottom + 4}px`;
+    dropdown.style.left = `${rect.left}px`;
+    dropdown.classList.add('open');
+  }
+}
+
+function renderProspectsList() {
+  const container = document.getElementById('prospects-list');
+  container.innerHTML = '';
+
+  let prospects = state.prospects.filter(p => p.offering === state.selectedOffering);
+
+  // Search filter
+  const q = state.searchQuery.toLowerCase();
+  if (q) prospects = prospects.filter(p => p.name.toLowerCase().includes(q));
+
+  // Filter chips
+  if (state.filterStage)    prospects = prospects.filter(p => p.stage === state.filterStage);
+  if (state.filterUrgency)  prospects = prospects.filter(p => p.urgency.toLowerCase() === state.filterUrgency.toLowerCase());
+  if (state.filterType)     prospects = prospects.filter(p => (state.organizations[p.name] || {}).type === state.filterType);
+  if (state.filterClosing)  prospects = prospects.filter(p => p.closing === state.filterClosing);
+  if (state.filterAssigned) prospects = prospects.filter(p => p.assignedTo === state.filterAssigned);
+
+  // Sort: stage desc, urgency desc, target desc
+  prospects.sort((a, b) => {
+    const stageDiff = stageNum(b.stage) - stageNum(a.stage);
+    if (stageDiff !== 0) return stageDiff;
+    const urgDiff = urgencyNum(b.urgency) - urgencyNum(a.urgency);
+    if (urgDiff !== 0) return urgDiff;
+    return parseMoney(b.target) - parseMoney(a.target);
+  });
+
+  if (prospects.length === 0) {
+    container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📊</div><div class="empty-state-text">No prospects found</div></div>';
+    return;
+  }
+
+  for (const prospect of prospects) {
+    container.appendChild(buildProspectCard(prospect));
+  }
+}
+
+function buildProspectCard(prospect) {
+  const card    = document.createElement('div');
+  card.className = 'prospect-card';
+
+  const org     = state.organizations[prospect.name] || {};
+  const orgType = org.type || '';
+  const urgClass = urgencyDotClass(prospect.urgency);
+  const stale    = stalenessDot(prospect.lastTouch);
+
+  card.innerHTML = `
+    <div class="prospect-name">${escHtml(prospect.name)}</div>
+    ${orgType ? `<div class="prospect-type">${escHtml(orgType)}</div>` : ''}
+    <div class="prospect-meta-row">
+      <span>${escHtml(prospect.stage)}</span>
+      ${prospect.target ? `<span class="prospect-meta-sep">·</span><span>${formatMoney(prospect.target)}</span>` : ''}
+      ${prospect.closing ? `<span class="prospect-meta-sep">·</span><span>${escHtml(prospect.closing)}</span>` : ''}
+    </div>
+    <div class="prospect-meta-row">
+      <span class="prospect-urgency">
+        <span class="dot ${urgClass}"></span>
+        ${escHtml(prospect.urgency)}
+      </span>
+      ${prospect.assignedTo ? `<span class="prospect-meta-sep">·</span><span>${escHtml(prospect.assignedTo)}</span>` : ''}
+    </div>
+    ${prospect.nextAction ? `<div class="prospect-next-action">${escHtml(prospect.nextAction)}</div>` : ''}
+    <div class="prospect-footer">
+      <span>Last touch: ${formatDate(prospect.lastTouch)}</span>
+      ${stale}
+    </div>
+  `;
+
+  card.addEventListener('click', () => openEditSheet(prospect));
+  return card;
+}
+
+// ============================================================
+// EDIT SHEET
+// ============================================================
+function openEditSheet(prospect) {
+  state.editingProspect = prospect;
+
+  document.getElementById('sheet-org-name').textContent  = prospect.name;
+  document.getElementById('sheet-org-type').textContent  = (state.organizations[prospect.name] || {}).type || '';
+
+  const body = document.getElementById('sheet-body');
+  const cfg  = state.config;
+
+  body.innerHTML = `
+    <div class="sheet-field">
+      <span class="sheet-field-label">Stage</span>
+      <div class="sheet-field-value">
+        ${buildSelect('sheet-stage', cfg.stages || [], prospect.stage)}
+      </div>
+    </div>
+    <div class="sheet-field">
+      <span class="sheet-field-label">Urgency</span>
+      <div class="sheet-field-value">
+        ${buildSelect('sheet-urgency', cfg.urgencyLevels || ['High', 'Med', 'Low'], prospect.urgency)}
+      </div>
+    </div>
+    <div class="sheet-field">
+      <span class="sheet-field-label">Target</span>
+      <div class="sheet-field-value">
+        <input class="sheet-input" id="sheet-target" type="text" value="${escHtml(prospect.target)}" inputmode="numeric">
+      </div>
+    </div>
+    <div class="sheet-field">
+      <span class="sheet-field-label">Committed</span>
+      <div class="sheet-field-value">
+        <input class="sheet-input" id="sheet-committed" type="text" value="${escHtml(prospect.committed)}" inputmode="numeric">
+      </div>
+    </div>
+    <div class="sheet-field">
+      <span class="sheet-field-label">Closing</span>
+      <div class="sheet-field-value">
+        ${buildSelect('sheet-closing', cfg.closingOptions || [], prospect.closing)}
+      </div>
+    </div>
+    <div class="sheet-field">
+      <span class="sheet-field-label">Assigned</span>
+      <div class="sheet-field-value">
+        ${buildSelect('sheet-assigned', cfg.team || [], prospect.assignedTo)}
+      </div>
+    </div>
+    <div class="sheet-field">
+      <span class="sheet-field-label">Contact</span>
+      <div class="sheet-field-value">
+        <input class="sheet-input" id="sheet-contact" type="text" value="${escHtml(prospect.primaryContact)}">
+      </div>
+    </div>
+    <hr class="sheet-divider">
+    <div class="sheet-section-label">Next Action</div>
+    <textarea class="sheet-textarea" id="sheet-next-action">${escHtml(prospect.nextAction)}</textarea>
+    <div class="sheet-section-label" style="margin-top:12px">Notes</div>
+    <textarea class="sheet-textarea" id="sheet-notes">${escHtml(prospect.notes)}</textarea>
+    <div class="sheet-last-touch-label" style="margin-top:12px">Last touch: ${formatDate(prospect.lastTouch)}</div>
+  `;
+
+  document.getElementById('edit-backdrop').classList.add('open');
+  document.getElementById('edit-sheet').classList.add('open');
+}
+
+function buildSelect(id, options, currentValue) {
+  let html = `<select class="sheet-select" id="${id}">`;
+  html += `<option value="" ${!currentValue ? 'selected' : ''}>—</option>`;
+  for (const opt of options) {
+    const sel = opt === currentValue ? 'selected' : '';
+    html += `<option value="${escHtml(opt)}" ${sel}>${escHtml(opt)}</option>`;
+  }
+  html += '</select>';
+  return html;
+}
+
+function closeEditSheet() {
+  document.getElementById('edit-sheet').classList.remove('open');
+  document.getElementById('edit-backdrop').classList.remove('open');
+  state.editingProspect = null;
+}
+
+function saveEditSheet(updateTouch) {
+  const p = state.editingProspect;
+  if (!p) return;
+
+  p.stage          = document.getElementById('sheet-stage')?.value       || p.stage;
+  p.urgency        = document.getElementById('sheet-urgency')?.value     || p.urgency;
+  p.target         = document.getElementById('sheet-target')?.value      || p.target;
+  p.committed      = document.getElementById('sheet-committed')?.value   || p.committed;
+  p.closing        = document.getElementById('sheet-closing')?.value     || p.closing;
+  p.assignedTo     = document.getElementById('sheet-assigned')?.value    || p.assignedTo;
+  p.primaryContact = document.getElementById('sheet-contact')?.value     || p.primaryContact;
+  p.nextAction     = document.getElementById('sheet-next-action')?.value || p.nextAction;
+  p.notes          = document.getElementById('sheet-notes')?.value       || p.notes;
+
+  if (updateTouch) {
+    const today   = new Date();
+    p.lastTouch   = today.toISOString().split('T')[0];
+  }
+
+  // Update in state.prospects
+  const idx = state.prospects.findIndex(x => x.name === p.name && x.offering === p.offering);
+  if (idx >= 0) state.prospects[idx] = p;
+
+  saveCache();
+  persistProspects();
+  renderPipeline();
+  closeEditSheet();
+  showToast(updateTouch ? 'Saved & touched' : 'Saved');
+}
+
+function persistProspects() {
+  const md = serializeProspectsMd(state.prospects);
+  writeFile(FILE_PROSPECTS, md);
+}
+
+// ============================================================
+// EDIT SHEET SWIPE DOWN
+// ============================================================
+function initEditSheetSwipe() {
+  const sheet = document.getElementById('edit-sheet');
+  let startY  = 0;
+  let currentY = 0;
+
+  sheet.addEventListener('touchstart', (e) => {
+    startY = e.touches[0].clientY;
+    currentY = 0;
+  }, { passive: true });
+
+  sheet.addEventListener('touchmove', (e) => {
+    const dy = e.touches[0].clientY - startY;
+    if (dy > 0) {
+      currentY = dy;
+      sheet.style.transform = `translateY(${dy}px)`;
+      sheet.style.transition = 'none';
+    }
+  }, { passive: true });
+
+  sheet.addEventListener('touchend', () => {
+    sheet.style.transition = '';
+    if (currentY > 80) {
+      closeEditSheet();
+    } else {
+      sheet.style.transform = '';
+    }
+  });
+}
+
+// ============================================================
+// HTML ESCAPE
+// ============================================================
+function escHtml(str) {
+  if (!str) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+// ============================================================
+// SETUP SCREEN
+// ============================================================
+function showSetupScreen() {
+  document.getElementById('setup-screen').classList.remove('hidden');
+  document.getElementById('app').style.display = 'none';
+}
+
+function hideSetupScreen() {
+  document.getElementById('setup-screen').classList.add('hidden');
+  document.getElementById('app').style.display = 'flex';
+}
+
+function initSetupScreen() {
+  document.getElementById('connect-btn').addEventListener('click', () => {
+    const token = document.getElementById('token-input').value.trim();
+    if (!token) { showToast('Please enter a token'); return; }
+    state.token = token;
+    localStorage.setItem('arec_token', token);
+    hideSetupScreen();
+    initApp();
+  });
+}
+
+// ============================================================
+// FILTER DROPDOWN EVENTS
+// ============================================================
+function initFilterDropdowns() {
+  const dropdownPairs = [
+    ['stage-filter-btn',   'stage-dropdown'],
+    ['urgency-filter-btn', 'urgency-dropdown'],
+    ['type-filter-btn',    'type-dropdown'],
+    ['closing-filter-btn', 'closing-dropdown'],
+    ['assigned-filter-btn','assigned-dropdown'],
+  ];
+
+  for (const [btnId, dropId] of dropdownPairs) {
+    const btn = document.getElementById(btnId);
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      toggleDropdown(dropId, btn);
+    });
+  }
+
+  document.getElementById('more-filters-btn').addEventListener('click', () => {
+    state.moreFiltersOpen = !state.moreFiltersOpen;
+    document.getElementById('more-filters').classList.toggle('open', state.moreFiltersOpen);
+    document.getElementById('more-filters-btn').textContent = state.moreFiltersOpen ? 'Less ▲' : 'More ▼';
+  });
+
+  document.getElementById('clear-filters-btn').addEventListener('click', clearAllFilters);
+
+  document.addEventListener('click', () => closeAllDropdowns());
+}
+
+// ============================================================
+// NETWORK EVENTS
+// ============================================================
+function initNetworkListeners() {
+  window.addEventListener('online', async () => {
+    showToast('Back online');
+    if (Object.keys(state.pendingWrites).length > 0) {
+      await flushPendingWrites();
+    }
+    syncAll();
+  });
+
+  window.addEventListener('offline', () => {
+    setSyncStatus('pending');
+    showToast('Offline — changes saved locally');
+  });
+}
+
+// ============================================================
+// OFFERING SELECT
+// ============================================================
+function initOfferingSelect() {
+  document.getElementById('offering-select').addEventListener('change', (e) => {
+    state.selectedOffering = e.target.value;
+    saveCache();
+    renderPipeline();
+  });
+}
+
+// ============================================================
+// SEARCH
+// ============================================================
+function initSearch() {
+  document.getElementById('pipeline-search').addEventListener('input', (e) => {
+    state.searchQuery = e.target.value;
+    renderProspectsList();
+  });
+}
+
+// ============================================================
+// SYNC INDICATOR TAP (force resync)
+// ============================================================
+function initSyncTap() {
+  document.getElementById('sync-indicator').addEventListener('click', () => {
+    state.contentHashes = {};
+    saveCache();
+    syncAll();
+    showToast('Syncing...');
+  });
+}
+
+// ============================================================
+// EDIT SHEET SAVE BUTTONS
+// ============================================================
+function initSheetButtons() {
+  document.getElementById('sheet-save-btn').addEventListener('click', () => saveEditSheet(false));
+  document.getElementById('sheet-touch-btn').addEventListener('click', () => saveEditSheet(true));
+  document.getElementById('edit-backdrop').addEventListener('click', closeEditSheet);
+}
+
+// ============================================================
+// SERVICE WORKER REGISTRATION
+// ============================================================
+function registerServiceWorker() {
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('./sw.js').then(reg => {
+      console.log('SW registered:', reg.scope);
+    }).catch(err => {
+      console.warn('SW registration failed:', err);
+    });
+  }
+}
+
+// ============================================================
+// MAIN INIT
+// ============================================================
+function initApp() {
+  // Render from cache immediately
+  if (state.taskSections.length > 0 || state.prospects.length > 0) {
+    renderCurrentTab();
+  }
+
+  // Set up default collapsed state for Done section
+  if (!('Done' in state.collapsedSections)) {
+    state.collapsedSections['Done'] = true;
+  }
+
+  // Start background sync
+  syncAll();
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  registerServiceWorker();
+  loadFromStorage();
+  initSetupScreen();
+  initAddTask();
+  initOfferingSelect();
+  initSearch();
+  initFilterDropdowns();
+  initSheetButtons();
+  initEditSheetSwipe();
+  initNetworkListeners();
+  initSyncTap();
+
+  // Tab bar
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => switchTab(btn.dataset.tab));
+  });
+
+  // Show correct initial view
+  switchTab('tasks');
+
+  // Check for token
+  if (!state.token) {
+    showSetupScreen();
+  } else {
+    hideSetupScreen();
+    initApp();
+  }
+});
+</script>
+</body>
+</html>

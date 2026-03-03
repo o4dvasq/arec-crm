@@ -1,9 +1,7 @@
-# Environment & secrets
+# Environment
 .env
 .env.local
-app/.env
 token_cache.bin
-*.token
 
 # Python
 __pycache__/
@@ -24,12 +22,3 @@ Thumbs.db
 .idea/
 *.swp
 *.swo
-
-# Cowork / Claude internals
-.claude/
-.skills/
-.local-plugins/
-
-# Temp files
-*.tmp
-*.bak
