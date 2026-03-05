@@ -9,10 +9,12 @@
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f8fafc; color: #1e293b; min-height: 100vh; }
 
     /* Nav */
-    nav { background: #0f172a; padding: 0 24px; display: flex; align-items: center; gap: 24px; height: 52px; }
+    nav { background: #1a1a2e; padding: 0 24px; display: flex; align-items: center; height: 52px; }
+    nav .nav-links { display: flex; align-items: center; gap: 24px; }
     nav a { color: #94a3b8; text-decoration: none; font-size: 14px; font-weight: 500; }
     nav a:hover { color: #e2e8f0; }
-    nav .logo { color: #e2e8f0; font-weight: 700; font-size: 16px; margin-right: 8px; }
+    nav .brand { position: absolute; left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 8px; color: #e2e8f0; font-weight: 700; font-size: 16px; letter-spacing: 0.04em; }
+    nav .brand svg { opacity: 0.85; }
 
     /* Page layout */
     .page { padding: 24px; max-width: 1100px; margin: 0 auto; }
@@ -107,14 +109,89 @@
     /* Error / empty */
     .muted { color: #94a3b8; font-size: 13px; }
     .error-msg { color: #dc2626; font-size: 13px; margin-top: 6px; }
+
+    /* ===== Add Contact Panel ===== */
+    .add-contact-panel {
+      background: #fff;
+      border: 1px solid #e5e7eb;
+      border-radius: 6px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+      margin-bottom: 16px;
+      overflow: hidden;
+    }
+    .acp-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 16px;
+      background: #f9fafb;
+      border-bottom: 1px solid #e5e7eb;
+    }
+    .acp-title { font-size: 14px; font-weight: 600; color: #1f2937; }
+    .acp-close { background: none; border: none; font-size: 16px; color: #9ca3af; cursor: pointer; padding: 2px 6px; line-height: 1; }
+    .acp-close:hover { color: #374151; }
+    .acp-search-bar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 16px;
+      border-bottom: 1px solid #f3f4f6;
+    }
+    .acp-search-bar input {
+      flex: 1;
+      border: 1px solid #d1d5db;
+      border-radius: 4px;
+      padding: 6px 10px;
+      font-size: 13px;
+      font-family: inherit;
+      outline: none;
+    }
+    .acp-search-bar input:focus { border-color: #2563eb; }
+    .acp-count { padding: 6px 16px; font-size: 11px; color: #9ca3af; border-bottom: 1px solid #f3f4f6; }
+    .acp-people-list { max-height: 280px; overflow-y: auto; }
+    .person-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 9px 16px;
+      cursor: pointer;
+      border-bottom: 1px solid #f9fafb;
+      transition: background 0.1s;
+    }
+    .person-row:hover { background: #f9fafb; }
+    .person-row.selected { background: #eff6ff; border-left: 3px solid #2563eb; padding-left: 13px; }
+    .person-name { font-size: 13px; font-weight: 500; color: #1f2937; }
+    .person-org-tag { font-size: 12px; color: #9ca3af; }
+    .acp-footer { padding: 10px 16px; border-top: 1px solid #f3f4f6; }
+    .acp-confirm-bar { padding: 10px 16px; background: #eff6ff; border-top: 1px solid #dbeafe; display: flex; align-items: center; gap: 10px; }
+    .acp-back { padding: 8px 16px; border-bottom: 1px solid #f3f4f6; }
+    .link-btn { background: none; border: none; color: #2563eb; font-size: 13px; cursor: pointer; padding: 0; font-family: inherit; }
+    .link-btn:hover { color: #1d4ed8; text-decoration: underline; }
+    #acp-new-step { padding: 14px 16px; }
+    #acp-new-step .form-group { display: flex; flex-direction: column; gap: 4px; margin-bottom: 10px; }
+    #acp-new-step .form-group label { font-size: 12px; font-weight: 600; color: #374151; text-transform: uppercase; letter-spacing: 0.04em; }
+    #acp-new-step .form-group input,
+    #acp-new-step .form-group textarea {
+      border: 1px solid #d1d5db; border-radius: 4px; padding: 6px 10px;
+      font-size: 13px; font-family: inherit; outline: none;
+    }
+    #acp-new-step .form-group input:focus,
+    #acp-new-step .form-group textarea:focus { border-color: #2563eb; }
+    .acp-form-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 12px; }
   </style>
 </head>
 <body>
 
 <nav>
-  <span class="logo">AREC</span>
-  <a href="/">Dashboard</a>
-  <a href="/crm">CRM</a>
+  <div class="nav-links">
+    <a href="/">Dashboard</a>
+    <a href="/tasks">Tasks</a>
+    <a href="/crm">Pipeline</a>
+  </div>
+  <div class="brand">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M15.7 8.6c-.2-.4-.5-.7-.9-.8-.4-.2-.8-.1-1.2.1l-2.3 1.3c-.4.2-.6.5-.7.9-.1.4 0 .8.2 1.1l.9 1.2c-.5.3-1.1.5-1.7.5-1.7 0-3-1.3-3-3s1.3-3 3-3c.9 0 1.8.4 2.3 1.1.3.4.9.5 1.3.2.4-.3.5-.9.2-1.3C13.8 5.7 12.5 5 11 5c-2.8 0-5 2.2-5 5s2.2 5 5 5c1.5 0 2.8-.7 3.8-1.7l.5.7c.2.4.6.6 1 .6.2 0 .3 0 .5-.1.6-.3.8-1 .5-1.6L15.7 8.6z" fill="currentColor" opacity="0.9"/></svg>
+    Overwatch
+  </div>
 </nav>
 
 <div class="page">
@@ -144,37 +221,97 @@
     <div class="card">
       <div class="card-header">
         <span class="card-title">Contacts</span>
+        <button class="btn btn-primary btn-sm" onclick="openAddContactPanel()">+ Add Contact</button>
       </div>
       <div class="card-body">
-        <div class="contact-list" id="contact-list"></div>
 
-        <!-- Add Contact form -->
-        <div class="add-form" id="add-contact-form">
-          <div class="add-form-title">Add Contact</div>
-          <div class="form-grid">
+        <!-- Add Contact Panel (two-step, hidden by default) -->
+        <div id="add-contact-panel" class="add-contact-panel" style="display:none">
+          <div class="acp-header">
+            <span class="acp-title" id="acp-title">Add Contact</span>
+            <button class="acp-close" onclick="closeAddContactPanel()" title="Close">✕</button>
+          </div>
+
+          <!-- Step 1: Search existing KB people -->
+          <div id="acp-search-step">
+            <div class="acp-search-bar">
+              <span>🔍</span>
+              <input type="text" id="acp-search-input" placeholder="Search people..."
+                     oninput="filterKbPeople(this.value)" autocomplete="off">
+            </div>
+            <div class="acp-count" id="acp-count">Loading...</div>
+            <div class="acp-people-list" id="acp-people-list"></div>
+            <div class="acp-footer">
+              <button class="link-btn" onclick="showNewContactStep()">+ Create new contact instead</button>
+            </div>
+            <div id="acp-confirm-bar" class="acp-confirm-bar" style="display:none">
+              <button class="btn btn-primary btn-sm" onclick="confirmAddExistingContact()">
+                Add <span id="acp-selected-name"></span> to this org
+              </button>
+              <span class="muted" id="acp-confirm-hint"></span>
+            </div>
+          </div>
+
+          <!-- Step 2b: New contact form -->
+          <div id="acp-new-step" style="display:none">
+            <div class="acp-back">
+              <button class="link-btn" onclick="showSearchStep()">← Back to search</button>
+            </div>
             <div class="form-group">
               <label>Name *</label>
-              <input type="text" id="new-contact-name" placeholder="Full name">
+              <input type="text" id="acp-new-name" placeholder="Full name">
             </div>
             <div class="form-group">
               <label>Title / Role</label>
-              <input type="text" id="new-contact-role" placeholder="e.g. Portfolio Manager">
+              <input type="text" id="acp-new-role" placeholder="e.g. Portfolio Manager">
             </div>
             <div class="form-group">
               <label>Email</label>
-              <input type="email" id="new-contact-email" placeholder="email@example.com">
+              <input type="email" id="acp-new-email" placeholder="email@example.com">
             </div>
             <div class="form-group">
-              <label>Type</label>
-              <select id="new-contact-type">
-                <option value="investor">investor</option>
-                <option value="internal">internal</option>
-                <option value="advisor">advisor</option>
-              </select>
+              <label>Phone</label>
+              <input type="text" id="acp-new-phone" placeholder="+1 415 000 0000">
+            </div>
+            <div class="acp-form-actions">
+              <button class="btn btn-ghost btn-sm" onclick="closeAddContactPanel()">Cancel</button>
+              <button class="btn btn-primary btn-sm" onclick="submitNewContact()">Add Contact</button>
+            </div>
+            <span class="error-msg" id="acp-new-error" style="display:none"></span>
+          </div>
+        </div>
+
+        <div class="contact-list" id="contact-list"></div>
+      </div>
+    </div>
+
+    <!-- Section 2.5: Meeting History -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">Meeting History</span>
+        <button class="btn btn-primary btn-sm" onclick="openAddMeetingForm()">+ Add Meeting</button>
+      </div>
+      <div class="card-body">
+        <div id="meeting-list"></div>
+        <div id="add-meeting-form" class="add-form" style="display:none">
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Date</label>
+              <input type="date" id="mtg-date">
+            </div>
+            <div class="form-group">
+              <label>Title</label>
+              <input type="text" id="mtg-title" placeholder="Meeting title">
+            </div>
+            <div class="form-group">
+              <label>Attendees</label>
+              <input type="text" id="mtg-attendees" placeholder="Oscar, Tony, ...">
             </div>
           </div>
-          <button class="btn btn-primary btn-sm" onclick="addContact()">Add Contact</button>
-          <span class="error-msg" id="contact-error" style="display:none"></span>
+          <div style="display:flex;gap:8px;margin-top:8px;">
+            <button class="btn btn-primary btn-sm" onclick="submitMeeting()">Add</button>
+            <button class="btn btn-ghost btn-sm" onclick="closeAddMeetingForm()">Cancel</button>
+          </div>
         </div>
       </div>
     </div>
@@ -218,17 +355,16 @@ const ALL_OFFERINGS = {{ offerings | tojson }};
 let orgData = {};
 let contacts = [];
 let prospects = [];
+let meetings = [];
 
-const EDITABLE_PROSPECT_FIELDS = ['stage', 'urgency', 'target', 'assigned_to', 'next_action', 'notes', 'closing'];
+const EDITABLE_PROSPECT_FIELDS = ['stage', 'urgency', 'target', 'assigned_to', 'notes', 'closing'];
 const PROSPECT_DISPLAY_FIELDS = [
   { key: 'Stage', editable: true },
   { key: 'Urgency', editable: true },
   { key: 'Target', editable: true },
-  { key: 'Committed', editable: false },
   { key: 'Primary Contact', editable: false },
   { key: 'Closing', editable: true },
   { key: 'Assigned To', editable: true },
-  { key: 'Next Action', editable: true },
   { key: 'Notes', editable: true },
   { key: 'Last Touch', editable: false },
 ];
@@ -257,6 +393,7 @@ async function init() {
   renderContacts();
   renderProspects();
   renderOfferingDropdown();
+  loadMeetings();
 }
 
 function escHtml(str) {
@@ -299,6 +436,7 @@ function startOrgEdit(field, el) {
     input.rows = 3;
   }
   input.style.cssText = 'width:100%;padding:6px 8px;border:1px solid #2563eb;border-radius:4px;font-size:14px;font-family:inherit;outline:none;';
+  input.addEventListener('click', e => e.stopPropagation());
 
   const saveBtn = document.createElement('button');
   saveBtn.textContent = 'Save';
@@ -388,6 +526,7 @@ function startContactEdit(idx, field, el) {
   el.appendChild(input);
   input.focus();
   input.select();
+  input.addEventListener('click', e => e.stopPropagation());
 
   async function save() {
     const val = input.value.trim();
@@ -414,34 +553,133 @@ function startContactEdit(idx, field, el) {
   });
 }
 
-async function addContact() {
-  const name = document.getElementById('new-contact-name').value.trim();
-  const role = document.getElementById('new-contact-role').value.trim();
-  const email = document.getElementById('new-contact-email').value.trim();
-  const type = document.getElementById('new-contact-type').value;
-  const errEl = document.getElementById('contact-error');
-  errEl.style.display = 'none';
+// ---------------------------------------------------------------------------
+// Add Contact Panel
+// ---------------------------------------------------------------------------
 
-  if (!name) {
-    errEl.textContent = 'Name is required.';
-    errEl.style.display = '';
+let allKbPeople = [];
+let currentFilteredPeople = [];
+let selectedPerson = null;
+
+function openAddContactPanel() {
+  document.getElementById('acp-title').textContent = `Add Contact to ${ORG_NAME}`;
+  document.getElementById('add-contact-panel').style.display = 'block';
+  showSearchStep();
+  document.getElementById('acp-search-input').value = '';
+  document.getElementById('acp-confirm-bar').style.display = 'none';
+  selectedPerson = null;
+  loadKbPeople();
+}
+
+function closeAddContactPanel() {
+  document.getElementById('add-contact-panel').style.display = 'none';
+}
+
+function showSearchStep() {
+  document.getElementById('acp-search-step').style.display = 'block';
+  document.getElementById('acp-new-step').style.display = 'none';
+}
+
+function showNewContactStep() {
+  document.getElementById('acp-search-step').style.display = 'none';
+  document.getElementById('acp-new-step').style.display = 'block';
+  document.getElementById('acp-new-name').focus();
+}
+
+async function loadKbPeople() {
+  document.getElementById('acp-count').textContent = 'Loading...';
+  const res = await fetch('/crm/api/kb-people');
+  allKbPeople = await res.json();
+  renderPeopleList(allKbPeople);
+}
+
+function filterKbPeople(q) {
+  const filtered = q
+    ? allKbPeople.filter(p => p.name.toLowerCase().includes(q.toLowerCase()))
+    : allKbPeople;
+  renderPeopleList(filtered);
+}
+
+function renderPeopleList(people) {
+  currentFilteredPeople = people;
+  document.getElementById('acp-count').textContent =
+    `Showing ${people.length} people from knowledge base`;
+  const list = document.getElementById('acp-people-list');
+  if (!people.length) {
+    list.innerHTML = '<div style="padding:12px 16px;color:#9ca3af;font-size:13px">No matches</div>';
     return;
   }
+  list.innerHTML = people.map((p, i) => `
+    <div class="person-row ${selectedPerson && selectedPerson.name === p.name ? 'selected' : ''}"
+         data-idx="${i}">
+      <span class="person-name">${escHtml(p.name)}</span>
+      <span class="person-org-tag">${escHtml(p.org)}</span>
+    </div>
+  `).join('');
+  list.querySelectorAll('.person-row').forEach(row => {
+    row.addEventListener('click', () => {
+      const idx = parseInt(row.dataset.idx, 10);
+      selectKbPerson(currentFilteredPeople[idx]);
+    });
+  });
+}
 
+function selectKbPerson(person) {
+  selectedPerson = person;
+  const q = document.getElementById('acp-search-input').value;
+  filterKbPeople(q);
+  document.getElementById('acp-selected-name').textContent = person.name;
+  const hint = person.email ? person.email : '';
+  document.getElementById('acp-confirm-hint').textContent = hint;
+  document.getElementById('acp-confirm-bar').style.display = 'flex';
+}
+
+async function confirmAddExistingContact() {
+  if (!selectedPerson) return;
   const resp = await fetch('/crm/api/contact', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ name, org: ORG_NAME, email, role, type }),
+    body: JSON.stringify({
+      name:  selectedPerson.name,
+      org:   ORG_NAME,
+      role:  selectedPerson.title || '',
+      email: selectedPerson.email || '',
+      type:  'investor',
+    }),
   });
   if (resp.ok) {
     const person = await resp.json();
     contacts.push(person);
     renderContacts();
-    document.getElementById('new-contact-name').value = '';
-    document.getElementById('new-contact-role').value = '';
-    document.getElementById('new-contact-email').value = '';
+    closeAddContactPanel();
   } else {
-    const err = await resp.json();
+    alert('Error adding contact. Please try again.');
+  }
+}
+
+async function submitNewContact() {
+  const name  = document.getElementById('acp-new-name').value.trim();
+  const role  = document.getElementById('acp-new-role').value.trim();
+  const email = document.getElementById('acp-new-email').value.trim();
+  const errEl = document.getElementById('acp-new-error');
+  errEl.style.display = 'none';
+  if (!name) {
+    errEl.textContent = 'Name is required.';
+    errEl.style.display = '';
+    return;
+  }
+  const resp = await fetch('/crm/api/contact', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name, org: ORG_NAME, email, role, type: 'investor' }),
+  });
+  if (resp.ok) {
+    const person = await resp.json();
+    contacts.push(person);
+    renderContacts();
+    closeAddContactPanel();
+  } else {
+    const err = await resp.json().catch(() => ({}));
     errEl.textContent = err.error || 'Failed to add contact.';
     errEl.style.display = '';
   }
@@ -515,6 +753,7 @@ function startProspectEdit(idx, field, el) {
   el.appendChild(input);
   input.focus();
   if (input.tagName === 'INPUT') input.select();
+  input.addEventListener('click', e => e.stopPropagation());
 
   async function save() {
     const val = input.value;
@@ -585,6 +824,59 @@ async function addToOffering() {
     const err = await resp.json();
     errEl.textContent = err.error || 'Failed to add.';
     errEl.style.display = '';
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Section 2.5: Meeting History
+// ---------------------------------------------------------------------------
+
+async function loadMeetings() {
+  const resp = await fetch(`/crm/api/org/${encodeURIComponent(ORG_NAME)}/meetings`);
+  meetings = await resp.json();
+  renderMeetings();
+}
+
+function renderMeetings() {
+  const list = document.getElementById('meeting-list');
+  if (!meetings.length) {
+    list.innerHTML = '<p class="muted">No meetings recorded yet.</p>';
+    return;
+  }
+  meetings.sort((a, b) => b.date.localeCompare(a.date));
+  list.innerHTML = meetings.map(m => `
+    <div style="display:flex;gap:12px;padding:8px 0;border-bottom:1px solid #f1f5f9;font-size:13px;align-items:baseline;">
+      <span style="color:#64748b;min-width:90px;flex-shrink:0;">${escHtml(m.date)}</span>
+      <span style="font-weight:500;color:#1e293b;flex:1;">${escHtml(m.title)}</span>
+      <span style="color:#94a3b8;">${escHtml(m.attendees)}</span>
+      ${m.notion_url ? `<a href="${escHtml(m.notion_url)}" target="_blank" style="color:#2563eb;font-size:12px;white-space:nowrap;">Notion ↗</a>` : ''}
+    </div>
+  `).join('');
+}
+
+function openAddMeetingForm() {
+  document.getElementById('add-meeting-form').style.display = 'block';
+  document.getElementById('mtg-date').value = new Date().toISOString().slice(0, 10);
+  document.getElementById('mtg-title').focus();
+}
+
+function closeAddMeetingForm() {
+  document.getElementById('add-meeting-form').style.display = 'none';
+}
+
+async function submitMeeting() {
+  const date = document.getElementById('mtg-date').value;
+  const title = document.getElementById('mtg-title').value.trim();
+  const attendees = document.getElementById('mtg-attendees').value.trim();
+  if (!date || !title) return;
+  const resp = await fetch(`/crm/api/org/${encodeURIComponent(ORG_NAME)}/meetings`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ date, title, attendees, source: 'manual' }),
+  });
+  if (resp.ok) {
+    closeAddMeetingForm();
+    loadMeetings();
   }
 }
 

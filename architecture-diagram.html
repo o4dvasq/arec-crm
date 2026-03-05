@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AREC Productivity System — Architecture</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #faf9f5; color: #1a1a1a; }
+
+  .header { text-align: center; padding: 32px 20px 16px; }
+  .header h1 { font-size: 22px; font-weight: 700; color: #1a1a1a; letter-spacing: -0.3px; }
+  .header p { font-size: 13px; color: #888; margin-top: 4px; }
+
+  .canvas { width: 100%; max-width: 1360px; margin: 0 auto; padding: 0 20px 40px; }
+  svg { width: 100%; height: auto; }
+
+  .node text { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+
+  .section-label { font-size: 11px; fill: #999; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; }
+  .sub-text { font-size: 10px; fill: #888; }
+  .file-text { font-size: 9px; fill: #666; font-family: 'SF Mono', 'Fira Code', monospace; }
+  .label { font-size: 13px; font-weight: 600; }
+  .label-sm { font-size: 12px; font-weight: 600; }
+  .label-xs { font-size: 11px; font-weight: 600; }
+  .legend-text { font-size: 11px; fill: #333; }
+  .conn-label { font-size: 8.5px; fill: #4285f4; font-weight: 500; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>AREC Productivity System — Architecture</h1>
+  <p>Data stores, integrations, workflows &amp; dashboards &nbsp;·&nbsp; March 2026</p>
+</div>
+
+<div class="canvas">
+<svg viewBox="0 0 1300 950" xmlns="http://www.w3.org/2000/svg">
+
+  <defs>
+    <marker id="a-blue" viewBox="0 0 10 7" refX="9" refY="3.5" markerWidth="7" markerHeight="5" orient="auto-start-reverse">
+      <path d="M0 0 L10 3.5 L0 7z" fill="#4285f4"/></marker>
+    <marker id="a-orange" viewBox="0 0 10 7" refX="9" refY="3.5" markerWidth="7" markerHeight="5" orient="auto-start-reverse">
+      <path d="M0 0 L10 3.5 L0 7z" fill="#D97757"/></marker>
+    <marker id="a-green" viewBox="0 0 10 7" refX="9" refY="3.5" markerWidth="7" markerHeight="5" orient="auto-start-reverse">
+      <path d="M0 0 L10 3.5 L0 7z" fill="#34a853"/></marker>
+    <marker id="a-gray" viewBox="0 0 10 7" refX="9" refY="3.5" markerWidth="7" markerHeight="5" orient="auto-start-reverse">
+      <path d="M0 0 L10 3.5 L0 7z" fill="#888"/></marker>
+    <marker id="a-purple" viewBox="0 0 10 7" refX="9" refY="3.5" markerWidth="7" markerHeight="5" orient="auto-start-reverse">
+      <path d="M0 0 L10 3.5 L0 7z" fill="#9334e6"/></marker>
+  </defs>
+
+  <!-- ═══════════════════════════════════════════ -->
+  <!--  LAYER 1: External Services (top)           -->
+  <!-- ═══════════════════════════════════════════ -->
+  <text x="20" y="28" class="section-label">External Services</text>
+
+  <!-- Microsoft Graph -->
+  <g transform="translate(40, 42)">
+    <rect width="220" height="72" rx="6" fill="#e8f0fe" stroke="#4285f4" stroke-width="1.5"/>
+    <text x="110" y="22" text-anchor="middle" class="label" fill="#1a73e8">Microsoft Graph API</text>
+    <text x="110" y="38" text-anchor="middle" class="sub-text">Outlook Calendar &amp; Email</text>
+    <text x="110" y="50" text-anchor="middle" class="sub-text">Teams Chat Messages</text>
+    <text x="110" y="64" text-anchor="middle" class="file-text">MSAL auth · Device code flow</text>
+  </g>
+
+  <!-- Notion -->
+  <g transform="translate(300, 42)">
+    <rect width="220" height="72" rx="6" fill="#e8f0fe" stroke="#4285f4" stroke-width="1.5"/>
+    <text x="110" y="22" text-anchor="middle" class="label" fill="#1a73e8">Notion API</text>
+    <text x="110" y="38" text-anchor="middle" class="sub-text">Meeting Notes (AI summaries)</text>
+    <text x="110" y="50" text-anchor="middle" class="sub-text">Action Items &amp; Context</text>
+    <text x="110" y="64" text-anchor="middle" class="file-text">MCP connector · Read-only</text>
+  </g>
+
+  <!-- iPhone Shortcuts -->
+  <g transform="translate(560, 42)">
+    <rect width="200" height="72" rx="6" fill="#e8f0fe" stroke="#4285f4" stroke-width="1.5"/>
+    <text x="100" y="22" text-anchor="middle" class="label" fill="#1a73e8">iPhone Shortcuts</text>
+    <text x="100" y="38" text-anchor="middle" class="sub-text">Voice capture → inbox.md</text>
+    <text x="100" y="50" text-anchor="middle" class="sub-text">Quick task &amp; note entry</text>
+    <text x="100" y="64" text-anchor="middle" class="file-text">Writes directly to Dropbox</text>
+  </g>
+
+  <!-- GitHub -->
+  <g transform="translate(800, 42)">
+    <rect width="200" height="72" rx="6" fill="#e8e8e8" stroke="#888" stroke-width="1.5"/>
+    <text x="100" y="22" text-anchor="middle" class="label" fill="#333">GitHub</text>
+    <text x="100" y="38" text-anchor="middle" class="file-text">o4dvasq/arec-morning-briefing</text>
+    <text x="100" y="52" text-anchor="middle" class="sub-text">Full workspace backup</text>
+    <text x="100" y="64" text-anchor="middle" class="sub-text">97 files · git push (manual)</text>
+  </g>
+
+  <!-- Dropbox -->
+  <g transform="translate(1040, 42)">
+    <rect width="200" height="72" rx="6" fill="#e8e8e8" stroke="#888" stroke-width="1.5"/>
+    <text x="100" y="22" text-anchor="middle" class="label" fill="#333">Dropbox</text>
+    <text x="100" y="38" text-anchor="middle" class="sub-text">File sync layer</text>
+    <text x="100" y="50" text-anchor="middle" class="sub-text">~/Dropbox/Tech/ClaudeProductivity</text>
+    <text x="100" y="64" text-anchor="middle" class="file-text">Syncs workspace to all devices</text>
+  </g>
+
+
+  <!-- ═══════════════════════════════════════════ -->
+  <!--  LAYER 2: Claude Agent (big box)            -->
+  <!-- ═══════════════════════════════════════════ -->
+  <text x="20" y="152" class="section-label">Claude Agent Layer (Cowork Mode)</text>
+
+  <!-- Outer Claude box -->
+  <rect x="30" y="165" width="1240" height="240" rx="10" fill="#fef8f3" stroke="#D97757" stroke-width="2"/>
+  <text x="650" y="186" text-anchor="middle" font-size="14" font-weight="700" fill="#b85c3a">Claude (Cowork Mode)</text>
+
+  <!-- Row 1: Working Memory + Workflows -->
+
+  <!-- Working Memory -->
+  <g transform="translate(50, 198)">
+    <rect width="180" height="58" rx="5" fill="#fff4e8" stroke="#D97757" stroke-width="1"/>
+    <text x="90" y="18" text-anchor="middle" class="label-sm" fill="#b85c3a">Working Memory</text>
+    <text x="90" y="33" text-anchor="middle" class="file-text">CLAUDE.md</text>
+    <text x="90" y="46" text-anchor="middle" class="sub-text">People · Terms · Deals · Prefs</text>
+  </g>
+
+  <!-- /productivity:update -->
+  <g transform="translate(260, 198)">
+    <rect width="210" height="58" rx="20" fill="#f3e8fe" stroke="#9334e6" stroke-width="1.5"/>
+    <text x="105" y="18" text-anchor="middle" class="label-sm" fill="#7b1fa2">/productivity:update</text>
+    <text x="105" y="33" text-anchor="middle" class="sub-text">Inbox → Meetings → Tasks</text>
+    <text x="105" y="46" text-anchor="middle" class="sub-text">→ CRM Pulse → Report</text>
+  </g>
+
+  <!-- CRM Workflows -->
+  <g transform="translate(500, 198)">
+    <rect width="190" height="58" rx="20" fill="#f3e8fe" stroke="#9334e6" stroke-width="1.5"/>
+    <text x="95" y="18" text-anchor="middle" class="label-sm" fill="#7b1fa2">CRM Workflows</text>
+    <text x="95" y="33" text-anchor="middle" class="sub-text">/crm:review · /crm:inbox</text>
+    <text x="95" y="46" text-anchor="middle" class="sub-text">/crm:interview · /crm:debrief</text>
+  </g>
+
+  <!-- Document Skills -->
+  <g transform="translate(720, 198)">
+    <rect width="190" height="58" rx="20" fill="#f3e8fe" stroke="#9334e6" stroke-width="1.5"/>
+    <text x="95" y="18" text-anchor="middle" class="label-sm" fill="#7b1fa2">Document Skills</text>
+    <text x="95" y="33" text-anchor="middle" class="sub-text">PPTX · DOCX · XLSX · PDF</text>
+    <text x="95" y="46" text-anchor="middle" class="sub-text">Pitch Decks · Reports</text>
+  </g>
+
+  <!-- Task Management -->
+  <g transform="translate(940, 198)">
+    <rect width="180" height="58" rx="20" fill="#f3e8fe" stroke="#9334e6" stroke-width="1.5"/>
+    <text x="90" y="18" text-anchor="middle" class="label-sm" fill="#7b1fa2">Task Management</text>
+    <text x="90" y="33" text-anchor="middle" class="sub-text">TASKS.md tracking</text>
+    <text x="90" y="46" text-anchor="middle" class="sub-text">Priority · Categories · Status</text>
+  </g>
+
+  <!-- Memory Mgmt -->
+  <g transform="translate(1150, 198)">
+    <rect width="100" height="58" rx="20" fill="#f3e8fe" stroke="#9334e6" stroke-width="1.5"/>
+    <text x="50" y="18" text-anchor="middle" class="label-xs" fill="#7b1fa2">Memory</text>
+    <text x="50" y="33" text-anchor="middle" class="label-xs" fill="#7b1fa2">Mgmt</text>
+    <text x="50" y="46" text-anchor="middle" class="sub-text">KB updates</text>
+  </g>
+
+  <!-- Row 2: Sub-processes (these are the things that CALL the external APIs) -->
+
+  <!-- Notion Meeting Sync — calls Notion API -->
+  <g transform="translate(50, 280)">
+    <rect width="200" height="50" rx="5" fill="#fff4e8" stroke="#D97757" stroke-width="1"/>
+    <text x="100" y="17" text-anchor="middle" class="label-xs" fill="#b85c3a">Notion Meeting Sync</text>
+    <text x="100" y="31" text-anchor="middle" class="sub-text">Fetch AI summaries (no transcript)</text>
+    <text x="100" y="42" text-anchor="middle" class="sub-text">Reformat → Save → Enrich contacts</text>
+  </g>
+
+  <!-- Contact Enrichment -->
+  <g transform="translate(280, 280)">
+    <rect width="200" height="50" rx="5" fill="#fff4e8" stroke="#D97757" stroke-width="1"/>
+    <text x="100" y="17" text-anchor="middle" class="label-xs" fill="#b85c3a">Contact Enrichment</text>
+    <text x="100" y="31" text-anchor="middle" class="sub-text">New contacts from meetings + email</text>
+    <text x="100" y="42" text-anchor="middle" class="sub-text">→ Validate with Oscar → KB update</text>
+  </g>
+
+  <!-- Graph Auto-Capture — calls MS Graph -->
+  <g transform="translate(510, 280)">
+    <rect width="200" height="50" rx="5" fill="#fff4e8" stroke="#D97757" stroke-width="1"/>
+    <text x="100" y="17" text-anchor="middle" class="label-xs" fill="#b85c3a">Graph Auto-Capture</text>
+    <text x="100" y="31" text-anchor="middle" class="sub-text">Email + Calendar → CRM match</text>
+    <text x="100" y="42" text-anchor="middle" class="sub-text">→ Log interactions · Flag unmatched</text>
+  </g>
+
+  <!-- Pre-Meeting Intel — calls MS Graph -->
+  <g transform="translate(740, 280)">
+    <rect width="200" height="50" rx="5" fill="#fff4e8" stroke="#D97757" stroke-width="1"/>
+    <text x="100" y="17" text-anchor="middle" class="label-xs" fill="#b85c3a">Pre-Meeting Intel</text>
+    <text x="100" y="31" text-anchor="middle" class="sub-text">Calendar → CRM prospect match</text>
+    <text x="100" y="42" text-anchor="middle" class="sub-text">→ Synthesize briefing for Oscar</text>
+  </g>
+
+  <!-- AI Email Triage — calls MS Graph -->
+  <g transform="translate(970, 280)">
+    <rect width="190" height="50" rx="5" fill="#fff4e8" stroke="#D97757" stroke-width="1"/>
+    <text x="95" y="17" text-anchor="middle" class="label-xs" fill="#b85c3a">AI Email Triage</text>
+    <text x="95" y="31" text-anchor="middle" class="sub-text">Investor emails → classify</text>
+    <text x="95" y="42" text-anchor="middle" class="sub-text">→ ai_inbox_queue.md</text>
+  </g>
+
+
+  <!-- ═══════════════════════════════════════════ -->
+  <!--  CONNECTION LINES: External → Sub-processes -->
+  <!-- ═══════════════════════════════════════════ -->
+
+  <!-- MS Graph → Graph Auto-Capture -->
+  <path d="M 150 114 L 150 140 L 610 140 L 610 280" stroke="#4285f4" stroke-width="1.5" stroke-dasharray="6,3" fill="none" marker-end="url(#a-blue)"/>
+  <text x="400" y="136" class="conn-label">calendar, email, chat</text>
+
+  <!-- MS Graph → Pre-Meeting Intel -->
+  <path d="M 180 114 L 180 148 L 840 148 L 840 280" stroke="#4285f4" stroke-width="1.2" stroke-dasharray="6,3" fill="none" marker-end="url(#a-blue)"/>
+  <text x="630" y="145" class="conn-label">today's calendar</text>
+
+  <!-- MS Graph → AI Email Triage -->
+  <path d="M 210 114 L 210 155 L 1065 155 L 1065 280" stroke="#4285f4" stroke-width="1.2" stroke-dasharray="6,3" fill="none" marker-end="url(#a-blue)"/>
+  <text x="860" y="152" class="conn-label">investor emails</text>
+
+  <!-- Notion → Notion Meeting Sync -->
+  <path d="M 410 114 L 410 140 L 150 140 L 150 280" stroke="#4285f4" stroke-width="1.5" stroke-dasharray="6,3" fill="none" marker-end="url(#a-blue)"/>
+  <text x="280" y="137" class="conn-label">AI summaries</text>
+
+  <!-- iPhone → inbox.md (straight down through Claude to data stores) -->
+  <path d="M 660 114 L 660 155 L 50 155 L 50 165" stroke="#4285f4" stroke-width="1.2" stroke-dasharray="6,3" fill="none" marker-end="url(#a-blue)"/>
+  <text x="360" y="162" class="conn-label">voice notes → inbox.md</text>
+
+  <!-- GitHub ← (push arrow going up-right from data stores area) -->
+  <path d="M 900 114 L 900 155" stroke="#888" stroke-width="1.2" stroke-dasharray="4,4" fill="none" marker-end="url(#a-gray)"/>
+  <text x="910" y="138" class="sub-text" font-size="9">git push</text>
+
+  <!-- Dropbox sync indicator -->
+  <path d="M 1140 114 L 1140 155" stroke="#888" stroke-width="1.2" stroke-dasharray="4,4" fill="none" marker-end="url(#a-gray)"/>
+  <text x="1148" y="138" class="sub-text" font-size="9">file sync</text>
+
+
+  <!-- ═══════════════════════════════════════════ -->
+  <!--  LAYER 3: Data Stores                       -->
+  <!-- ═══════════════════════════════════════════ -->
+  <text x="20" y="440" class="section-label">Data Stores (Markdown + JSON on disk · Git-versioned)</text>
+
+  <!-- CRM Data -->
+  <g transform="translate(30, 458)">
+    <rect width="250" height="140" rx="8" fill="#e8f5e8" stroke="#34a853" stroke-width="1.5"/>
+    <text x="125" y="22" text-anchor="middle" class="label" fill="#1e7e34">CRM Data</text>
+    <text x="16" y="42" class="file-text">crm/prospects.md</text>
+    <text x="210" y="42" class="sub-text" text-anchor="end">98 active</text>
+    <text x="16" y="56" class="file-text">crm/interactions.md</text>
+    <text x="16" y="70" class="file-text">crm/organizations.md</text>
+    <text x="16" y="84" class="file-text">crm/contacts_index.md</text>
+    <text x="16" y="98" class="file-text">crm/offerings.md</text>
+    <text x="16" y="112" class="file-text">crm/ai_inbox_queue.md</text>
+    <text x="16" y="126" class="file-text">crm/unmatched_review.json</text>
+  </g>
+
+  <!-- Knowledge Base -->
+  <g transform="translate(310, 458)">
+    <rect width="230" height="140" rx="8" fill="#e8f5e8" stroke="#34a853" stroke-width="1.5"/>
+    <text x="115" y="22" text-anchor="middle" class="label" fill="#1e7e34">Knowledge Base</text>
+    <text x="16" y="42" class="file-text">memory/people/*.md</text>
+    <text x="190" y="42" class="sub-text" text-anchor="end">8 profiles</text>
+    <text x="16" y="56" class="file-text">memory/glossary.md</text>
+    <text x="16" y="70" class="file-text">memory/context/company.md</text>
+    <text x="16" y="84" class="file-text">memory/projects/arec-fund-ii.md</text>
+    <line x1="16" y1="94" x2="214" y2="94" stroke="#c5e1c5" stroke-width="0.5"/>
+    <text x="16" y="110" class="file-text">CLAUDE.md</text>
+    <text x="190" y="110" class="sub-text" text-anchor="end">working memory</text>
+    <text x="16" y="126" class="file-text">TASKS.md</text>
+    <text x="190" y="126" class="sub-text" text-anchor="end">task tracker</text>
+  </g>
+
+  <!-- Meeting Summaries -->
+  <g transform="translate(570, 458)">
+    <rect width="220" height="140" rx="8" fill="#e8f5e8" stroke="#34a853" stroke-width="1.5"/>
+    <text x="110" y="22" text-anchor="middle" class="label" fill="#1e7e34">Meeting Summaries</text>
+    <text x="16" y="42" class="file-text">meeting-summaries/*.md</text>
+    <text x="180" y="42" class="sub-text" text-anchor="end">14 files</text>
+    <line x1="16" y1="52" x2="204" y2="52" stroke="#c5e1c5" stroke-width="0.5"/>
+    <text x="16" y="68" class="sub-text">Per-meeting briefing:</text>
+    <text x="16" y="82" class="sub-text">Summary · Key Decisions</text>
+    <text x="16" y="96" class="sub-text">Action Items · Open Questions</text>
+    <line x1="16" y1="106" x2="204" y2="106" stroke="#c5e1c5" stroke-width="0.5"/>
+    <text x="16" y="122" class="file-text">dashboard_calendar.json</text>
+    <text x="180" y="122" class="sub-text" text-anchor="end">today's events</text>
+  </g>
+
+  <!-- Capture Queues -->
+  <g transform="translate(820, 458)">
+    <rect width="200" height="140" rx="8" fill="#e8f5e8" stroke="#34a853" stroke-width="1.5"/>
+    <text x="100" y="22" text-anchor="middle" class="label" fill="#1e7e34">Capture Queues</text>
+    <text x="16" y="42" class="file-text">inbox.md</text>
+    <text x="164" y="42" class="sub-text" text-anchor="end">voice capture</text>
+    <text x="16" y="60" class="file-text">crm/pending_interviews.json</text>
+    <text x="16" y="78" class="file-text">crm/ai_inbox_queue.md</text>
+    <line x1="16" y1="90" x2="184" y2="90" stroke="#c5e1c5" stroke-width="0.5"/>
+    <text x="16" y="108" class="sub-text">Processed during each</text>
+    <text x="16" y="122" class="sub-text">/productivity:update run</text>
+  </g>
+
+  <!-- Build Specs -->
+  <g transform="translate(1050, 458)">
+    <rect width="200" height="140" rx="8" fill="#e8f5e8" stroke="#34a853" stroke-width="1.5"/>
+    <text x="100" y="22" text-anchor="middle" class="label" fill="#1e7e34">Build Specs</text>
+    <text x="16" y="42" class="file-text">specs/cc-01..08</text>
+    <text x="164" y="42" class="sub-text" text-anchor="end">module specs</text>
+    <text x="16" y="56" class="file-text">specs/CRM-Phase1..7</text>
+    <text x="16" y="70" class="file-text">specs/build-audit*.md</text>
+    <line x1="16" y1="82" x2="184" y2="82" stroke="#c5e1c5" stroke-width="0.5"/>
+    <text x="16" y="98" class="sub-text">Architecture docs for</text>
+    <text x="16" y="112" class="sub-text">Flask, CRM, Graph auth,</text>
+    <text x="16" y="126" class="sub-text">briefing engine, mobile</text>
+  </g>
+
+  <!-- Write arrows: Claude → Data Stores -->
+  <path d="M 155 405 L 155 458" stroke="#D97757" stroke-width="1.5" fill="none" marker-end="url(#a-orange)"/>
+  <path d="M 425 405 L 425 458" stroke="#D97757" stroke-width="1.5" fill="none" marker-end="url(#a-orange)"/>
+  <path d="M 680 405 L 680 458" stroke="#D97757" stroke-width="1.5" fill="none" marker-end="url(#a-orange)"/>
+  <path d="M 920 405 L 920 458" stroke="#D97757" stroke-width="1.5" fill="none" marker-end="url(#a-orange)"/>
+  <path d="M 1150 405 L 1150 458" stroke="#D97757" stroke-width="1.5" fill="none" marker-end="url(#a-orange)"/>
+
+
+  <!-- ═══════════════════════════════════════════ -->
+  <!--  LAYER 4: Dashboards & Delivery             -->
+  <!-- ═══════════════════════════════════════════ -->
+  <text x="20" y="640" class="section-label">Dashboards &amp; Delivery</text>
+
+  <!-- Main Dashboard -->
+  <g transform="translate(30, 658)">
+    <rect width="280" height="105" rx="6" fill="#fce8ee" stroke="#d93025" stroke-width="1.5"/>
+    <text x="140" y="22" text-anchor="middle" class="label" fill="#c5221f">Main Dashboard</text>
+    <text x="140" y="38" text-anchor="middle" class="sub-text">Flask :3001 · 3-column white layout</text>
+    <text x="16" y="56" class="file-text">app/delivery/dashboard.py</text>
+    <text x="16" y="70" class="file-text">app/templates/dashboard.html</text>
+    <line x1="16" y1="80" x2="264" y2="80" stroke="#f0c0c0" stroke-width="0.5"/>
+    <text x="16" y="96" class="sub-text">Tasks (grouped by priority) · Today's Calendar · Recent Meetings</text>
+  </g>
+
+  <!-- CRM Pipeline -->
+  <g transform="translate(340, 658)">
+    <rect width="270" height="105" rx="6" fill="#fce8ee" stroke="#d93025" stroke-width="1.5"/>
+    <text x="135" y="22" text-anchor="middle" class="label" fill="#c5221f">CRM Pipeline</text>
+    <text x="135" y="38" text-anchor="middle" class="sub-text">Flask :3001/crm · Kanban board</text>
+    <text x="16" y="56" class="file-text">app/templates/crm_pipeline.html</text>
+    <text x="16" y="70" class="file-text">app/templates/crm_org_detail.html</text>
+    <line x1="16" y1="80" x2="254" y2="80" stroke="#f0c0c0" stroke-width="0.5"/>
+    <text x="16" y="96" class="sub-text">Stage columns · Org drill-down · Prospect edit · Interactions</text>
+  </g>
+
+  <!-- Mobile PWA -->
+  <g transform="translate(640, 658)">
+    <rect width="220" height="105" rx="6" fill="#fce8ee" stroke="#d93025" stroke-width="1.5"/>
+    <text x="110" y="22" text-anchor="middle" class="label" fill="#c5221f">Mobile PWA</text>
+    <text x="110" y="38" text-anchor="middle" class="sub-text">Installable web app (iPhone)</text>
+    <text x="16" y="56" class="file-text">arec-mobile/arec-mobile.html</text>
+    <text x="16" y="70" class="file-text">arec-mobile/manifest.json</text>
+    <line x1="16" y1="80" x2="204" y2="80" stroke="#f0c0c0" stroke-width="0.5"/>
+    <text x="16" y="96" class="sub-text">Quick-access dashboard on the go</text>
+  </g>
+
+  <!-- Flask Backend -->
+  <g transform="translate(890, 658)">
+    <rect width="200" height="105" rx="6" fill="#f5f5f5" stroke="#999" stroke-width="1.5"/>
+    <text x="100" y="22" text-anchor="middle" font-size="13" font-weight="600" fill="#333">Flask Backend</text>
+    <text x="100" y="38" text-anchor="middle" class="sub-text">app/main.py · Port 3001</text>
+    <text x="16" y="56" class="file-text">sources/crm_reader.py</text>
+    <text x="16" y="70" class="file-text">sources/crm_graph_sync.py</text>
+    <text x="16" y="84" class="file-text">sources/ms_graph.py</text>
+    <text x="16" y="98" class="file-text">auth/graph_auth.py</text>
+  </g>
+
+  <!-- Standalone HTML -->
+  <g transform="translate(1120, 658)">
+    <rect width="150" height="105" rx="6" fill="#fce8ee" stroke="#d93025" stroke-width="1.5"/>
+    <text x="75" y="22" text-anchor="middle" class="label" fill="#c5221f">Standalone</text>
+    <text x="75" y="38" text-anchor="middle" class="sub-text">Static HTML (no server)</text>
+    <text x="16" y="56" class="file-text">dashboard.html</text>
+    <line x1="16" y1="80" x2="134" y2="80" stroke="#f0c0c0" stroke-width="0.5"/>
+    <text x="16" y="96" class="sub-text">Offline fallback view</text>
+  </g>
+
+  <!-- Read arrows: Data Stores → Dashboards -->
+  <path d="M 155 598 L 155 658" stroke="#34a853" stroke-width="1.5" fill="none" marker-end="url(#a-green)"/>
+  <path d="M 425 598 L 475 658" stroke="#34a853" stroke-width="1.5" fill="none" marker-end="url(#a-green)"/>
+  <path d="M 680 598 L 680 658" stroke="#34a853" stroke-width="1.5" fill="none" marker-end="url(#a-green)"/>
+  <path d="M 990 598 L 990 658" stroke="#34a853" stroke-width="1.2" fill="none" marker-end="url(#a-green)" stroke-dasharray="3,3"/>
+
+
+  <!-- ═══════════════════════════════════════════ -->
+  <!--  LEGEND                                     -->
+  <!-- ═══════════════════════════════════════════ -->
+  <g transform="translate(30, 800)">
+    <text x="0" y="0" class="section-label">Legend</text>
+
+    <rect x="0" y="12" width="16" height="12" rx="2" fill="#e8f0fe" stroke="#4285f4" stroke-width="1"/>
+    <text x="22" y="22" class="legend-text">External Service / API</text>
+
+    <rect x="200" y="12" width="16" height="12" rx="2" fill="#fff4e8" stroke="#D97757" stroke-width="1"/>
+    <text x="222" y="22" class="legend-text">Claude Sub-process</text>
+
+    <rect x="380" y="12" width="16" height="12" rx="8" fill="#f3e8fe" stroke="#9334e6" stroke-width="1"/>
+    <text x="402" y="22" class="legend-text">Workflow / Skill</text>
+
+    <rect x="530" y="12" width="16" height="12" rx="4" fill="#e8f5e8" stroke="#34a853" stroke-width="1"/>
+    <text x="552" y="22" class="legend-text">Data Store (MD/JSON)</text>
+
+    <rect x="710" y="12" width="16" height="12" rx="2" fill="#fce8ee" stroke="#d93025" stroke-width="1"/>
+    <text x="732" y="22" class="legend-text">Dashboard / UI</text>
+
+    <rect x="850" y="12" width="16" height="12" rx="2" fill="#e8e8e8" stroke="#888" stroke-width="1"/>
+    <text x="872" y="22" class="legend-text">Backup / Sync</text>
+
+    <!-- Arrow types -->
+    <line x1="0" y1="44" x2="30" y2="44" stroke="#4285f4" stroke-width="1.5" stroke-dasharray="6,3" marker-end="url(#a-blue)"/>
+    <text x="36" y="48" class="legend-text">API call (read)</text>
+
+    <line x1="160" y1="44" x2="190" y2="44" stroke="#D97757" stroke-width="1.5" marker-end="url(#a-orange)"/>
+    <text x="196" y="48" class="legend-text">Write to disk</text>
+
+    <line x1="310" y1="44" x2="340" y2="44" stroke="#34a853" stroke-width="1.5" marker-end="url(#a-green)"/>
+    <text x="346" y="48" class="legend-text">Read from disk</text>
+
+    <line x1="460" y1="44" x2="490" y2="44" stroke="#888" stroke-width="1.5" stroke-dasharray="4,4" marker-end="url(#a-gray)"/>
+    <text x="496" y="48" class="legend-text">Git push / Sync (manual)</text>
+  </g>
+
+
+  <!-- ═══════════════════════════════════════════ -->
+  <!--  ANNOTATIONS                                -->
+  <!-- ═══════════════════════════════════════════ -->
+
+  <g transform="translate(30, 876)">
+    <text x="0" y="0" class="section-label">Update Workflow Sequence (/productivity:update)</text>
+    <text x="0" y="20" font-size="12" fill="#555" font-family="-apple-system, sans-serif">
+      <tspan font-weight="600" fill="#9334e6">1.</tspan> Process inbox.md
+      <tspan font-weight="600" fill="#9334e6">2.</tspan> Notion Meeting Sync (fetch AI summaries, reformat, save)
+      <tspan font-weight="600" fill="#9334e6">3.</tspan> Contact Enrichment (surface unknowns, validate, update KB)
+      <tspan font-weight="600" fill="#9334e6">4.</tspan> Calendar check (untranscribed)
+    </text>
+    <text x="0" y="38" font-size="12" fill="#555" font-family="-apple-system, sans-serif">
+      <tspan font-weight="600" fill="#9334e6">5.</tspan> Task triage (action items → TASKS.md)
+      <tspan font-weight="600" fill="#9334e6">6.</tspan> Pre-Meeting Intelligence
+      <tspan font-weight="600" fill="#9334e6">7.</tspan> CRM Pulse
+      <tspan font-weight="600" fill="#9334e6">8.</tspan> Report
+    </text>
+  </g>
+
+  <g transform="translate(30, 930)">
+    <text x="0" y="0" class="section-label">Repo Stats</text>
+    <text x="0" y="16" font-size="11.5" fill="#666" font-family="-apple-system, sans-serif">
+      97 files tracked  ·  14 meeting summaries  ·  98 active prospects  ·  8 people intel profiles  ·  16 build specs  ·  All git-versioned to GitHub
+    </text>
+  </g>
+
+</svg>
+</div>
+
+</body>
+</html>

@@ -3,25 +3,26 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AREC Dashboard</title>
+  <title>Overwatch — AREC</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/task-edit-modal.css">
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
-      --bg: #faf9f5;
+      --bg: #f8f9fa;
       --bg-card: #ffffff;
-      --bg-muted: #f5f4ef;
-      --text: #141413;
-      --text-sec: #5c5c5a;
-      --text-muted: #8c8c8a;
+      --bg-muted: #f1f5f9;
+      --text: #1e293b;
+      --text-sec: #475569;
+      --text-muted: #94a3b8;
       --accent: #D97757;
       --accent-hover: #c4684a;
-      --border: #e5e4df;
-      --shadow: rgba(20,20,19,0.04);
+      --border: #e5e7eb;
       --radius: 10px;
+      --nav-bg: #1a1a2e;
     }
 
     body {
@@ -32,29 +33,43 @@
       line-height: 1.5;
     }
 
-    /* ===== HEADER ===== */
-    header {
+    /* ===== NAV ===== */
+    nav {
+      background: var(--nav-bg);
+      padding: 0 24px;
       display: flex;
-      justify-content: space-between;
       align-items: center;
-      padding: 16px 28px;
-      border-bottom: 1px solid var(--border);
-      background: var(--bg);
+      height: 52px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
     }
-    .header-left h1 { font-size: 1.35rem; font-weight: 700; letter-spacing: -0.02em; }
-    .header-right { display: flex; align-items: center; gap: 16px; }
-    .header-right .date { font-size: 14px; color: var(--text-sec); font-weight: 500; }
-    .refreshed { font-size: 12px; color: var(--text-muted); padding: 4px 28px 0; }
+    nav .nav-links { display: flex; align-items: center; gap: 24px; }
+    nav a { color: #94a3b8; text-decoration: none; font-size: 14px; font-weight: 500; }
+    nav a:hover { color: #e2e8f0; }
+    nav a.active { color: #e2e8f0; }
+    nav .brand {
+      position: absolute;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: #e2e8f0;
+      font-weight: 700;
+      font-size: 16px;
+      letter-spacing: 0.04em;
+    }
+    nav .brand svg { opacity: 0.85; }
+    nav .nav-right {
+      margin-left: auto;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    nav .nav-date { color: #64748b; font-size: 13px; font-weight: 500; }
 
-    .btn {
-      display: inline-flex; align-items: center; gap: 6px;
-      padding: 8px 18px; border-radius: 8px; font-size: 13px; font-weight: 600;
-      font-family: inherit; cursor: pointer; text-decoration: none; border: 1px solid var(--border);
-      background: var(--bg-card); color: var(--text); transition: all 0.12s;
-    }
-    .btn:hover { background: var(--bg-muted); border-color: var(--text-muted); }
-    .btn-primary { background: var(--accent); color: #fff; border-color: var(--accent); }
-    .btn-primary:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
+    .refreshed { font-size: 12px; color: var(--text-muted); padding: 8px 28px 0; }
 
     /* ===== LAYOUT ===== */
     .grid {
@@ -62,7 +77,7 @@
       grid-template-columns: 1fr 1fr 1fr;
       gap: 24px;
       padding: 20px 28px 28px;
-      min-height: calc(100vh - 90px);
+      min-height: calc(100vh - 80px);
       align-items: start;
     }
 
@@ -97,12 +112,27 @@
       padding: 7px 6px; border: 1px solid var(--border); border-radius: 6px;
       font-size: 12px; font-family: inherit; background: var(--bg-card); color: var(--text-sec);
     }
-    .task-add-form .btn { padding: 7px 14px; font-size: 12px; }
-
-    .task-section-label {
-      font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em;
-      color: var(--text-muted); padding: 14px 18px 6px; background: var(--bg);
+    .btn {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 7px 14px; border-radius: 6px; font-size: 12px; font-weight: 600;
+      font-family: inherit; cursor: pointer; text-decoration: none; border: 1px solid var(--border);
+      background: var(--bg-card); color: var(--text); transition: all 0.12s;
     }
+    .btn:hover { background: var(--bg-muted); border-color: var(--text-muted); }
+    .btn-primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+    .btn-primary:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
+
+    .priority-section-label {
+      font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em;
+      color: var(--text-muted); padding: 10px 18px 4px; background: var(--bg);
+      display: flex; align-items: center; gap: 6px;
+    }
+    .pri-dot {
+      width: 8px; height: 8px; border-radius: 50%; display: inline-block;
+    }
+    .pri-dot-hi { background: #ef4444; }
+    .pri-dot-med { background: #f59e0b; }
+    .pri-dot-low { background: #94a3b8; }
 
     .task-item {
       display: flex; align-items: flex-start; gap: 10px;
@@ -127,6 +157,16 @@
     .priority-hi { background: #fee2e2; color: #dc2626; }
     .priority-med { background: #fef3c7; color: #d97706; }
     .priority-low { background: #e0e7ff; color: #4f46e5; }
+
+    .org-link {
+      display: inline-block;
+      font-size: 10px; font-weight: 600;
+      color: #2563eb; background: #eff6ff;
+      padding: 1px 6px; border-radius: 3px;
+      text-decoration: none; margin-left: 4px;
+      white-space: nowrap;
+    }
+    .org-link:hover { background: #dbeafe; color: #1d4ed8; }
 
     /* ===== CALENDAR ===== */
     .cal-item {
@@ -160,6 +200,14 @@
     .meeting-arrow { color: var(--text-muted); font-size: 14px; margin-left: 8px; margin-top: 2px; }
     .meeting-empty { padding: 24px 18px; color: var(--text-muted); font-size: 13px; text-align: center; }
 
+    .edit-btn {
+      background: none; border: none; cursor: pointer; color: var(--text-muted);
+      padding: 2px; flex-shrink: 0; margin-top: 1px; opacity: 0;
+      transition: opacity 0.12s;
+    }
+    .task-item:hover .edit-btn { opacity: 1; }
+    .edit-btn:hover { color: var(--accent); }
+
     /* Scrollbar */
     .panel-body::-webkit-scrollbar { width: 6px; }
     .panel-body::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
@@ -168,23 +216,33 @@
 </head>
 <body>
 
-<header>
-  <div class="header-left">
-    <h1>AREC &mdash; Oscar Vasquez</h1>
+<nav>
+  <div class="nav-links">
+    <a href="/" class="active">Dashboard</a>
+    <a href="/tasks">Tasks</a>
+    <a href="/crm">Pipeline</a>
   </div>
-  <div class="header-right">
-    <span class="date">{{ now.strftime('%B %d, %Y') }}</span>
-    <a href="/crm" class="btn">CRM &rarr;</a>
-    <button class="btn btn-primary" onclick="location.reload()">Refresh</button>
+  <div class="brand">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm-1.5 11.5h3c.55 0 1-.45 1-1v-.5c0-1.1-.9-2-2-2h-.5v-1h1c.55 0 1-.45 1-1s-.45-1-1-1h-2c-.55 0-1 .45-1 1v2.5c0 .55.45 1 1 1h.5c.55 0 1 .45 1 1v.5h-1.5c-.55 0-1 .45-1 1s.45.5 1 .5z" fill="none"/>
+      <path d="M15.7 8.6c-.2-.4-.5-.7-.9-.8-.4-.2-.8-.1-1.2.1l-2.3 1.3c-.4.2-.6.5-.7.9-.1.4 0 .8.2 1.1l.9 1.2c-.5.3-1.1.5-1.7.5-1.7 0-3-1.3-3-3s1.3-3 3-3c.9 0 1.8.4 2.3 1.1.3.4.9.5 1.3.2.4-.3.5-.9.2-1.3C13.8 5.7 12.5 5 11 5c-2.8 0-5 2.2-5 5s2.2 5 5 5c1.5 0 2.8-.7 3.8-1.7l.5.7c.2.4.6.6 1 .6.2 0 .3 0 .5-.1.6-.3.8-1 .5-1.6L15.7 8.6z" fill="currentColor" opacity="0.9"/>
+    </svg>
+    Overwatch
   </div>
-</header>
+  <div class="nav-right">
+    <span class="nav-date">{{ now.strftime('%B %d, %Y') }}</span>
+  </div>
+</nav>
 <div class="refreshed">Refreshed: {{ now.strftime('%-I:%M %p') }}</div>
 
 <div class="grid">
 
   <!-- ===== TASKS ===== -->
   <div class="panel">
-    <div class="panel-header">Tasks</div>
+    <div class="panel-header">
+      <span>Fundraising Tasks</span>
+      <a href="/tasks" style="font-size:11px;color:var(--text-muted);text-decoration:none;font-weight:500;">All Tasks &rarr;</a>
+    </div>
     <form class="task-add-form" onsubmit="return addTask(event)">
       <input type="text" id="newTaskText" placeholder="New task..." autocomplete="off">
       <select id="newTaskPriority">
@@ -192,29 +250,32 @@
         <option value="Hi">Hi</option>
         <option value="Low">Low</option>
       </select>
-      <select id="newTaskSection">
-        {% for sec in tasks_by_section %}
-        {% if sec.name != 'Done' %}
-        <option value="{{ sec.name }}">{{ sec.name | upper }}</option>
-        {% endif %}
-        {% endfor %}
-      </select>
       <button type="submit" class="btn btn-primary">Add</button>
     </form>
     <div class="panel-body">
+      {% set ns = namespace(last_pri='') %}
       {% for sec in tasks_by_section %}
-      {% if sec.name != 'Done' %}
-      <div class="task-section-label">{{ sec.name }}</div>
       {% for task in sec.tasks %}
-      {% if not task.done %}
-      <div class="task-item" data-raw="{{ task.raw | e }}">
+      {% if not task.done and (not task.assigned_to or task.assigned_to == 'Oscar') %}
+      {% if task.priority != ns.last_pri %}
+      <div class="priority-section-label">
+        <span class="pri-dot pri-dot-{{ task.priority | lower }}"></span>
+        {{ task.priority }}
+      </div>
+      {% set ns.last_pri = task.priority %}
+      {% endif %}
+      <div class="task-item" data-raw="{{ task.raw | e }}" data-section="{{ sec.name }}" data-index="{{ task.index }}" data-text="{{ task.text | e }}" data-priority="{{ task.priority }}" data-assigned="{{ task.assigned_to | e }}" data-org="{{ task.org | e }}">
         <input type="checkbox" onchange="completeTask(this, '{{ task.raw | replace("'", "\\'") | e }}')" {% if task.done %}checked{% endif %}>
-        <span class="priority-badge priority-{{ task.priority | lower }}">{{ task.priority }}</span>
-        <span class="task-text">{{ task.text }}</span>
+        <span class="task-text">
+          {{ task.text }}
+          {% if task.org %}<a href="/crm/org/{{ task.org | urlencode }}" class="org-link">{{ task.org }}</a>{% endif %}
+        </span>
+        <button class="edit-btn" onclick="openEditModal(this.closest('.task-item'))" title="Edit">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+        </button>
       </div>
       {% endif %}
       {% endfor %}
-      {% endif %}
       {% endfor %}
     </div>
   </div>
@@ -237,7 +298,11 @@
       </div>
       {% endfor %}
       {% else %}
-      <div class="cal-empty">No calendar data. Run /productivity:update to sync.</div>
+      {% if calendar_stale %}
+      <div class="cal-empty">Calendar data is from {{ calendar_stale }}. Run /productivity:update to sync today's events.</div>
+      {% else %}
+      <div class="cal-empty">No calendar events today.</div>
+      {% endif %}
       {% endif %}
     </div>
   </div>
@@ -270,6 +335,29 @@
 </div>
 
 <script>
+// --- Shared task edit modal setup ---
+window.TASK_MODAL_TEAM = {{ config.team | tojson }};
+window.TASK_MODAL_TEAM_MAP = {{ config.team_map | tojson }};
+window.TASK_MODAL_SECTIONS = ['Fundraising - Me', 'Work', 'Personal'];
+window.taskModalOnSave = function() { location.reload(); };
+window.taskModalOnDelete = function() { location.reload(); };
+fetch('/crm/api/orgs')
+  .then(r => r.json())
+  .then(orgs => { window.TASK_MODAL_PROSPECT_ORGS = orgs; });
+
+function openEditModal(taskItem) {
+  openTaskEditModal({
+    title: 'Edit Task',
+    text: taskItem.dataset.text || '',
+    priority: taskItem.dataset.priority || 'Med',
+    assigned_to: taskItem.dataset.assigned || '',
+    section: taskItem.dataset.section || 'Fundraising - Me',
+    index: parseInt(taskItem.dataset.index, 10) || 0,
+    org: taskItem.dataset.org || '',
+    showDelete: true,
+  });
+}
+
 async function completeTask(el, raw) {
   const res = await fetch('/api/task/complete', {
     method: 'POST',
@@ -288,16 +376,16 @@ async function addTask(e) {
   e.preventDefault();
   const text = document.getElementById('newTaskText').value.trim();
   const priority = document.getElementById('newTaskPriority').value;
-  const section = document.getElementById('newTaskSection').value;
   if (!text) return;
-  const res = await fetch('/api/task/add', {
+  const res = await fetch('/tasks/api/task', {
     method: 'POST',
     headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({text, priority, section})
+    body: JSON.stringify({text, priority, section: 'Fundraising - Me'})
   });
   if (res.ok) location.reload();
 }
 </script>
+<script src="/static/task-edit-modal.js"></script>
 
 </body>
 </html>

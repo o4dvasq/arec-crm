@@ -80,6 +80,19 @@ def get_today_events(token: str) -> list[dict]:
     )
 
 
+def get_tomorrow_events(token: str) -> list[dict]:
+    """Return tomorrow's calendar events (local timezone)."""
+    now = datetime.now(timezone.utc)
+    start_of_tomorrow = now.replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(days=1)
+    end_of_tomorrow = start_of_tomorrow + timedelta(days=1)
+
+    return get_events_range(
+        token,
+        start_of_tomorrow.strftime("%Y-%m-%dT%H:%M:%SZ"),
+        end_of_tomorrow.strftime("%Y-%m-%dT%H:%M:%SZ"),
+    )
+
+
 def get_events_range(token: str, start: str, end: str) -> list[dict]:
     """
     Return calendar events in the given ISO-8601 time range.

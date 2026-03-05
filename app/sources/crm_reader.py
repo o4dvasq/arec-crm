@@ -16,13 +16,13 @@ PEOPLE_ROOT = os.path.join(MEMORY_ROOT, "people")
 
 # Field write order for prospects
 PROSPECT_FIELD_ORDER = [
-    "Stage", "Target", "Committed", "Primary Contact",
-    "Closing", "Urgency", "Assigned To", "Notes", "Next Action", "Last Touch"
+    "Stage", "Target", "Primary Contact",
+    "Closing", "Urgency", "Assigned To", "Notes", "Last Touch"
 ]
 
 EDITABLE_FIELDS = {
     'stage', 'urgency', 'target', 'assigned_to',
-    'next_action', 'notes', 'closing'
+    'notes', 'closing'
 }
 
 
@@ -138,13 +138,27 @@ def load_crm_config() -> dict:
     if current:
         sections[current] = items
 
+    # Parse team entries: "Short | Full Name" format
+    raw_team = sections.get('AREC Team', [])
+    team_list = []  # list of full names (backward compat)
+    team_map = []   # list of {short, full} dicts for UI
+    for entry in raw_team:
+        if '|' in entry:
+            short, full = [s.strip() for s in entry.split('|', 1)]
+        else:
+            full = entry.strip()
+            short = full.split()[0]  # fallback: first name
+        team_list.append(full)
+        team_map.append({'short': short, 'full': full})
+
     return {
         'stages': sections.get('Pipeline Stages', []),
         'terminal_stages': sections.get('Terminal Stages', []),
         'org_types': sections.get('Organization Types', []),
         'closing_options': sections.get('Closing Options', []),
         'urgency_levels': sections.get('Urgency Levels', []),
-        'team': sections.get('AREC Team', []),
+        'team': team_list,
+        'team_map': team_map,
     }
 
 
@@ -747,11 +761,19 @@ def update_prospect_field(org: str, offering: str, field: str, value: str) -> No
 def get_fund_summary(offering: str) -> dict:
     prospects = load_prospects(offering)
     config = load_crm_config()
-    excluded = set(config['terminal_stages'] + ['0. Not Pursuing', '9. Closed'])
+    excluded = set(config['terminal_stages'] + ['0. Not Pursuing'])
     active = [p for p in prospects if p.get('Stage', '') not in excluded]
 
     total_target = sum(_parse_currency(p.get('Target', '0')) for p in active)
-    total_committed = sum(_parse_currency(p.get('Committed', '0')) for p in active)
+
+    # Committed = sum of Targets from stages 6. Verbal + 7. Legal / DD + 8. Closed
+    committed_stages = {'6. Verbal', '7. Legal / DD', '8. Closed'}
+    total_committed = sum(
+        _parse_currency(p.get('Target', '0'))
+        for p in prospects
+        if p.get('Stage', '') in committed_stages
+    )
+
     offering_data = get_offering(offering) or {}
     fund_target = _parse_currency(offering_data.get('Target', '0'))
 
@@ -978,3 +1000,176 @@ def purge_old_unmatched(days: int = 14) -> None:
     data['items'] = [i for i in data.get('items', []) if i.get('date', '') >= cutoff]
     with open(path, 'w') as f:
         json.dump(data, f, indent=2)
+
+
+# ---------------------------------------------------------------------------
+# Tasks (from TASKS.md)
+# ---------------------------------------------------------------------------
+
+def load_tasks_by_org() -> dict[str, list[dict]]:
+    """Parse TASKS.md and return open tasks grouped by org name.
+
+    Returns: { 'UTIMCO': [{'task': '...', 'owner': 'Oscar', 'section': 'Fundraising - Me', 'index': 3, 'priority': 'Hi'}, ...], ... }
+
+    Tasks are matched to orgs via the (OrgName) suffix convention.
+    Only open tasks (unchecked) from Active and Waiting On sections are included.
+    Each task includes its section name and 0-based index within that section,
+    matching the Tasks API indexing for edit/delete operations.
+    """
+    tasks_path = os.path.join(PROJECT_ROOT, "TASKS.md")
+    if not os.path.exists(tasks_path):
+        return {}
+
+    text = _read_file(tasks_path)
+    result: dict[str, list[dict]] = {}
+    current_section = None
+    task_index = 0  # 0-based index within current section
+
+    for line in text.splitlines():
+        stripped = line.strip()
+
+        # Track which section we're in
+        if stripped.startswith('## '):
+            current_section = stripped[3:].strip()
+            task_index = 0  # Reset index for each section
+            continue
+
+        # Skip Personal and Done sections
+        if current_section in ('Personal', 'Done', None):
+            continue
+
+        # Count ALL tasks (open and done) for correct indexing
+        if stripped.startswith('- [ ]') or stripped.startswith('- [x]'):
+            if stripped.startswith('- [x]'):
+                task_index += 1
+                continue  # Skip done tasks but count them
+
+            # Only process open (unchecked) tasks
+            # Extract priority: **[Hi]** etc
+            pri_match = re.search(r'\*\*\[(\w+)\]\*\*', stripped)
+            priority = pri_match.group(1) if pri_match else 'Med'
+
+            # Extract owner: **@Name** (supports multi-word names like "Mike R")
+            owner_match = re.search(r'\*\*@([^*]+)\*\*', stripped)
+            owner = owner_match.group(1).strip() if owner_match else 'Oscar'
+
+            # Extract org: (OrgName) at end of line
+            org_match = re.search(r'\(([^)]+)\)\s*$', stripped)
+            if not org_match:
+                task_index += 1
+                continue  # Not a CRM task
+
+            org_name = org_match.group(1).strip()
+
+            # Extract task description: strip checkbox, priority, owner tag, and trailing (OrgName)
+            desc = stripped
+            desc = re.sub(r'^- \[ \]\s*\*\*\[\w+\]\*\*\s*', '', desc)  # Remove checkbox + priority
+            desc = re.sub(r'\*\*@[^*]+\*\*\s*', '', desc)               # Remove owner tag (supports multi-word names)
+            desc = re.sub(r'\s*\([^)]+\)\s*$', '', desc)                # Remove trailing (OrgName)
+            desc = desc.strip(' —-')                                     # Clean up leftover separators
+
+            result.setdefault(org_name, []).append({
+                'task': desc,
+                'owner': owner,
+                'section': current_section,
+                'index': task_index,
+                'priority': priority,
+            })
+
+            task_index += 1
+
+    return result
+
+
+# ---------------------------------------------------------------------------
+# Meeting History
+# ---------------------------------------------------------------------------
+
+MEETING_HISTORY_PATH = os.path.join(CRM_ROOT, 'meeting_history.md')
+
+
+def load_meeting_history(org: str) -> list[dict]:
+    """Return list of {date, title, attendees, source, notion_url} for an org."""
+    if not os.path.exists(MEETING_HISTORY_PATH):
+        return []
+
+    text = _read_file(MEETING_HISTORY_PATH)
+    in_section = False
+    results = []
+
+    for line in text.splitlines():
+        stripped = line.strip()
+
+        if stripped.startswith('## '):
+            in_section = (stripped[3:].strip().lower() == org.lower())
+            continue
+
+        if not in_section or not stripped.startswith('- '):
+            continue
+
+        # Format: - **YYYY-MM-DD** | Title | Attendees | Source
+        parts = stripped[2:].split(' | ')
+        date_m = re.match(r'\*\*([^*]+)\*\*', parts[0].strip())
+        date = date_m.group(1) if date_m else parts[0].strip()
+        title = parts[1].strip() if len(parts) > 1 else ''
+        attendees = parts[2].strip() if len(parts) > 2 else ''
+        source_raw = parts[3].strip() if len(parts) > 3 else ''
+        notion_url_m = re.search(r'\[Notion\]\(([^)]+)\)', source_raw)
+        notion_url = notion_url_m.group(1) if notion_url_m else ''
+
+        results.append({
+            'date': date,
+            'title': title,
+            'attendees': attendees,
+            'source': source_raw,
+            'notion_url': notion_url,
+        })
+
+    return results
+
+
+def add_meeting_entry(org: str, date: str, title: str, attendees: str, source: str, notion_url: str = '') -> None:
+    """Append a meeting entry under the org's ## section. Creates section if missing. Deduplicates by date+title."""
+    # Deduplicate
+    for m in load_meeting_history(org):
+        if m['date'] == date and m['title'].lower() == title.lower():
+            return
+
+    # Build source string
+    if notion_url and source == 'calendar':
+        source_str = f'calendar + [Notion]({notion_url})'
+    elif notion_url:
+        source_str = f'[Notion]({notion_url})'
+    else:
+        source_str = source or 'manual'
+
+    entry_line = f'- **{date}** | {title} | {attendees} | {source_str}'
+
+    if os.path.exists(MEETING_HISTORY_PATH):
+        text = _read_file(MEETING_HISTORY_PATH)
+    else:
+        text = '# Meeting History\n'
+
+    lines = text.splitlines()
+
+    # Find org's ## section
+    section_line = None
+    for i, line in enumerate(lines):
+        if line.strip() == f'## {org}':
+            section_line = i
+            break
+
+    if section_line is None:
+        # Append new section at end
+        if lines and lines[-1].strip():
+            lines.append('')
+        lines.append(f'## {org}')
+        lines.append(entry_line)
+    else:
+        # Insert before the next ## section (or at end of file)
+        insert_pos = section_line + 1
+        while insert_pos < len(lines) and not lines[insert_pos].startswith('## '):
+            insert_pos += 1
+        lines.insert(insert_pos, entry_line)
+
+    _write_file(MEETING_HISTORY_PATH, '\n'.join(lines) + '\n')

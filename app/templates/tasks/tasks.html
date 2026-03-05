@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Tasks — Overwatch</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/tasks/tasks.css">
+  <link rel="stylesheet" href="/static/task-edit-modal.css">
+</head>
+<body>
+
+<nav>
+  <div class="nav-links">
+    <a href="/">Dashboard</a>
+    <a href="/tasks" class="active">Tasks</a>
+    <a href="/crm">Pipeline</a>
+  </div>
+  <div class="brand">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M15.7 8.6c-.2-.4-.5-.7-.9-.8-.4-.2-.8-.1-1.2.1l-2.3 1.3c-.4.2-.6.5-.7.9-.1.4 0 .8.2 1.1l.9 1.2c-.5.3-1.1.5-1.7.5-1.7 0-3-1.3-3-3s1.3-3 3-3c.9 0 1.8.4 2.3 1.1.3.4.9.5 1.3.2.4-.3.5-.9.2-1.3C13.8 5.7 12.5 5 11 5c-2.8 0-5 2.2-5 5s2.2 5 5 5c1.5 0 2.8-.7 3.8-1.7l.5.7c.2.4.6.6 1 .6.2 0 .3 0 .5-.1.6-.3.8-1 .5-1.6L15.7 8.6z" fill="currentColor" opacity="0.9"/></svg>
+    Overwatch
+  </div>
+</nav>
+
+<div id="board"></div>
+<div id="toast" class="toast hidden"></div>
+
+<script>
+const CONFIG = {{ config | tojson }};
+const SECTIONS = ["Fundraising - Me", "Team Tasks", "Work", "Personal"];
+window.TASK_MODAL_TEAM = CONFIG.team || [];
+window.TASK_MODAL_TEAM_MAP = CONFIG.team_map || [];
+window.TASK_MODAL_SECTIONS = SECTIONS.filter(s => s !== 'Team Tasks');
+window.taskModalOnSave = function() { loadTasks(); };
+window.taskModalOnDelete = function() { loadTasks(); };
+fetch('/crm/api/orgs')
+  .then(r => r.json())
+  .then(orgs => { window.TASK_MODAL_PROSPECT_ORGS = orgs; });
+</script>
+<script src="/static/task-edit-modal.js"></script>
+<script src="/static/tasks/tasks.js"></script>
+
+</body>
+</html>

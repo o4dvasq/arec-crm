@@ -4,7 +4,7 @@ prompt_builder.py — Assembles the Claude prompt for the morning briefing (CC-0
 
 import os
 import re
-from datetime import date
+from datetime import date, timedelta
 
 from sources.crm_reader import load_interactions, load_prospects
 
@@ -138,6 +138,7 @@ def build_prompt(
     tasks: dict,
     memory: str,
     token: str = None,
+    tomorrow_events: list[dict] = None,
 ) -> tuple[str, str]:
     """
     Assemble the system and user prompts for Claude.
@@ -172,6 +173,24 @@ def build_prompt(
             schedule_lines.append(f"- {time_str}: {subject}{loc_note}{att_note}")
     else:
         schedule_lines.append("- No events today")
+
+    # Show tomorrow's schedule when today has fewer than 2 events
+    if tomorrow_events and len(events) < 2:
+        tomorrow_date = (date.today() + timedelta(days=1)).strftime("%A, %B %d")
+        schedule_lines.append("")
+        schedule_lines.append(f"### Tomorrow — {tomorrow_date}")
+        for event in tomorrow_events:
+            time_str = _fmt_time(event.get("start", ""))
+            subject = event.get("subject", "(no subject)")
+            location = event.get("location", "")
+            loc_note = f" @ {location}" if location else ""
+            attendees = event.get("attendees", [])
+            att_count = len(attendees)
+            att_note = f" ({att_count} attendees)" if att_count > 0 else ""
+            schedule_lines.append(f"- {time_str}: {subject}{loc_note}{att_note}")
+        if not tomorrow_events:
+            schedule_lines.append("- No events tomorrow")
+
     sections.append("\n".join(schedule_lines))
 
     # --- Email Action Items ---

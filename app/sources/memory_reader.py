@@ -8,23 +8,26 @@ import re
 PRODUCTIVITY_ROOT = os.path.expanduser("~/Dropbox/Tech/ClaudeProductivity")
 
 
-def load_tasks() -> dict:
+def load_tasks(section: str = None) -> dict:
     """
-    Parse TASKS.md → {'active': [...], 'personal': [...], 'waiting': [...]}
+    Parse TASKS.md → {'fundraising': [...], 'personal': [...], 'waiting': [...], 'work': [...]}
     Each item is a string like '[Hi] Follow up with Jared Brimberry (UTIMCO)'
+
+    Pass section= to filter to a single key (e.g. section='fundraising').
     """
     path = os.path.join(PRODUCTIVITY_ROOT, "TASKS.md")
     if not os.path.exists(path):
-        return {"active": [], "personal": [], "waiting": []}
+        return {"fundraising": [], "personal": [], "waiting": [], "work": []}
 
     with open(path, "r", encoding="utf-8") as f:
         content = f.read()
 
-    tasks = {"active": [], "personal": [], "waiting": []}
+    tasks = {"fundraising": [], "personal": [], "waiting": [], "work": []}
     section_map = {
-        "active": "active",
-        "personal": "personal",
-        "waiting on": "waiting",
+        "fundraising - me": "fundraising",
+        "personal":         "personal",
+        "waiting on":       "waiting",
+        "work":             "work",
     }
     current_section = None
 
@@ -42,6 +45,9 @@ def load_tasks() -> dict:
             task_text = re.sub(r"\*\*(\[[^\]]+\])\*\*", r"\1", task_text)
             tasks[current_section].append(task_text)
 
+    if section:
+        key = section.lower().replace(" ", "_").replace("-", "_")
+        return {k: v for k, v in tasks.items() if k == key}
     return tasks
 
 

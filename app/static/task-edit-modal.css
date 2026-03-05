@@ -1,0 +1,73 @@
+/* task-edit-modal.css — Shared task edit modal */
+
+.task-modal-overlay {
+  display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.35);
+  z-index: 500; justify-content: center; align-items: center;
+}
+.task-modal-overlay.open { display: flex; }
+
+.task-modal {
+  background: #fff; border-radius: 12px; width: 460px; max-width: 92vw;
+  box-shadow: 0 8px 30px rgba(0,0,0,0.18); overflow: hidden;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+.task-modal-head {
+  padding: 16px 20px; font-size: 14px; font-weight: 700; color: #1e293b;
+  border-bottom: 1px solid #e5e7eb; display: flex; justify-content: space-between; align-items: center;
+}
+.task-modal-close {
+  background: none; border: none; cursor: pointer; font-size: 18px;
+  color: #94a3b8; padding: 0 4px; line-height: 1;
+}
+.task-modal-close:hover { color: #1e293b; }
+
+.task-modal-body { padding: 16px 20px; }
+
+.task-modal-field { margin-bottom: 14px; }
+
+.task-modal-label {
+  font-size: 11px; font-weight: 600; color: #64748b;
+  text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 5px; display: block;
+}
+
+.task-modal-body textarea,
+.task-modal-body select,
+.task-modal-body input[type="text"] {
+  width: 100%; padding: 8px 10px; border: 1px solid #e5e7eb; border-radius: 6px;
+  font-size: 13px; font-family: inherit; background: #fff; color: #1e293b; outline: none;
+}
+.task-modal-body textarea:focus,
+.task-modal-body select:focus,
+.task-modal-body input[type="text"]:focus { border-color: #D97757; }
+.task-modal-body textarea { resize: vertical; min-height: 64px; }
+
+.task-modal-row {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 12px;
+}
+
+.task-modal-foot {
+  padding: 12px 20px; border-top: 1px solid #e5e7eb;
+  display: flex; gap: 8px; justify-content: flex-end;
+}
+
+.task-modal-btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 7px 16px; border-radius: 6px; font-size: 13px; font-weight: 600;
+  font-family: inherit; cursor: pointer; border: 1px solid #e5e7eb;
+  background: #fff; color: #1e293b; transition: all 0.12s;
+}
+.task-modal-btn:hover { background: #f1f5f9; border-color: #94a3b8; }
+.task-modal-btn-primary { background: #D97757; color: #fff; border-color: #D97757; }
+.task-modal-btn-primary:hover { background: #c4684a; border-color: #c4684a; }
+.task-modal-btn-danger {
+  background: none; color: #dc2626; border-color: #fca5a5; margin-right: auto;
+}
+.task-modal-btn-danger:hover { background: #fef2f2; }
+
+/* Org badge inside modal */
+.task-modal-org {
+  display: inline-block; font-size: 11px; font-weight: 600;
+  color: #2563eb; background: #eff6ff;
+  padding: 2px 8px; border-radius: 4px; margin-top: 4px;
+}

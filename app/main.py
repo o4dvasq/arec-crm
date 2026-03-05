@@ -34,7 +34,7 @@ from briefing.generator import generate_briefing
 from briefing.prompt_builder import build_prompt
 from sources.crm_graph_sync import run_auto_capture
 from sources.memory_reader import load_inbox, load_memory_summary, load_tasks
-from sources.ms_graph import get_recent_emails, get_today_events
+from sources.ms_graph import get_recent_emails, get_today_events, get_tomorrow_events
 
 # ---------------------------------------------------------------------------
 # Logging
@@ -133,6 +133,16 @@ def run_briefing() -> None:
         log.warning(f"Calendar fetch failed: {e}")
         events = []
 
+    tomorrow_events = []
+    if len(events) < 2:
+        log.info("Fewer than 2 events today, fetching tomorrow's schedule...")
+        try:
+            tomorrow_events = get_tomorrow_events(token)
+            log.info(f"Fetched {len(tomorrow_events)} tomorrow events")
+        except Exception as e:
+            log.warning(f"Tomorrow calendar fetch failed: {e}")
+            tomorrow_events = []
+
     log.info("Fetching recent emails...")
     try:
         emails = get_recent_emails(token, hours=18)
@@ -152,7 +162,7 @@ def run_briefing() -> None:
 
     # 4. Build prompt
     log.info("Building Claude prompt...")
-    system_prompt, user_prompt = build_prompt(events, emails, tasks, memory, token)
+    system_prompt, user_prompt = build_prompt(events, emails, tasks, memory, token, tomorrow_events=tomorrow_events)
 
     # 5. Generate briefing
     log.info("Calling Claude API...")

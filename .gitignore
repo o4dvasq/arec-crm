@@ -33,3 +33,6 @@ Thumbs.db
 # Temp files
 *.tmp
 *.bak
+
+# Dropbox conflict copies
+*conflicted copy*

@@ -54,12 +54,12 @@ Based on Oscar's response, take one or more of these actions:
 
 **If updating a prospect field:**
 Write to `crm/prospects.md` using the appropriate org and offering section.
-Update only the specific field(s) mentioned (Next Action, Notes, Stage, Urgency).
+Update only the specific field(s) mentioned (Notes, Stage, Urgency). Tasks and next actions go to TASKS.md, not prospects.md.
 Auto-update Last Touch to today.
 
 **If creating a task:**
-Append to `TASKS.md` under `## Work — IR/Fundraising`:
-`- [ ] **[Hi]** [Specific action] — [Org name]`
+Append to `TASKS.md` under `## Active`:
+`- [ ] **[Hi]** **@Owner** [Specific action] (OrgName)`
 
 **If running an interview:**
 Proceed directly into `/crm:interview` for the specified org after finishing

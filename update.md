@@ -142,7 +142,7 @@ From "Family Office Partnership Discussion" (Feb 24):
 Add these to TASKS.md? (I'll assign priority based on context)
 ```
 
-Wait for user confirmation before adding anything to TASKS.md. When adding, follow the existing TASKS.md format (`- [ ] **[Priority]** Description`) and assign priority (Hi/Med/Low) based on context — urgency, who it involves, deadlines mentioned.
+Wait for user confirmation before adding anything to TASKS.md. When adding, use the format: `- [ ] **[Priority]** **@Owner** Description (OrgName if CRM-related)`. Assign priority (Hi/Med/Low) and owner based on context — who the action item belongs to, urgency, deadlines mentioned. Default owner is Oscar if unclear.
 
 #### 3e. Report meeting sync results
 
@@ -234,8 +234,8 @@ sentences max, specific and actionable.
    > ⚡ **[Org]** You had a meeting on [date] — want to do a quick intel debrief
    > while it's fresh? (5–10 min via /crm:interview)
 
-2. **High urgency with no Next Action set**
-   > ⚡ **[Org]** is at [stage] with no Next Action set and last touch [N] days ago.
+2. **High urgency with no open task in TASKS.md**
+   > ⚡ **[Org]** is at [stage] with no open task in TASKS.md and last touch [N] days ago.
    > Want to add a follow-up task or do a quick intel capture?
 
 3. **High urgency with last touch > 14 days**

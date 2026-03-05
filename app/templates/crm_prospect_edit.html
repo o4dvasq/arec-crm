@@ -8,10 +8,12 @@
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0f172a; color: #e2e8f0; min-height: 100vh; }
 
-    nav { background: #0a0f1e; border-bottom: 1px solid #1e293b; padding: 0 24px; display: flex; align-items: center; gap: 24px; height: 52px; }
+    nav { background: #1a1a2e; border-bottom: 1px solid #1e293b; padding: 0 24px; display: flex; align-items: center; height: 52px; }
+    nav .nav-links { display: flex; align-items: center; gap: 24px; }
     nav a { color: #94a3b8; text-decoration: none; font-size: 14px; font-weight: 500; }
     nav a:hover { color: #e2e8f0; }
-    nav .logo { color: #e2e8f0; font-weight: 700; font-size: 16px; margin-right: 8px; }
+    nav .brand { position: absolute; left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 8px; color: #e2e8f0; font-weight: 700; font-size: 16px; letter-spacing: 0.04em; }
+    nav .brand svg { opacity: 0.85; }
 
     .page { padding: 32px 24px; max-width: 640px; margin: 0 auto; }
     .back-link { font-size: 13px; color: #64748b; text-decoration: none; display: inline-flex; align-items: center; gap: 4px; margin-bottom: 20px; }
@@ -71,6 +73,8 @@
     .btn-save { background: #2563eb; color: #fff; }
     .btn-save:hover { background: #1d4ed8; }
     .btn-save:disabled { background: #1e3a5f; color: #64748b; cursor: default; }
+    .btn-danger { background: #450a0a; color: #fca5a5; border: 1px solid #7f1d1d; }
+    .btn-danger:hover { background: #7f1d1d; color: #fef2f2; }
 
     .error-banner { background: #450a0a; border: 1px solid #7f1d1d; color: #fca5a5; padding: 10px 14px; border-radius: 6px; font-size: 13px; margin-bottom: 16px; display: none; }
   </style>
@@ -78,9 +82,15 @@
 <body>
 
 <nav>
-  <span class="logo">AREC</span>
-  <a href="/">Dashboard</a>
-  <a href="/crm">CRM</a>
+  <div class="nav-links">
+    <a href="/">Dashboard</a>
+    <a href="/tasks">Tasks</a>
+    <a href="/crm">Pipeline</a>
+  </div>
+  <div class="brand">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M15.7 8.6c-.2-.4-.5-.7-.9-.8-.4-.2-.8-.1-1.2.1l-2.3 1.3c-.4.2-.6.5-.7.9-.1.4 0 .8.2 1.1l.9 1.2c-.5.3-1.1.5-1.7.5-1.7 0-3-1.3-3-3s1.3-3 3-3c.9 0 1.8.4 2.3 1.1.3.4.9.5 1.3.2.4-.3.5-.9.2-1.3C13.8 5.7 12.5 5 11 5c-2.8 0-5 2.2-5 5s2.2 5 5 5c1.5 0 2.8-.7 3.8-1.7l.5.7c.2.4.6.6 1 .6.2 0 .3 0 .5-.1.6-.3.8-1 .5-1.6L15.7 8.6z" fill="currentColor" opacity="0.9"/></svg>
+    Overwatch
+  </div>
 </nav>
 
 <div class="page">
@@ -125,13 +135,6 @@
         <label class="field-label" for="field-target">Target</label>
         <div class="field-control">
           <input type="text" id="field-target" value="{{ prospect.Target or '' }}" placeholder="$0">
-        </div>
-      </div>
-
-      <div class="field-row">
-        <label class="field-label" for="field-committed">Committed</label>
-        <div class="field-control">
-          <input type="text" id="field-committed" value="{{ prospect.Committed or '' }}" placeholder="$0">
         </div>
       </div>
 
@@ -188,13 +191,6 @@
     <!-- Text areas -->
     <div class="form-section">
       <div class="field-row">
-        <label class="field-label" for="field-next_action">Next Action</label>
-        <div class="field-control">
-          <textarea id="field-next_action" rows="2">{{ prospect['Next Action'] or '' }}</textarea>
-        </div>
-      </div>
-
-      <div class="field-row">
         <label class="field-label" for="field-notes">Notes</label>
         <div class="field-control">
           <textarea id="field-notes" rows="4">{{ prospect.Notes or '' }}</textarea>
@@ -215,6 +211,8 @@
 
     <!-- Footer -->
     <div class="form-footer">
+      <button class="btn btn-danger" id="delete-btn" onclick="deleteProspect()">Delete Prospect</button>
+      <div style="flex:1"></div>
       <button class="btn btn-cancel" onclick="window.location.href='/crm'">Cancel</button>
       <button class="btn btn-save" id="save-btn" onclick="saveProspect()">Save</button>
     </div>
@@ -281,7 +279,6 @@ async function saveProspect() {
     closing:         document.getElementById('field-closing').value,
     assigned_to:     document.getElementById('field-assigned_to').value,
     primary_contact: primaryContact === '__add_new__' ? '' : primaryContact,
-    next_action:     document.getElementById('field-next_action').value,
     notes:           document.getElementById('field-notes').value,
   };
 
@@ -306,6 +303,29 @@ function showError(msg) {
   banner.textContent = msg;
   banner.style.display = '';
   setTimeout(() => { banner.style.display = 'none'; }, 5000);
+}
+
+async function deleteProspect() {
+  if (!confirm(`Delete ${ORG} from ${OFFERING}? This cannot be undone.`)) return;
+
+  const btn = document.getElementById('delete-btn');
+  btn.disabled = true;
+  btn.textContent = 'Deleting…';
+
+  const resp = await fetch('/crm/api/prospect', {
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ org: ORG, offering: OFFERING }),
+  });
+
+  if (resp.ok) {
+    window.location.href = '/crm';
+  } else {
+    const err = await resp.json().catch(() => ({}));
+    showError(err.error || 'Delete failed.');
+    btn.disabled = false;
+    btn.textContent = 'Delete Prospect';
+  }
 }
 </script>
 </body>
