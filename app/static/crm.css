@@ -1,0 +1,122 @@
+/* ═══════════════════════════════════════════════════════════
+   Overwatch — Global Navigation Styles
+   Included on every page via base template
+   ═══════════════════════════════════════════════════════════ */
+
+/* Push page content below the fixed 92px header */
+body {
+    padding-top: 92px;
+}
+
+/* ── Brand Bar (Row 1) ── */
+.brand-bar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 48px;
+    background: #0f172a;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    border-bottom: 1px solid #1e293b;
+}
+.brand-bar-inner {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.brand-icon {
+    flex-shrink: 0;
+}
+.brand-text {
+    font-size: 18px;
+    font-weight: 600;
+    color: #f1f5f9;
+    letter-spacing: 0.05em;
+}
+
+/* ── Nav Tabs (Row 2) ── */
+.nav-tabs {
+    position: fixed;
+    top: 48px;
+    left: 0;
+    right: 0;
+    height: 44px;
+    background: #1e293b;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 999;
+    border-bottom: 1px solid #334155;
+}
+.nav-tabs-inner {
+    display: flex;
+    align-items: center;
+    gap: 0;
+}
+.nav-tab {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 44px;
+    padding: 0 24px;
+    font-size: 14px;
+    font-weight: 500;
+    color: #94a3b8;
+    text-decoration: none;
+    border-bottom: 2px solid transparent;
+    transition: color 0.15s, border-color 0.15s;
+}
+.nav-tab:hover {
+    color: #cbd5e1;
+}
+.nav-tab--active {
+    color: #f1f5f9;
+    border-bottom-color: #3b82f6;
+}
+
+/* ── Breadcrumb back-link (detail pages) ── */
+.breadcrumb-back {
+    display: inline-block;
+    font-size: 13px;
+    color: #3b82f6;
+    text-decoration: none;
+    padding: 12px 0 8px 0;
+    margin-left: 24px;
+}
+.breadcrumb-back:hover {
+    color: #60a5fa;
+}
+
+/* ── Mobile (< 768px) ── */
+@media (max-width: 768px) {
+    .nav-tab {
+        padding: 0 14px;
+        font-size: 13px;
+    }
+    .brand-text {
+        font-size: 16px;
+    }
+}
+
+/* ══════════════════════════════════════════════════════════════
+   Contact Name Links
+   ══════════════════════════════════════════════════════════════ */
+.contact-name-link {
+    color: inherit;
+    text-decoration: none;
+    transition: color 0.15s ease;
+    cursor: pointer;
+}
+
+.contact-name-link:hover {
+    color: #3b82f6;
+    text-decoration: underline;
+}
+
+.contact-name-link:focus {
+    outline: 2px solid #3b82f6;
+    outline-offset: 2px;
+}

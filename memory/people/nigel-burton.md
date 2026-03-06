@@ -1,17 +1,16 @@
-# Nigel Burton
+# Nigel Braidy
 
-## Overview
-- **Organization:** Emirates NBD
-- **Role:** (TBD)
-- **Email:** nigelb@emiratesnbd.com
-- **Phone:**
-- **Type:** investor
-- **Met via:** London investor trip, Mar 3 2026
+**Organization:** Emirates NBD
+**Role:** (TBD)
+**Email:** nigelb@emiratesnbd.com
+**Type:** Private Bank
+**Fund II Status:** Prospect ($10M target)
+**Stage:** 5
+**Assignee:** (TBD)
+**Met:** London, Mar 3 2026
 
-## Intel
-- Emirates NBD is a Stage 4 Engaged prospect, $10M target, High urgency
-- Primary contact for AREC relationship
-- Meeting arranged at The Wilton Arms pub near Hyde Park
-
-## Interaction History
-- 2026-03-03 — In-person meeting in London (Tony, Oscar, Nigel Burton)
+## Notes
+- Emirates NBD — private banking division
+- Fund II prospect with $10M target
+- Met at The Wilton Arms pub near Hyde Park on March 3, 2026
+- Meeting with Tony and Oscar

@@ -1,18 +1,15 @@
 # Philippe Gougenheim
 
-**Title:** Managing Partner
-**Company:** AlphaCurve Investments
-**Cell:** +41 79 309 59 90
+**Organization:** Alpha Curve Investments
+**Role:** Managing Partner
 **Email:** philippe.gougenheim@alphacurve.investments
-**Location:** Rue du Prince 6, 1204 Geneva, Switzerland
-
-## AREC Prospect
-- **Fund:** AREC Debt Fund II
-- **Status:** Interested
-- **Type:** HNWI/FO
-- **Size:** $2M
-- **Assigned to:** Max Angeloni
+**Phone:** +41 79 309 59 90
+**Type:** Introducer / Private Credit Allocator
+**Fund II Status:** Introducer (not direct investor)
+**Assignee:** Max Angeloni
+**Met:** Geneva, Mar 4 2026
 
 ## Notes
-- Met in Geneva on March 4, 2026 (drinks)
-- AlphaCurve Investments — Geneva-based investment firm
+- Alpha Curve Investments — Geneva-based private credit allocator
+- Introducer, not direct investor for Fund II
+- Met on March 4, 2026

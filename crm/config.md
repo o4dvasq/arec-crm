@@ -25,24 +25,19 @@
 - 2nd
 - Final
 
-## Urgency Levels
-- High
-- Med
-- Low
-
 ## AREC Team
-- Tony | Tony Avila
-- Oscar | Oscar Vasquez
-- Truman | Truman Flynn
-- Zach | Zach Reisner
-- Nate | Nate Cichon
-- Patrick | Patrick Fichtner
-- Mike R | Mike Righetti
-- Sahil | Sahil Jehti
-- Jake | Jake Weintraub
-- Kevin V | Kevin Van Gorder
-- Jane | Jane Lumley
-- Anthony | Anthony Albuquerque
-- Ian | Ian Morgan
-- James | James Walton
-- Paige | Paige (Chief of Staff)
+- Tony Avila | tony@avilacapllc.com
+- Oscar Vasquez | oscar@avilacapllc.com
+- Truman Flynn | truman@avilacapllc.com
+- Zach Reisner | zachary.reisner@avilacapllc.com
+- Nate Cichon | nate@avilacapllc.com
+- Patrick Fichtner | patrick@avilacapllc.com
+- Mike Righetti | mike@avilacapllc.com
+- Sahil Jethi | sahil@avilacapllc.com
+- Jake Weintraub | jake@avilacapllc.com
+- Kevin Van Gorder | kevin@avilacapllc.com
+- Jane Lumley | jane@avilacapllc.com
+- Anthony Albuquerque | anthony@avilacapllc.com
+- Ian Morgan | ian@south40capital.com
+- James Walton | james@avilacapllc.com
+- Paige (Chief of Staff) | paige@avilacapllc.com

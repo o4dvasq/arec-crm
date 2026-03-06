@@ -2,6 +2,7 @@
 
 ## Overview
 - **Type:** UK Local Government Pension Scheme
+- **Location:** Liverpool, United Kingdom — Castle Chambers, 43 Castle St, Liverpool L2 9SH
 - **Stage:** Verbal → Virtual DD (Mar 25-26)
 - **Target:** $50,000,000
 - **Closing:** Final

@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Organizations — Overwatch</title>
+  <link rel="stylesheet" href="/static/crm.css">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f8fafc; color: #1e293b; min-height: 100vh; }
+
+    .page { padding: 24px; max-width: 900px; margin: 0 auto; }
+
+    .page-header { margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between; }
+    .page-title { font-size: 20px; font-weight: 700; color: #0f172a; }
+    .page-count { font-size: 13px; color: #64748b; }
+
+    .search-bar { margin-bottom: 16px; }
+    .search-bar input {
+      width: 100%; max-width: 360px; padding: 8px 12px;
+      border: 1px solid #e2e8f0; border-radius: 6px; font-size: 14px;
+      font-family: inherit; outline: none; background: #fff;
+    }
+    .search-bar input:focus { border-color: #2563eb; }
+
+    .org-list { display: flex; flex-direction: column; gap: 2px; }
+
+    .org-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 16px;
+      background: #fff;
+      border: 1px solid #e2e8f0;
+      border-radius: 6px;
+      text-decoration: none;
+      color: inherit;
+      transition: border-color 0.15s;
+    }
+    .org-row:hover { border-color: #2563eb; }
+
+    .org-name { font-size: 14px; font-weight: 500; color: #0f172a; }
+    .org-arrow { color: #d1d5db; font-size: 14px; }
+
+    .btn-create {
+      padding: 7px 16px;
+      font-size: 13px;
+      font-weight: 600;
+      border: none;
+      border-radius: 6px;
+      background: #2563eb;
+      color: #fff;
+      cursor: pointer;
+      font-family: inherit;
+      transition: background 0.15s;
+    }
+    .btn-create:hover { background: #1d4ed8; }
+
+    .empty-state { text-align: center; padding: 60px 20px; color: #94a3b8; }
+
+    /* Create Org Modal */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.4);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+    }
+    .modal-overlay.open { display: flex; }
+
+    .modal {
+      background: #fff;
+      border-radius: 8px;
+      width: 600px;
+      max-width: 92vw;
+      max-height: 90vh;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .modal-header {
+      padding: 16px 20px;
+      border-bottom: 1px solid #e2e8f0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .modal-title { font-size: 16px; font-weight: 700; color: #0f172a; }
+    .modal-close {
+      background: none;
+      border: none;
+      font-size: 20px;
+      color: #94a3b8;
+      cursor: pointer;
+      padding: 0 4px;
+      line-height: 1;
+    }
+    .modal-close:hover { color: #1e293b; }
+
+    .modal-body {
+      padding: 20px;
+      overflow-y: auto;
+    }
+
+    .form-field {
+      margin-bottom: 16px;
+    }
+    .form-label {
+      display: block;
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: #64748b;
+      margin-bottom: 6px;
+    }
+    .form-input, .form-textarea {
+      width: 100%;
+      padding: 8px 12px;
+      border: 1px solid #e2e8f0;
+      border-radius: 6px;
+      font-size: 14px;
+      font-family: inherit;
+      outline: none;
+      background: #fff;
+      color: #1e293b;
+    }
+    .form-input:focus, .form-textarea:focus { border-color: #2563eb; }
+    select.form-input {
+      cursor: pointer;
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2364748b' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 10px center;
+      padding-right: 32px;
+    }
+    .form-textarea { resize: vertical; min-height: 80px; }
+
+    .contacts-section {
+      margin-top: 20px;
+      padding-top: 20px;
+      border-top: 1px solid #e2e8f0;
+    }
+    .section-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: #475569;
+      margin-bottom: 8px;
+    }
+
+    .modal-footer {
+      padding: 16px 20px;
+      border-top: 1px solid #e2e8f0;
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+    }
+    .btn {
+      padding: 8px 18px;
+      font-size: 13px;
+      font-weight: 600;
+      border-radius: 6px;
+      border: none;
+      cursor: pointer;
+      font-family: inherit;
+      transition: all 0.15s;
+    }
+    .btn-primary {
+      background: #2563eb;
+      color: #fff;
+    }
+    .btn-primary:hover { background: #1d4ed8; }
+    .btn-secondary {
+      background: #f1f5f9;
+      color: #475569;
+      border: 1px solid #e2e8f0;
+    }
+    .btn-secondary:hover { background: #e2e8f0; }
+  </style>
+</head>
+<body>
+
+{% set active_tab = 'orgs' %}
+{% include '_nav.html' %}
+
+<div class="page">
+  <div class="page-header">
+    <span class="page-title">Organizations</span>
+    <div style="display: flex; align-items: center; gap: 12px;">
+      <span class="page-count" id="orgs-count"></span>
+      <button class="btn-create" onclick="openCreateOrgModal()">+ Create Org</button>
+    </div>
+  </div>
+
+  <div class="search-bar">
+    <input type="text" id="search" placeholder="Search organizations..." oninput="filterOrgs(this.value)" autocomplete="off">
+  </div>
+
+  <div class="org-list" id="org-list">
+    <div class="empty-state">Loading...</div>
+  </div>
+</div>
+
+<!-- Create Org Modal -->
+<div class="modal-overlay" id="createOrgModal">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">Create Organization</span>
+      <button class="modal-close" onclick="closeCreateOrgModal()">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-field">
+        <label class="form-label">Organization Name *</label>
+        <input type="text" class="form-input" id="orgName" placeholder="Enter organization name" required>
+      </div>
+
+      <div class="form-field">
+        <label class="form-label">Type</label>
+        <select class="form-input" id="orgType">
+          <option value="">— Select type —</option>
+          <option value="HNWI / FO">HNWI / FO</option>
+          <option value="INSTITUTIONAL">INSTITUTIONAL</option>
+          <option value="BUILDER">BUILDER</option>
+          <option value="INTRODUCER">INTRODUCER</option>
+        </select>
+      </div>
+
+      <div class="form-field">
+        <label class="form-label">Domain</label>
+        <input type="text" class="form-input" id="orgDomain" placeholder="e.g., @company.com">
+      </div>
+
+      <div class="form-field">
+        <label class="form-label">Notes</label>
+        <textarea class="form-textarea" id="orgNotes" placeholder="Additional notes about the organization"></textarea>
+      </div>
+
+      <div class="contacts-section">
+        <div class="section-title">Add Contacts</div>
+        <p style="color: #64748b; font-size: 13px; margin-bottom: 8px;">
+          After creating the organization, you can add contacts by editing individual contact files to set their Organization field.
+        </p>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeCreateOrgModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="createOrg()">Create Organization</button>
+    </div>
+  </div>
+</div>
+
+<script>
+let allOrgs = [];
+
+async function loadOrgs() {
+  const res = await fetch('/crm/api/orgs');
+  allOrgs = await res.json();
+  renderOrgs(allOrgs);
+}
+
+function filterOrgs(q) {
+  const lower = q.toLowerCase();
+  const filtered = allOrgs.filter(name => name.toLowerCase().includes(lower));
+  renderOrgs(filtered);
+}
+
+function renderOrgs(orgs) {
+  const list = document.getElementById('org-list');
+  const count = document.getElementById('orgs-count');
+  count.textContent = orgs.length + ' organizations';
+
+  if (!orgs.length) {
+    list.innerHTML = '<div class="empty-state">No organizations found</div>';
+    return;
+  }
+
+  list.innerHTML = orgs.map(name => {
+    const encoded = encodeURIComponent(name);
+    return `<a href="/crm/org/${encoded}" class="org-row">
+      <span class="org-name">${name}</span>
+      <span class="org-arrow">›</span>
+    </a>`;
+  }).join('');
+}
+
+loadOrgs();
+
+// Create Org Modal Logic
+function openCreateOrgModal() {
+  // Reset form
+  document.getElementById('orgName').value = '';
+  document.getElementById('orgType').value = '';
+  document.getElementById('orgDomain').value = '';
+  document.getElementById('orgNotes').value = '';
+
+  document.getElementById('createOrgModal').classList.add('open');
+  document.getElementById('orgName').focus();
+}
+
+function closeCreateOrgModal() {
+  document.getElementById('createOrgModal').classList.remove('open');
+}
+
+// Event listeners
+document.addEventListener('DOMContentLoaded', () => {
+  // Close modal on outside click
+  document.getElementById('createOrgModal').addEventListener('click', (e) => {
+    if (e.target.id === 'createOrgModal') {
+      closeCreateOrgModal();
+    }
+  });
+
+  // Close modal on escape key
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && document.getElementById('createOrgModal').classList.contains('open')) {
+      closeCreateOrgModal();
+    }
+  });
+});
+
+async function createOrg() {
+  const name = document.getElementById('orgName').value.trim();
+  const type = document.getElementById('orgType').value.trim();
+  const domain = document.getElementById('orgDomain').value.trim();
+  const notes = document.getElementById('orgNotes').value.trim();
+
+  if (!name) {
+    alert('Organization name is required');
+    document.getElementById('orgName').focus();
+    return;
+  }
+
+  try {
+    const orgRes = await fetch('/crm/api/org', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, type, domain, notes })
+    });
+
+    if (!orgRes.ok) {
+      const err = await orgRes.json();
+      alert('Error creating organization: ' + (err.error || 'Unknown error'));
+      return;
+    }
+
+    // Success - close modal and reload
+    closeCreateOrgModal();
+    await loadOrgs();
+
+    // Navigate to the new org
+    window.location.href = `/crm/org/${encodeURIComponent(name)}`;
+
+  } catch (err) {
+    console.error('Error creating org:', err);
+    alert('Failed to create organization. Please try again.');
+  }
+}
+</script>
+
+</body>
+</html>

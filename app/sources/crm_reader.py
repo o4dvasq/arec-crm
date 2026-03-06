@@ -13,15 +13,16 @@ PROJECT_ROOT = os.path.dirname(APP_ROOT)  # .../ClaudeProductivity
 CRM_ROOT = os.path.join(PROJECT_ROOT, "crm")
 MEMORY_ROOT = os.path.join(PROJECT_ROOT, "memory")
 PEOPLE_ROOT = os.path.join(MEMORY_ROOT, "people")
+TASKS_MD_PATH = os.path.join(PROJECT_ROOT, "TASKS.md")
 
 # Field write order for prospects
 PROSPECT_FIELD_ORDER = [
     "Stage", "Target", "Primary Contact",
-    "Closing", "Urgency", "Assigned To", "Notes", "Last Touch"
+    "Closing", "Urgent", "Assigned To", "Notes", "Last Touch"
 ]
 
 EDITABLE_FIELDS = {
-    'stage', 'urgency', 'target', 'assigned_to',
+    'stage', 'urgent', 'target', 'assigned_to',
     'notes', 'closing'
 }
 
@@ -36,8 +37,7 @@ def _format_currency(n: float) -> str:
         return "$0"
     if n >= 1_000_000_000:
         val = n / 1_000_000_000
-        formatted = f"{val:g}"
-        return f"${formatted}B"
+        return f"${val:.2f}B"
     if n >= 1_000_000:
         val = n / 1_000_000
         formatted = f"{val:g}"
@@ -138,28 +138,56 @@ def load_crm_config() -> dict:
     if current:
         sections[current] = items
 
-    # Parse team entries: "Short | Full Name" format
+    # Parse team entries: "Full Name | email@domain.com" format
     raw_team = sections.get('AREC Team', [])
-    team_list = []  # list of full names (backward compat)
-    team_map = []   # list of {short, full} dicts for UI
+    team_list = []  # list of dicts: [{"name": "...", "email": "..."}]
+    team_map = []   # list of {short, full, email} dicts for backward compat UI
     for entry in raw_team:
         if '|' in entry:
-            short, full = [s.strip() for s in entry.split('|', 1)]
+            name, email = [s.strip() for s in entry.split('|', 1)]
         else:
-            full = entry.strip()
-            short = full.split()[0]  # fallback: first name
-        team_list.append(full)
-        team_map.append({'short': short, 'full': full})
+            name = entry.strip()
+            email = ''  # backward compatible fallback
+
+        short = name.split()[0]  # first name for short display
+        team_list.append({'name': name, 'email': email})
+        team_map.append({'short': short, 'full': name, 'email': email})
 
     return {
         'stages': sections.get('Pipeline Stages', []),
         'terminal_stages': sections.get('Terminal Stages', []),
         'org_types': sections.get('Organization Types', []),
         'closing_options': sections.get('Closing Options', []),
-        'urgency_levels': sections.get('Urgency Levels', []),
+        'urgency_levels': sections.get('Urgency Levels', ['Yes']),
         'team': team_list,
         'team_map': team_map,
     }
+
+
+def get_team_member_email(name: str) -> str:
+    """Look up email for an AREC team member by name. Returns empty string if not found.
+
+    Case-insensitive match. Partial match OK (e.g., "James" matches "James Walton").
+    Returns first match.
+    """
+    if not name:
+        return ''
+
+    config = load_crm_config()
+    team = config.get('team', [])
+    name_lower = name.lower().strip()
+
+    # Try exact match first
+    for member in team:
+        if member['name'].lower() == name_lower:
+            return member['email']
+
+    # Try partial match (search for name in member name)
+    for member in team:
+        if name_lower in member['name'].lower():
+            return member['email']
+
+    return ''
 
 
 # ---------------------------------------------------------------------------
@@ -223,7 +251,11 @@ def get_organization(name: str) -> dict | None:
 
 
 def write_organization(name: str, data: dict) -> None:
-    """Update fields for an existing org. Preserves all other orgs."""
+    """Update fields for an existing org. Preserves all fields."""
+    # Canonical field order — any fields present in data are written in this
+    # order first, then any remaining keys are appended alphabetically.
+    _FIELD_ORDER = ['Type', 'Aliases', 'Domain', 'Contacts', 'Stage', 'Notes']
+
     path = os.path.join(CRM_ROOT, "organizations.md")
     text = _read_file(path)
     lines = text.splitlines()
@@ -236,13 +268,25 @@ def write_organization(name: str, data: dict) -> None:
         if h2 and h2.group(1).strip().lower() == name.lower():
             out.append(line)
             i += 1
-            # Skip existing field lines
-            while i < len(lines) and lines[i].strip().startswith('-'):
+            # Collect existing bullet lines (may be multi-line notes with indentation)
+            existing_bullets = []
+            while i < len(lines) and (lines[i].strip().startswith('-') or lines[i].startswith('  ')):
+                existing_bullets.append(lines[i])
                 i += 1
-            # Write new fields
-            for key in ('Type', 'Notes'):
-                val = data.get(key, data.get(key.lower(), ''))
-                out.append(f"- **{key}:** {val}")
+            # Parse existing fields to preserve any not in data
+            existing = _parse_bullet_fields(existing_bullets)
+            merged = {**existing, **{k: v for k, v in data.items() if k != 'name'}}
+            # Write in canonical order
+            written = set()
+            for key in _FIELD_ORDER:
+                val = merged.get(key, '')
+                if val or key in ('Type', 'Notes'):  # always write Type and Notes
+                    out.append(f"- **{key}:** {val}")
+                    written.add(key)
+            # Any remaining keys not in canonical order
+            for key in sorted(merged.keys()):
+                if key not in written and key != 'name':
+                    out.append(f"- **{key}:** {merged[key]}")
             # Blank line separator unless next is already blank or heading
             if i < len(lines) and lines[i].strip():
                 out.append('')
@@ -253,9 +297,10 @@ def write_organization(name: str, data: dict) -> None:
     if not updated:
         # Org not found — append it
         out.append(f"\n## {name}")
-        for key in ('Type', 'Notes'):
+        for key in _FIELD_ORDER:
             val = data.get(key, data.get(key.lower(), ''))
-            out.append(f"- **{key}:** {val}")
+            if val or key in ('Type', 'Notes'):
+                out.append(f"- **{key}:** {val}")
     _write_file(path, '\n'.join(out))
 
 
@@ -285,7 +330,12 @@ def delete_organization(name: str) -> None:
 # ---------------------------------------------------------------------------
 
 def load_contacts_index() -> dict:
-    """Returns {org_name: [slug, ...]}"""
+    """Returns {org_name: [slug, ...]}
+
+    Supports two formats:
+      Flat:    - Org Name: slug-a, slug-b
+      Headed:  ## Org Name\\n- slug-a\\n- slug-b
+    """
     path = os.path.join(CRM_ROOT, "contacts_index.md")
     if not os.path.exists(path):
         return {}
@@ -297,6 +347,13 @@ def load_contacts_index() -> dict:
         if h2:
             current_org = h2.group(1).strip()
             result[current_org] = []
+        # Flat format: "- Org Name: slug-a, slug-b"
+        elif re.match(r'^- .+:', line):
+            parts = line[2:].split(':', 1)
+            org = parts[0].strip()
+            slugs = [s.strip() for s in parts[1].split(',') if s.strip()]
+            result.setdefault(org, []).extend(slugs)
+            current_org = None  # reset so bare "- slug" lines don't attach here
         elif re.match(r'^- ', line) and current_org:
             slug = line[2:].strip()
             if slug:
@@ -452,6 +509,22 @@ def create_person_file(name: str, org: str, email: str, role: str, person_type: 
     return slug
 
 
+def load_all_persons() -> list[dict]:
+    """Load all person files from memory/people/. Returns list of person dicts sorted by name."""
+    if not os.path.exists(PEOPLE_ROOT):
+        return []
+    persons = []
+    for filename in sorted(os.listdir(PEOPLE_ROOT)):
+        if not filename.endswith('.md'):
+            continue
+        slug = filename[:-3]
+        person = load_person(slug)
+        if person and person.get('name'):
+            persons.append(person)
+    persons.sort(key=lambda p: p['name'].lower())
+    return persons
+
+
 def enrich_person_email(slug: str, email: str) -> None:
     """Update the Email field in a person's file."""
     path = os.path.join(PEOPLE_ROOT, f"{slug}.md")
@@ -605,6 +678,9 @@ def load_prospects(offering: str = None) -> list[dict]:
 
     if offering:
         prospects = [p for p in prospects if p['offering'].lower() == offering.lower()]
+    # Normalize boolean urgent field
+    for p in prospects:
+        p['urgent'] = p.get('Urgent', '').lower() == 'yes'
     return prospects
 
 
@@ -636,6 +712,9 @@ def write_prospect(org: str, offering: str, data: dict) -> None:
             # Case-insensitive lookup
             matched = next((k for k in fields if k.lower() == key.lower()), None)
             val = fields[matched] if matched else ''
+            # Enforce single string for Assigned To — take first name before semicolon
+            if key.lower() == 'assigned to' and ';' in str(val):
+                val = str(val).split(';')[0].strip()
             block.append(f"- **{key}:** {val}")
         return block
 
@@ -744,6 +823,15 @@ def update_prospect_field(org: str, offering: str, field: str, value: str) -> No
         return
     # Normalize: 'assigned_to' → 'assigned to' for case-insensitive match
     field_normalized = field.lower().replace('_', ' ')
+    # Reject next_action — field has been removed from the data model
+    if field_normalized == 'next action':
+        return
+    # Normalize urgent: True/False/boolean-string → "Yes" or ""
+    if field_normalized == 'urgent':
+        value = 'Yes' if str(value).lower() in ('yes', 'true', '1') else ''
+    # Enforce single string for assigned_to
+    if field_normalized == 'assigned to' and ';' in str(value):
+        value = str(value).split(';')[0].strip()
     field_title = next(
         (k for k in PROSPECT_FIELD_ORDER if k.lower() == field_normalized),
         field
@@ -1012,7 +1100,7 @@ def load_tasks_by_org() -> dict[str, list[dict]]:
     Returns: { 'UTIMCO': [{'task': '...', 'owner': 'Oscar', 'section': 'Fundraising - Me', 'index': 3, 'priority': 'Hi'}, ...], ... }
 
     Tasks are matched to orgs via the (OrgName) suffix convention.
-    Only open tasks (unchecked) from Active and Waiting On sections are included.
+    Only open tasks (unchecked) from all sections are included.
     Each task includes its section name and 0-based index within that section,
     matching the Tasks API indexing for edit/delete operations.
     """
@@ -1049,12 +1137,16 @@ def load_tasks_by_org() -> dict[str, list[dict]]:
             pri_match = re.search(r'\*\*\[(\w+)\]\*\*', stripped)
             priority = pri_match.group(1) if pri_match else 'Med'
 
-            # Extract owner: **@Name** (supports multi-word names like "Mike R")
+            # Extract owner: prefer **@Name**, fall back to — assigned:Name
             owner_match = re.search(r'\*\*@([^*]+)\*\*', stripped)
-            owner = owner_match.group(1).strip() if owner_match else 'Oscar'
+            if owner_match:
+                owner = owner_match.group(1).strip()
+            else:
+                assigned_match = re.search(r'—\s*assigned:(.+)$', stripped)
+                owner = assigned_match.group(1).strip() if assigned_match else 'Oscar'
 
-            # Extract org: (OrgName) at end of line
-            org_match = re.search(r'\(([^)]+)\)\s*$', stripped)
+            # Extract org: (OrgName) at end of line, optionally followed by — assigned:...
+            org_match = re.search(r'\(([^)]+)\)\s*(?:—\s*assigned:[^)]*)?$', stripped)
             if not org_match:
                 task_index += 1
                 continue  # Not a CRM task
@@ -1065,6 +1157,7 @@ def load_tasks_by_org() -> dict[str, list[dict]]:
             desc = stripped
             desc = re.sub(r'^- \[ \]\s*\*\*\[\w+\]\*\*\s*', '', desc)  # Remove checkbox + priority
             desc = re.sub(r'\*\*@[^*]+\*\*\s*', '', desc)               # Remove owner tag (supports multi-word names)
+            desc = re.sub(r'\s*—\s*assigned:.*$', '', desc)              # Remove — assigned:Person suffix
             desc = re.sub(r'\s*\([^)]+\)\s*$', '', desc)                # Remove trailing (OrgName)
             desc = desc.strip(' —-')                                     # Clean up leftover separators
 
@@ -1079,6 +1172,131 @@ def load_tasks_by_org() -> dict[str, list[dict]]:
             task_index += 1
 
     return result
+
+
+# ---------------------------------------------------------------------------
+# Prospect Tasks (TASKS.md — [org: OrgName] tag format)
+# ---------------------------------------------------------------------------
+
+def _parse_org_tagged_task(line: str, section: str) -> dict | None:
+    """Parse a TASKS.md line with [org: ...] tag. Returns None if no org tag."""
+    stripped = line.strip()
+    if not (stripped.startswith('- [ ]') or stripped.startswith('- [x]')):
+        return None
+    org_m = re.search(r'\[org:\s*([^\]]+)\]', stripped)
+    if not org_m:
+        return None
+    org_name = org_m.group(1).strip()
+    status = 'done' if stripped.startswith('- [x]') else 'open'
+    pri_m = re.search(r'\*\*\[(\w+)\]\*\*', stripped)
+    priority = pri_m.group(1) if pri_m else 'Med'
+    owner_m = re.search(r'\[owner:\s*([^\]]+)\]', stripped)
+    owner = owner_m.group(1).strip() if owner_m else ''
+    # Build clean text: strip checkbox, priority tag, [org:] and [owner:] tags
+    text = re.sub(r'^- \[.\]\s*', '', stripped)
+    text = re.sub(r'\*\*\[\w+\]\*\*\s*', '', text)
+    text = re.sub(r'\[org:\s*[^\]]+\]', '', text)
+    text = re.sub(r'\[owner:\s*[^\]]+\]', '', text)
+    text = text.strip(' —-').strip()
+    return {
+        'org': org_name,
+        'text': text,
+        'owner': owner,
+        'priority': priority,
+        'status': status,
+        'section': section,
+        'raw_line': stripped,
+    }
+
+
+def get_tasks_for_prospect(org_name: str) -> list[dict]:
+    """Scan TASKS.md for tasks tagged [org: org_name]. Case-insensitive."""
+    if not os.path.exists(TASKS_MD_PATH):
+        return []
+    results = []
+    current_section = None
+    org_lower = org_name.lower()
+    for line in _read_file(TASKS_MD_PATH).splitlines():
+        stripped = line.strip()
+        if stripped.startswith('## '):
+            current_section = stripped[3:].strip()
+            continue
+        if current_section:
+            task = _parse_org_tagged_task(line, current_section)
+            if task and task['org'].lower() == org_lower:
+                results.append({k: v for k, v in task.items() if k != 'org'})
+    return results
+
+
+def get_all_prospect_tasks() -> list[dict]:
+    """Scan TASKS.md for all tasks tagged with any [org: ...] tag."""
+    if not os.path.exists(TASKS_MD_PATH):
+        return []
+    results = []
+    current_section = None
+    for line in _read_file(TASKS_MD_PATH).splitlines():
+        stripped = line.strip()
+        if stripped.startswith('## '):
+            current_section = stripped[3:].strip()
+            continue
+        if current_section:
+            task = _parse_org_tagged_task(line, current_section)
+            if task:
+                results.append(task)
+    return results
+
+
+def add_prospect_task(org_name: str, text: str, owner: str,
+                      priority: str = "Med", section: str = "IR / Fundraising") -> bool:
+    """Append a new prospect task to TASKS.md under the specified section.
+    Format: - [ ] **[{priority}]** {text} — [org: {org_name}] [owner: {owner}]
+    Returns True on success.
+    """
+    if not org_name or not text or not owner:
+        return False
+    if not os.path.exists(TASKS_MD_PATH):
+        return False
+    new_line = f'- [ ] **[{priority}]** {text} — [org: {org_name}] [owner: {owner}]\n'
+    with open(TASKS_MD_PATH, 'r', encoding='utf-8') as f:
+        lines = f.readlines()
+    target = f'## {section}'
+    inserted = False
+    for i, ln in enumerate(lines):
+        if ln.strip() == target:
+            lines.insert(i + 1, new_line)
+            inserted = True
+            break
+    if not inserted:
+        lines.append(f'\n## {section}\n')
+        lines.append(new_line)
+    with open(TASKS_MD_PATH, 'w', encoding='utf-8') as f:
+        f.writelines(lines)
+    return True
+
+
+def complete_prospect_task(org_name: str, task_text: str) -> bool:
+    """Find open task matching org_name + partial text, mark it done.
+    Returns True if found and updated.
+    """
+    if not os.path.exists(TASKS_MD_PATH):
+        return False
+    with open(TASKS_MD_PATH, 'r', encoding='utf-8') as f:
+        lines = f.readlines()
+    org_lower = org_name.lower()
+    text_lower = task_text.lower().strip()
+    for i, line in enumerate(lines):
+        stripped = line.strip()
+        if not stripped.startswith('- [ ]'):
+            continue
+        org_m = re.search(r'\[org:\s*([^\]]+)\]', stripped)
+        if not org_m or org_m.group(1).strip().lower() != org_lower:
+            continue
+        if text_lower in stripped.lower():
+            lines[i] = line.replace('- [ ]', '- [x]', 1)
+            with open(TASKS_MD_PATH, 'w', encoding='utf-8') as f:
+                f.writelines(lines)
+            return True
+    return False
 
 
 # ---------------------------------------------------------------------------
@@ -1173,3 +1391,122 @@ def add_meeting_entry(org: str, date: str, title: str, attendees: str, source: s
         lines.insert(insert_pos, entry_line)
 
     _write_file(MEETING_HISTORY_PATH, '\n'.join(lines) + '\n')
+
+
+# ---------------------------------------------------------------------------
+# Email Log (crm/email_log.json)
+# ---------------------------------------------------------------------------
+
+EMAIL_LOG_PATH = os.path.join(CRM_ROOT, "email_log.json")
+
+# Domains to exclude from matching (internal AREC + generic providers)
+_INTERNAL_DOMAINS = {"avilacapllc.com", "avilacapital.com", "builderadvisorgroup.com"}
+_GENERIC_DOMAINS = {
+    "gmail.com", "yahoo.com", "hotmail.com", "outlook.com", "aol.com",
+    "icloud.com", "me.com", "live.com", "msn.com", "protonmail.com",
+    "mail.com", "zoho.com",
+}
+# Service providers — orgs we work with but are NOT investor prospects.
+# Email scan should only target orgs that have active prospects in the pipeline.
+_SERVICE_PROVIDER_ORGS = {
+    "Clifford Chance",      # external legal counsel
+    "South40 Capital",      # placement agent (UK/Europe)
+    "Greshler Finance",     # placement agent (Israel)
+    "First Forte",          # placement agent (Middle East)
+    "Maples",               # Cayman legal/admin
+}
+
+
+def load_email_log() -> dict:
+    """Load email_log.json. Returns structure with 'emails' list."""
+    if not os.path.exists(EMAIL_LOG_PATH):
+        return {"version": 1, "lastScan": None, "emails": []}
+    with open(EMAIL_LOG_PATH, 'r', encoding='utf-8') as f:
+        return json.load(f)
+
+
+def save_email_log(data: dict) -> None:
+    """Atomically write email_log.json."""
+    with open(EMAIL_LOG_PATH, 'w', encoding='utf-8') as f:
+        json.dump(data, f, indent=2, ensure_ascii=False)
+
+
+def find_email_by_message_id(message_id: str) -> dict | None:
+    """Return email entry from log or None."""
+    log = load_email_log()
+    for email in log.get('emails', []):
+        if email.get('messageId') == message_id:
+            return email
+    return None
+
+
+def get_emails_for_org(org_name: str) -> list[dict]:
+    """Return all emails matching an org, sorted descending by date."""
+    log = load_email_log()
+    org_lower = org_name.lower()
+    matched = [
+        e for e in log.get('emails', [])
+        if e.get('orgMatch', '').lower() == org_lower
+    ]
+    matched.sort(key=lambda e: e.get('timestamp', ''), reverse=True)
+    return matched
+
+
+def add_emails_to_log(emails: list[dict]) -> int:
+    """Append emails to log, deduplicating by messageId. Returns count added."""
+    log = load_email_log()
+    existing_ids = {e.get('messageId') for e in log.get('emails', [])}
+    added = 0
+    for email in emails:
+        mid = email.get('messageId')
+        if mid and mid not in existing_ids:
+            log['emails'].append(email)
+            existing_ids.add(mid)
+            added += 1
+    log['lastScan'] = datetime.now().isoformat() + 'Z'
+    save_email_log(log)
+    return added
+
+
+def get_org_domains(prospect_only: bool = False) -> dict:
+    """Return map of org name -> domain (e.g. 'NEPC' -> 'nepc.com').
+    Extracted from the Domain field in organizations.md.
+    If prospect_only=True, only returns orgs that have active prospects
+    and excludes service providers (law firms, placement agents, etc.)."""
+    # Build the set of org names that have prospects (if filtering)
+    prospect_org_names = set()
+    if prospect_only:
+        for p in load_prospects():
+            prospect_org_names.add(p.get('org', '').strip())
+
+    domains = {}
+    for org in load_organizations():
+        org_name = org['name']
+        # Skip service providers
+        if org_name in _SERVICE_PROVIDER_ORGS:
+            continue
+        # If prospect_only, skip orgs without active prospects
+        if prospect_only and org_name not in prospect_org_names:
+            continue
+        domain = org.get('Domain', '').strip()
+        if domain:
+            # Normalize: remove leading @ if present
+            domain = domain.lstrip('@').lower()
+            if domain and domain not in _GENERIC_DOMAINS:
+                domains[org_name] = domain
+    return domains
+
+
+def get_org_by_domain(domain: str) -> str | None:
+    """Reverse lookup: domain string -> org name, or None.
+    Excludes service providers."""
+    domain = domain.lower().lstrip('@')
+    if domain in _INTERNAL_DOMAINS or domain in _GENERIC_DOMAINS:
+        return None
+    # Use unfiltered domains for matching (so inbound from any known org still resolves)
+    # but skip service providers
+    org_domains = get_org_domains(prospect_only=False)
+    for org_name, org_domain in org_domains.items():
+        if org_domain == domain:
+            return org_name
+    return None

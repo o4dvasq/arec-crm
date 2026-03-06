@@ -269,6 +269,106 @@ def move_message(
         print(f"[ms_graph] move_message failed {resp.status_code}: {resp.text[:200]}")
 
 
+def search_emails_deep(
+    token: str,
+    domain: str,
+    contact_emails: list[str],
+    days_back: int = 90,
+) -> list[dict]:
+    """
+    Deep search for emails related to an org over the past N days.
+
+    Searches:
+    - Archive folder (incoming) — by sender domain
+    - Sent Items (outgoing) — by recipient domain
+    - Archive + Sent by individual contact email addresses (up to 5)
+
+    Returns list of normalized email dicts (not yet log entries — caller adds
+    orgMatch, summary, etc. before writing to email_log.json).
+    """
+    cutoff = datetime.now(timezone.utc) - timedelta(days=days_back)
+    cutoff_iso = cutoff.strftime("%Y-%m-%dT%H:%M:%SZ")
+
+    uid = _user_id()
+    seen_ids: set[str] = set()
+    results: list[dict] = []
+
+    # Normalize domain — strip leading "@" if present
+    domain_clean = domain.lstrip("@")  # e.g. "nepc.com" or "nepc"
+
+    def _search(folder: str, kql: str, is_sent: bool) -> None:
+        """Run a single KQL $search against a mail folder and collect results."""
+        url = f"{GRAPH_BASE}/users/{uid}/mailFolders/{folder}/messages"
+        params = {
+            "$search": f'"{kql}"',
+            "$select": "id,subject,from,toRecipients,receivedDateTime,bodyPreview,internetMessageId",
+            "$top": 100,
+        }
+        try:
+            raw = _get_all_pages(token, url, params=params)
+        except Exception as e:
+            print(f"[ms_graph] deep_search '{kql}' in {folder} failed: {e}")
+            return
+
+        for m in raw:
+            graph_id = m.get("id", "")
+            if not graph_id or graph_id in seen_ids:
+                continue
+
+            received = m.get("receivedDateTime", "")
+            # Filter to within the requested window
+            if received and received < cutoff_iso:
+                continue
+
+            seen_ids.add(graph_id)
+
+            sender = m.get("from", {}).get("emailAddress", {})
+            recipients = [
+                r.get("emailAddress", {}).get("address", "")
+                for r in m.get("toRecipients", [])
+            ]
+
+            # Prefer internetMessageId for stable dedup; fall back to Graph ID
+            stable_id = m.get("internetMessageId") or graph_id
+
+            results.append({
+                "messageId": stable_id,
+                "graphId": graph_id,
+                "date": received[:10] if received else "",
+                "timestamp": received,
+                "subject": m.get("subject", ""),
+                "from": sender.get("address", ""),
+                "fromName": sender.get("name", ""),
+                "to": recipients,
+                "preview": m.get("bodyPreview", "")[:300],
+                "isSent": is_sent,
+            })
+
+    # --- Archive (incoming) by sender domain ---
+    _search("archive", f"from:{domain_clean}", is_sent=False)
+
+    # --- Sent Items (outgoing) by recipient domain ---
+    _search("sentitems", f"to:{domain_clean}", is_sent=True)
+
+    # --- Per-contact searches for contacts whose domain doesn't match (e.g. personal email) ---
+    for email in contact_emails[:5]:
+        if not email or domain_clean.split(".")[0].lower() in email.lower():
+            continue  # Already covered by domain search
+        _search("archive", f"from:{email}", is_sent=False)
+        _search("sentitems", f"to:{email}", is_sent=True)
+
+    # Final dedup pass (different KQL queries can surface the same message)
+    final: list[dict] = []
+    final_ids: set[str] = set()
+    for r in results:
+        key = r.get("messageId") or r.get("graphId")
+        if key and key not in final_ids:
+            final_ids.add(key)
+            final.append(r)
+
+    return final
+
+
 def get_recent_chats(token: str, hours: int = 24) -> list[dict]:
     """
     Return recent Teams chat messages from the last N hours.

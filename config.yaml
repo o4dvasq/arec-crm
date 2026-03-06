@@ -1,0 +1,3 @@
+# CRM Graph Auto-Capture Configuration
+graph:
+  user_email: "oscar@avilacapllc.com"  # Used to exclude self from participant matching

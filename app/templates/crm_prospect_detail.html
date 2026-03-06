@@ -1,0 +1,1017 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ org }} — {{ offering }} | Overwatch</title>
+    <link rel="stylesheet" href="/static/crm.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --bg-primary: #0f172a;
+            --bg-secondary: #1e293b;
+            --bg-tertiary: #172032;
+            --border: #334155;
+            --text: #e2e8f0;
+            --muted: #94a3b8;
+            --accent: #2563eb;
+            --accent-hover: #1d4ed8;
+            --radius: 0.5rem;
+            --transition: all 0.2s ease-in-out;
+        }
+
+        html, body {
+            background: var(--bg-primary);
+            color: var(--text);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        /* LAYOUT */
+        .container { max-width: 900px; margin: 0 auto; padding: 2rem; }
+
+        /* HEADER */
+        .page-header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 2rem;
+            margin-bottom: 1.5rem;
+        }
+.page-title { font-size: 1.75rem; font-weight: 700; margin-bottom: 0.25rem; }
+        .page-subtitle { color: var(--muted); font-size: 0.95rem; }
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            padding: 0.5rem 1rem;
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            font-size: 0.85rem;
+            font-weight: 500;
+            cursor: pointer;
+            text-decoration: none;
+            transition: var(--transition);
+            white-space: nowrap;
+        }
+        .btn-primary { background: var(--accent); color: white; border-color: var(--accent); }
+        .btn-primary:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
+        .btn-secondary { background: var(--bg-secondary); color: var(--text-primary); }
+        .btn-secondary:hover { background: var(--border); }
+
+        /* CARDS */
+        .card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 1.25rem 1.5rem;
+            margin-bottom: 1rem;
+        }
+
+        /* PROSPECT CARD */
+        .prospect-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1.25rem;
+        }
+        .field-label {
+            font-size: 0.75rem;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            font-weight: 500;
+            margin-bottom: 0.3rem;
+        }
+        .field-value { font-size: 0.95rem; font-weight: 600; }
+
+        /* Stage badges */
+        .badge-stage {
+            display: inline-block;
+            padding: 0.2rem 0.6rem;
+            border-radius: 0.25rem;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+        .stage-0 { background: rgba(100,116,139,.15); color: #94a3b8; }
+        .stage-1 { background: rgba(148,163,184,.15); color: #cbd5e1; }
+        .stage-2 { background: rgba(96,165,250,.15); color: #60a5fa; }
+        .stage-3 { background: rgba(129,140,248,.15); color: #818cf8; }
+        .stage-4 { background: rgba(192,132,252,.15); color: #c084fc; }
+        .stage-5 { background: rgba(52,211,153,.15); color: #34d399; }
+        .stage-6 { background: rgba(251,191,36,.15); color: #fbbf24; }
+        .stage-7 { background: rgba(249,115,22,.15); color: #f97316; }
+        .stage-8 { background: rgba(34,197,94,.15); color: #22c55e; }
+        .stage-declined { background: rgba(239,68,68,.15); color: #ef4444; }
+
+        .urgent-badge {
+            display: inline-block;
+            background: #ef4444;
+            color: white;
+            font-size: 11px;
+            font-weight: 600;
+            padding: 2px 8px;
+            border-radius: 4px;
+            text-transform: uppercase;
+        }
+
+        /* Staleness dots */
+        .staleness-dot {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-left: 6px;
+            vertical-align: middle;
+        }
+        .staleness-fresh { background: #22c55e; }
+        .staleness-stale { background: #f59e0b; }
+        .staleness-cold  { background: #ef4444; }
+
+        /* SECTION TITLES */
+        .section-title {
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 0.07em;
+            text-transform: uppercase;
+            color: var(--muted);
+            border-left: 3px solid var(--accent);
+            padding-left: 8px;
+            margin: 0;
+        }
+        .section-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1rem;
+        }
+        .section-count {
+            background: #374151;
+            color: #9ca3af;
+            font-size: 11px;
+            padding: 1px 7px;
+            border-radius: 10px;
+        }
+
+        /* RELATIONSHIP BRIEF */
+        .brief-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1rem;
+        }
+        .brief-narrative {
+            color: var(--text);
+            line-height: 1.7;
+            font-size: 14px;
+            white-space: pre-wrap;
+        }
+        .brief-loading {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: var(--muted);
+            padding: 1.5rem 0;
+            font-size: 13px;
+        }
+        .loading-pulse {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--accent);
+            animation: pulse 1.2s ease-in-out infinite;
+            flex-shrink: 0;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 0.3; }
+            50% { opacity: 1; }
+        }
+        .btn-refresh {
+            background: none;
+            border: 1px solid #475569;
+            color: var(--muted);
+            font-size: 12px;
+            padding: 3px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+        .btn-refresh:hover { border-color: var(--accent); color: var(--accent); }
+
+        /* ACTIVE TASKS */
+        .task-list { list-style: none; }
+        .task-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.5rem;
+            padding: 0.4rem 0;
+            font-size: 13px;
+            color: var(--text);
+            border-bottom: 1px solid #1e293b;
+        }
+        .task-item:last-child { border-bottom: none; }
+        .task-cb { cursor: pointer; margin-top: 2px; flex-shrink: 0; accent-color: var(--accent); }
+        .task-text { flex: 1; }
+
+        /* CONTACTS */
+        .contact-card {
+            padding: 0.6rem 0;
+            border-bottom: 1px solid #1e293b;
+        }
+        .contact-card:last-child { border-bottom: none; }
+        .contact-name { font-weight: 600; color: var(--text); font-size: 13px; }
+        .contact-title { font-size: 12px; color: var(--muted); }
+        .contact-email { font-size: 12px; color: #60a5fa; }
+        .contact-phone { font-size: 12px; color: var(--muted); }
+        .contact-notes { font-size: 12px; color: var(--muted); font-style: italic; margin-top: 1px; }
+
+        /* INTERACTION ROWS */
+        .interaction-row {
+            display: grid;
+            grid-template-columns: 90px 80px 1fr;
+            gap: 8px;
+            padding: 6px 0;
+            border-bottom: 1px solid #1e293b;
+            font-size: 13px;
+            align-items: start;
+        }
+        .interaction-row:last-child { border-bottom: none; }
+        .ix-date { color: var(--muted); font-variant-numeric: tabular-nums; }
+        .ix-summary { color: #cbd5e1; }
+        .ix-type {
+            display: inline-block;
+            font-size: 11px;
+            font-weight: 500;
+            padding: 1px 6px;
+            border-radius: 3px;
+            text-align: center;
+        }
+        .badge-meeting  { background: #1e3a5f; color: #93c5fd; }
+        .badge-email    { background: #374151; color: #d1d5db; }
+        .badge-call     { background: #14532d; color: #86efac; }
+        .badge-note     { background: #3b0764; color: #d8b4fe; }
+        .badge-doc      { background: #422006; color: #fcd34d; }
+        .badge-default  { background: #374151; color: #9ca3af; }
+
+        /* COLLAPSIBLE SECTIONS */
+        .collapsible-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: pointer;
+            padding: 0.75rem 0;
+            user-select: none;
+        }
+        .collapsible-header:hover .section-title { color: #cbd5e1; }
+        .collapsible-toggle {
+            font-size: 11px;
+            color: var(--muted);
+        }
+        .collapsible-body {
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+        }
+        .collapsible-body.collapsed { max-height: 0 !important; }
+
+        /* MEETING SUMMARIES */
+        .meeting-item { padding-bottom: 1rem; margin-bottom: 1rem; border-bottom: 1px solid #1e293b; }
+        .meeting-item:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+        .meeting-date-title { font-weight: 600; font-size: 13px; margin-bottom: 0.5rem; color: var(--text); }
+        .meeting-content-wrap { position: relative; }
+        .meeting-content {
+            color: var(--muted);
+            font-size: 13px;
+            line-height: 1.6;
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+        }
+        .meeting-content.collapsed { max-height: 80px; }
+        .meeting-fade {
+            position: absolute;
+            bottom: 0; left: 0; right: 0;
+            height: 40px;
+            background: linear-gradient(transparent, var(--bg-secondary));
+            pointer-events: none;
+        }
+        .meeting-fade.hidden { display: none; }
+        .show-more-btn {
+            background: none;
+            border: none;
+            color: var(--accent);
+            cursor: pointer;
+            font-size: 12px;
+            padding: 0.25rem 0;
+            display: block;
+            margin-top: 4px;
+        }
+        .show-more-btn:hover { color: var(--accent-hover); }
+
+        /* DEEP SCAN BUTTON + STATUS */
+        .btn-scan {
+            background: none;
+            border: 1px solid #475569;
+            color: var(--muted);
+            font-size: 11px;
+            padding: 3px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: var(--transition);
+            white-space: nowrap;
+        }
+        .btn-scan:hover:not(:disabled) { border-color: #22c55e; color: #22c55e; }
+        .btn-scan:disabled { opacity: 0.5; cursor: default; }
+        .scan-status {
+            font-size: 11px;
+            padding: 3px 8px;
+            border-radius: 4px;
+            margin-left: 6px;
+        }
+        .scan-status.running { color: #60a5fa; }
+        .scan-status.success { color: #22c55e; }
+        .scan-status.error   { color: #ef4444; }
+
+        /* EMAIL HISTORY ROWS (reused from old template) */
+        .email-row {
+            display: grid;
+            grid-template-columns: 90px 1fr 150px;
+            gap: 8px;
+            padding: 7px 0;
+            border-bottom: 1px solid #1e293b;
+            font-size: 13px;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+        .email-row:last-child { border-bottom: none; }
+        .email-row:hover { background: rgba(37,99,235,.05); }
+        .email-date-col { color: var(--muted); font-variant-numeric: tabular-nums; }
+        .email-subject-col { color: #60a5fa; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .email-from-col { color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .email-detail-row { display: none; padding: 0.75rem 0; border-bottom: 1px solid #1e293b; }
+        .email-detail-row.open { display: block; }
+        .email-detail-row .detail-summary { color: var(--text); font-size: 13px; line-height: 1.6; margin-bottom: 0.5rem; }
+        .email-view-link { color: var(--accent); font-size: 12px; text-decoration: none; }
+        .email-view-link:hover { color: var(--accent-hover); }
+
+        /* UTILITY */
+        .hidden { display: none !important; }
+        @media (max-width: 640px) {
+            .prospect-grid { grid-template-columns: 1fr 1fr; }
+            .interaction-row { grid-template-columns: 75px 1fr; }
+            .ix-type { display: none; }
+        }
+    </style>
+</head>
+<body>
+{% set active_tab = 'pipeline' %}
+{% include '_nav.html' %}
+
+    <div class="container">
+        <!-- Header -->
+        <div class="page-header">
+            <div>
+                <a href="/crm" class="breadcrumb-back">← Pipeline</a>
+                <div class="page-title">{{ org }}</div>
+                <div class="page-subtitle">{{ offering }}</div>
+            </div>
+            <div style="display:flex;gap:8px">
+                <a href="/crm/org/{{ org }}/edit" class="btn btn-secondary">Edit Org</a>
+                <a href="/crm/prospect/{{ offering }}/{{ org }}" class="btn btn-primary">Edit Prospect</a>
+            </div>
+        </div>
+
+        <!-- Prospect Card (server-rendered, no empty fields) -->
+        <div class="card">
+            <div class="prospect-grid">
+                <!-- Stage — always present -->
+                <div>
+                    <div class="field-label">Stage</div>
+                    <div class="field-value">
+                        {% set sn = prospect['Stage'].split('.')[0] | int(0) %}
+                        {% set sc = 'stage-' + sn|string if sn < 9 else 'stage-declined' %}
+                        <span class="badge-stage {{ sc }}">{{ prospect['Stage'] }}</span>
+                    </div>
+                </div>
+
+                <!-- Primary Contact — hide if empty -->
+                {% if prospect.get('Primary Contact') %}
+                <div>
+                    <div class="field-label">Primary Contact</div>
+                    <div class="field-value">{{ prospect['Primary Contact'].split(';')[0].strip() }}</div>
+                </div>
+                {% endif %}
+
+                <!-- Assigned To — hide if empty -->
+                {% if prospect.get('Assigned To') %}
+                <div>
+                    <div class="field-label">Assigned To</div>
+                    <div class="field-value">{{ prospect['Assigned To'] }}</div>
+                </div>
+                {% endif %}
+
+                <!-- Target — hide if $0 or empty -->
+                {% if prospect.get('Target') and prospect['Target'] != '$0' %}
+                <div>
+                    <div class="field-label">Target</div>
+                    <div class="field-value">{{ prospect['Target'] }}</div>
+                </div>
+                {% endif %}
+
+                <!-- Last Touch — hide if empty -->
+                {% if prospect.get('Last Touch') %}
+                <div>
+                    <div class="field-label">Last Touch</div>
+                    <div class="field-value">
+                        <span data-relative-date="{{ prospect['Last Touch'] }}">{{ prospect['Last Touch'] }}</span>
+                        {% set lt = prospect['Last Touch'] %}
+                        <!-- staleness dot injected by JS -->
+                        <span class="staleness-dot" data-stale-date="{{ lt }}"></span>
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Closing — hide if empty -->
+                {% if prospect.get('Closing') %}
+                <div>
+                    <div class="field-label">Closing</div>
+                    <div class="field-value">{{ prospect['Closing'] }}</div>
+                </div>
+                {% endif %}
+
+                <!-- Urgent — only show if truly urgent, as CSS badge only -->
+                {% if prospect.urgent_bool %}
+                <div>
+                    <div class="field-label">&nbsp;</div>
+                    <div class="field-value"><span class="urgent-badge">Urgent</span></div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Relationship Brief (AI-synthesized, with caching) -->
+        <div class="card" id="brief-card">
+            <div id="relationship-brief">
+                <div class="brief-header">
+                    <div class="section-title">Relationship Brief</div>
+                </div>
+                <div class="brief-loading">
+                    <div class="loading-pulse"></div>
+                    <span>Synthesizing intelligence...</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Active Tasks (rendered by JS, hidden if empty) -->
+        <div class="card hidden" id="tasks-card">
+            <div class="section-header">
+                <div class="section-title">Active Tasks</div>
+            </div>
+            <ul class="task-list" id="tasks-list"></ul>
+        </div>
+
+        <!-- Contacts (rendered by JS, hidden if empty) -->
+        <div class="card hidden" id="contacts-card">
+            <div class="section-header">
+                <div class="section-title">Contacts</div>
+                <span class="section-count" id="contacts-count"></span>
+            </div>
+            <div id="contacts-body"></div>
+        </div>
+
+        <!-- Interaction History (collapsible, starts expanded) -->
+        <div class="card hidden" id="interactions-card">
+            <div class="collapsible-header" onclick="toggleSection('interactions')">
+                <div style="display:flex;align-items:center;gap:8px;">
+                    <div class="section-title">Interaction History</div>
+                    <span class="section-count" id="interactions-count"></span>
+                </div>
+                <span class="collapsible-toggle" id="interactions-toggle">▲</span>
+            </div>
+            <div class="collapsible-body" id="interactions-body"></div>
+        </div>
+
+        <!-- Meeting Summaries (collapsible, starts expanded) -->
+        <div class="card hidden" id="meetings-card">
+            <div class="collapsible-header" onclick="toggleSection('meetings')">
+                <div style="display:flex;align-items:center;gap:8px;">
+                    <div class="section-title">Meeting Summaries</div>
+                    <span class="section-count" id="meetings-count"></span>
+                </div>
+                <span class="collapsible-toggle" id="meetings-toggle">▲</span>
+            </div>
+            <div class="collapsible-body" id="meetings-body"></div>
+        </div>
+
+        <!-- Email History (collapsible, starts collapsed) -->
+        <div class="card hidden" id="emails-card">
+            <div class="collapsible-header" onclick="toggleSection('emails')">
+                <div style="display:flex;align-items:center;gap:8px;">
+                    <div class="section-title">Email History</div>
+                    <span class="section-count" id="emails-count"></span>
+                </div>
+                <div style="display:flex;align-items:center;gap:6px;" onclick="event.stopPropagation()">
+                    <button class="btn-scan" id="deep-scan-btn" onclick="runDeepEmailScan()">
+                        ⟳ Deep Scan (90d)
+                    </button>
+                    <span class="scan-status hidden" id="scan-status"></span>
+                    <span class="collapsible-toggle" id="emails-toggle" onclick="toggleSection('emails')" style="cursor:pointer">▼</span>
+                </div>
+            </div>
+            <div class="collapsible-body collapsed" id="emails-body"></div>
+        </div>
+    </div>
+
+    <script>
+    // ============================================
+    // CONSTANTS
+    // ============================================
+    const ORG = {{ org | tojson }};
+    const OFFERING = {{ offering | tojson }};
+    const BRIEF_CACHE_PREFIX = 'arec_brief_v1_';
+    const enc = encodeURIComponent;
+
+    const TYPE_BADGE = {
+        'Meeting':           'badge-meeting',
+        'Email':             'badge-email',
+        'Call':              'badge-call',
+        'Note':              'badge-note',
+        'Document Sent':     'badge-doc',
+        'Document Received': 'badge-doc',
+    };
+
+    // ============================================
+    // INIT
+    // ============================================
+    document.addEventListener('DOMContentLoaded', () => {
+        applyRelativeDates();
+        applyStalenessDots();
+        loadPageData();
+    });
+
+    // ============================================
+    // PAGE DATA LOAD
+    // ============================================
+    async function loadPageData() {
+        try {
+            const resp = await fetch(
+                `/crm/api/prospect/${enc(OFFERING)}/${enc(ORG)}/brief`
+            );
+            if (!resp.ok) throw new Error('Brief API failed');
+            const data = await resp.json();
+
+            // Render all reference sections immediately
+            renderTasks(data.active_tasks);
+            renderContacts(data.merged_contacts);
+            renderInteractions(data.interactions);
+            renderMeetings(data.meeting_summaries);
+            renderEmails(data.email_history);
+
+            // Load / synthesize the AI brief
+            await loadBrief(data);
+
+        } catch (err) {
+            console.error('Page data load failed:', err);
+            showBriefError();
+        }
+    }
+
+    // ============================================
+    // BRIEF: LOAD WITH CACHE
+    // ============================================
+    async function loadBrief(rawData) {
+        const contentHash = rawData.content_hash;
+        const cacheKey = `${BRIEF_CACHE_PREFIX}${ORG}_${OFFERING}`;
+
+        // Check cache
+        try {
+            const cached = localStorage.getItem(cacheKey);
+            if (cached) {
+                const parsed = JSON.parse(cached);
+                if (parsed.content_hash === contentHash) {
+                    renderNarrative(parsed.narrative);
+                    return;
+                }
+            }
+        } catch (_) { /* ignore localStorage errors */ }
+
+        // Cache miss — call synthesis endpoint
+        showBriefLoading();
+        try {
+            const resp = await fetch('/crm/api/synthesize-brief', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ org: ORG, offering: OFFERING }),
+            });
+            if (!resp.ok) throw new Error('Synthesis failed');
+            const synth = await resp.json();
+
+            try {
+                localStorage.setItem(cacheKey, JSON.stringify({
+                    narrative: synth.narrative,
+                    content_hash: synth.content_hash,
+                    generated_at: new Date().toISOString(),
+                }));
+            } catch (_) { /* ignore storage quota errors */ }
+
+            renderNarrative(synth.narrative);
+        } catch (err) {
+            console.error('Synthesis error:', err);
+            showBriefError();
+        }
+    }
+
+    async function refreshBrief() {
+        const cacheKey = `${BRIEF_CACHE_PREFIX}${ORG}_${OFFERING}`;
+        try { localStorage.removeItem(cacheKey); } catch (_) {}
+        showBriefLoading();
+
+        try {
+            const resp = await fetch('/crm/api/synthesize-brief', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ org: ORG, offering: OFFERING }),
+            });
+            if (!resp.ok) throw new Error('Synthesis failed');
+            const synth = await resp.json();
+
+            try {
+                localStorage.setItem(cacheKey, JSON.stringify({
+                    narrative: synth.narrative,
+                    content_hash: synth.content_hash,
+                    generated_at: new Date().toISOString(),
+                }));
+            } catch (_) {}
+
+            renderNarrative(synth.narrative);
+        } catch (err) {
+            showBriefError();
+        }
+    }
+
+    function renderNarrative(narrative) {
+        document.getElementById('relationship-brief').innerHTML = `
+            <div class="brief-header">
+                <div class="section-title">Relationship Brief</div>
+                <button class="btn-refresh" onclick="refreshBrief()">Refresh</button>
+            </div>
+            <div class="brief-narrative">${esc(narrative)}</div>
+        `;
+    }
+
+    function showBriefLoading() {
+        document.getElementById('relationship-brief').innerHTML = `
+            <div class="brief-header">
+                <div class="section-title">Relationship Brief</div>
+            </div>
+            <div class="brief-loading">
+                <div class="loading-pulse"></div>
+                <span>Synthesizing intelligence...</span>
+            </div>
+        `;
+    }
+
+    function showBriefError() {
+        document.getElementById('relationship-brief').innerHTML = `
+            <div class="brief-header">
+                <div class="section-title">Relationship Brief</div>
+                <button class="btn-refresh" onclick="refreshBrief()">Retry</button>
+            </div>
+            <div style="color:var(--muted);font-size:13px;padding:1rem 0;">
+                Brief generation unavailable. See reference sections below for full context.
+            </div>
+        `;
+    }
+
+    // ============================================
+    // ACTIVE TASKS
+    // ============================================
+    function renderTasks(tasks) {
+        if (!tasks || tasks.length === 0) return;
+        const list = document.getElementById('tasks-list');
+        list.innerHTML = tasks.map(raw => {
+            // Strip markdown formatting for display
+            const display = raw
+                .replace(/^- \[ \] /, '')
+                .replace(/\*\*\[[^\]]*\]\*\*\s*/, '')
+                .replace(/\*\*@[^*]+\*\*\s*/, '')
+                .replace(/\s*\([^)]+\)\s*$/, '')
+                .trim();
+            // Full raw text (after '- [ ] ') for completion API
+            const rawText = raw.replace(/^- \[ \] /, '');
+            return `<li class="task-item">
+                <input type="checkbox" class="task-cb"
+                    onchange="completeTask(this, ${JSON.stringify(rawText)})">
+                <span class="task-text">${esc(display)}</span>
+            </li>`;
+        }).join('');
+        document.getElementById('tasks-card').classList.remove('hidden');
+    }
+
+    async function completeTask(checkbox, rawText) {
+        checkbox.disabled = true;
+        try {
+            const resp = await fetch('/api/task/complete', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ text: rawText }),
+            });
+            if (resp.ok) {
+                const li = checkbox.closest('.task-item');
+                li.style.opacity = '0.4';
+                li.style.textDecoration = 'line-through';
+            } else {
+                checkbox.checked = false;
+                checkbox.disabled = false;
+            }
+        } catch (_) {
+            checkbox.checked = false;
+            checkbox.disabled = false;
+        }
+    }
+
+    // ============================================
+    // CONTACTS
+    // ============================================
+    function renderContacts(merged) {
+        if (!merged || merged.length === 0) return;
+        const body = document.getElementById('contacts-body');
+        body.innerHTML = merged.map(c => {
+            let html = `<div class="contact-card">`;
+            const nameHtml = c.slug
+                ? `<a href="/crm/people/${encodeURIComponent(c.slug)}" class="contact-name-link">${esc(c.name)}</a>`
+                : esc(c.name);
+            html += `<div class="contact-name">${nameHtml}</div>`;
+            const titleParts = [c.title, c.role].filter(Boolean);
+            if (titleParts.length) html += `<div class="contact-title">${esc(titleParts.join(' · '))}</div>`;
+            if (c.email) html += `<div class="contact-email">${esc(c.email)}</div>`;
+            if (c.phone) html += `<div class="contact-phone">${esc(c.phone)}</div>`;
+            if (c.notes) html += `<div class="contact-notes">${esc(c.notes)}</div>`;
+            html += `</div>`;
+            return html;
+        }).join('');
+        document.getElementById('contacts-count').textContent = merged.length;
+        document.getElementById('contacts-card').classList.remove('hidden');
+    }
+
+    // ============================================
+    // INTERACTION HISTORY
+    // ============================================
+    function renderInteractions(interactions) {
+        if (!interactions || interactions.length === 0) return;
+        const body = document.getElementById('interactions-body');
+        body.innerHTML = interactions.map(ix => {
+            const badgeCls = TYPE_BADGE[ix.type] || 'badge-default';
+            const summary = ix.summary || ix.subject || '';
+            return `<div class="interaction-row">
+                <span class="ix-date">${esc(ix.date || '')}</span>
+                <span class="ix-type ${badgeCls}">${esc(ix.type || '')}</span>
+                <span class="ix-summary">${esc(summary)}</span>
+            </div>`;
+        }).join('');
+        document.getElementById('interactions-count').textContent = interactions.length;
+        document.getElementById('interactions-card').classList.remove('hidden');
+        // Set body max-height for transition
+        body.style.maxHeight = body.scrollHeight + 'px';
+    }
+
+    // ============================================
+    // MEETING SUMMARIES
+    // ============================================
+    function renderMeetings(summaries) {
+        if (!summaries || summaries.length === 0) return;
+        const body = document.getElementById('meetings-body');
+        body.innerHTML = summaries.map((ms, i) => {
+            const title = parseFilenameToTitle(ms.filename);
+            const contentHtml = renderMarkdown(ms.content);
+            const id = `meeting-${i}`;
+            return `<div class="meeting-item">
+                <div class="meeting-date-title">${esc(title)}</div>
+                <div class="meeting-content-wrap" id="wrap-${id}">
+                    <div class="meeting-content collapsed" id="${id}">${contentHtml}</div>
+                    <div class="meeting-fade" id="fade-${id}"></div>
+                </div>
+                <button class="show-more-btn" id="btn-${id}" onclick="toggleMeeting('${id}')">Show more</button>
+            </div>`;
+        }).join('');
+        document.getElementById('meetings-count').textContent = summaries.length;
+        document.getElementById('meetings-card').classList.remove('hidden');
+        body.style.maxHeight = body.scrollHeight + 'px';
+
+        // Hide "show more" for short content
+        summaries.forEach((_, i) => {
+            const id = `meeting-${i}`;
+            const el = document.getElementById(id);
+            if (el && el.scrollHeight <= 85) {
+                document.getElementById(`fade-${id}`).classList.add('hidden');
+                document.getElementById(`btn-${id}`).style.display = 'none';
+            }
+        });
+    }
+
+    function toggleMeeting(id) {
+        const el = document.getElementById(id);
+        const fade = document.getElementById(`fade-${id}`);
+        const btn = document.getElementById(`btn-${id}`);
+        const expanded = !el.classList.contains('collapsed');
+        el.classList.toggle('collapsed', expanded);
+        el.style.maxHeight = expanded ? '' : el.scrollHeight + 'px';
+        if (fade) fade.classList.toggle('hidden', !expanded);
+        btn.textContent = expanded ? 'Show more' : 'Show less';
+        // Re-measure parent
+        const body = document.getElementById('meetings-body');
+        if (body) body.style.maxHeight = body.scrollHeight + 'px';
+    }
+
+    function parseFilenameToTitle(filename) {
+        if (!filename) return '';
+        const base = filename.replace(/\.md$/, '');
+        const m = base.match(/^(\d{4})-(\d{2})-(\d{2})-(.+)$/);
+        if (!m) return base;
+        const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+        const d = parseInt(m[3], 10);
+        const mo = months[parseInt(m[2], 10) - 1];
+        const yr = m[1];
+        const titleSlug = m[4].replace(/-/g, ' / ').replace(/\b\w/g, c => c.toUpperCase());
+        return `${mo} ${d}, ${yr} — ${titleSlug}`;
+    }
+
+    // ============================================
+    // EMAIL HISTORY
+    // ============================================
+    function renderEmails(emails) {
+        if (!emails || emails.length === 0) {
+            document.getElementById('emails-count').textContent = '0';
+            document.getElementById('emails-card').classList.remove('hidden');
+            return;
+        }
+        const body = document.getElementById('emails-body');
+        body.innerHTML = emails.map((e, i) => {
+            const detailId = `email-detail-${i}`;
+            return `<div class="email-row" onclick="toggleEmailDetail('${detailId}')">
+                <span class="email-date-col">${esc(e.date || '')}</span>
+                <span class="email-subject-col">${esc(e.subject || '')}</span>
+                <span class="email-from-col">${esc(e.fromName || e.from || '')}</span>
+            </div>
+            <div class="email-detail-row" id="${detailId}">
+                <div class="detail-summary">${esc(e.summary || '')}</div>
+                ${e.outlookUrl ? `<a href="${esc(e.outlookUrl)}" target="_blank" rel="noopener" class="email-view-link">View in Outlook →</a>` : ''}
+            </div>`;
+        }).join('');
+        document.getElementById('emails-count').textContent = emails.length;
+        document.getElementById('emails-card').classList.remove('hidden');
+        // starts collapsed — don't set maxHeight
+    }
+
+    function toggleEmailDetail(id) {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.classList.toggle('open');
+        // Re-measure parent
+        const body = document.getElementById('emails-body');
+        if (!body.classList.contains('collapsed') && body.style.maxHeight) {
+            body.style.maxHeight = body.scrollHeight + 'px';
+        }
+    }
+
+    // ============================================
+    // COLLAPSIBLE SECTIONS
+    // ============================================
+    function toggleSection(name) {
+        const body = document.getElementById(`${name}-body`);
+        const toggle = document.getElementById(`${name}-toggle`);
+        const collapsed = body.classList.contains('collapsed');
+
+        if (collapsed) {
+            body.classList.remove('collapsed');
+            body.style.maxHeight = body.scrollHeight + 'px';
+            toggle.textContent = '▲';
+        } else {
+            body.style.maxHeight = body.scrollHeight + 'px';
+            // Force reflow then collapse
+            requestAnimationFrame(() => {
+                body.style.maxHeight = body.scrollHeight + 'px';
+                requestAnimationFrame(() => {
+                    body.classList.add('collapsed');
+                    toggle.textContent = '▼';
+                });
+            });
+        }
+    }
+
+    // ============================================
+    // RELATIVE DATES + STALENESS
+    // ============================================
+    function applyRelativeDates() {
+        document.querySelectorAll('[data-relative-date]').forEach(el => {
+            const ds = el.getAttribute('data-relative-date');
+            if (ds) el.textContent = formatRelDate(ds);
+        });
+    }
+
+    function applyStalenessDots() {
+        document.querySelectorAll('.staleness-dot[data-stale-date]').forEach(el => {
+            const ds = el.getAttribute('data-stale-date');
+            if (!ds) { el.style.display = 'none'; return; }
+            const days = daysDiff(ds);
+            if (days < 0) { el.style.display = 'none'; return; }
+            if (days <= 7) el.classList.add('staleness-fresh');
+            else if (days <= 14) el.classList.add('staleness-stale');
+            else el.classList.add('staleness-cold');
+        });
+    }
+
+    function daysDiff(dateStr) {
+        const d = new Date(dateStr + 'T00:00:00');
+        const now = new Date();
+        now.setHours(0, 0, 0, 0);
+        return Math.floor((now - d) / 86400000);
+    }
+
+    function formatRelDate(dateStr) {
+        const days = daysDiff(dateStr);
+        if (days === 0) return 'Today';
+        if (days === 1) return 'Yesterday';
+        const d = new Date(dateStr + 'T00:00:00');
+        if (days < 7) return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    }
+
+    // ============================================
+    // SIMPLE MARKDOWN → HTML
+    // ============================================
+    function renderMarkdown(text) {
+        if (!text) return '';
+        const lines = text.split('\n');
+        let html = '', inList = false;
+        for (const raw of lines) {
+            const line = raw.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+            if (/^### /.test(raw))     { if (inList){html+='</ul>';inList=false;} html+=`<strong>${line.replace(/^### /,'')}</strong><br>`; }
+            else if (/^## /.test(raw)) { if (inList){html+='</ul>';inList=false;} html+=`<strong>${line.replace(/^## /,'')}</strong><br>`; }
+            else if (/^# /.test(raw))  { if (inList){html+='</ul>';inList=false;} html+=`<strong>${line.replace(/^# /,'')}</strong><br>`; }
+            else if (/^- /.test(raw))  { if (!inList){html+='<ul>';inList=true;} html+=`<li>${applyInline(line.replace(/^- /,''))}</li>`; }
+            else if (/^---+$/.test(raw.trim())) { if (inList){html+='</ul>';inList=false;} html+='<hr style="border-color:#334155;margin:0.5rem 0">'; }
+            else if (raw.trim() === '') { if (inList){html+='</ul>';inList=false;} }
+            else                       { if (inList){html+='</ul>';inList=false;} html+=`<p style="margin-bottom:0.35rem;color:#94a3b8">${applyInline(line)}</p>`; }
+        }
+        if (inList) html += '</ul>';
+        return html;
+    }
+
+    function applyInline(t) {
+        return t
+            .replace(/\*\*([^*\n]+)\*\*/g, '<strong>$1</strong>')
+            .replace(/\*([^*\n]+)\*/g, '<em>$1</em>');
+    }
+
+    // ============================================
+    // DEEP EMAIL SCAN
+    // ============================================
+    async function runDeepEmailScan() {
+        const btn = document.getElementById('deep-scan-btn');
+        const status = document.getElementById('scan-status');
+
+        btn.disabled = true;
+        status.className = 'scan-status running';
+        status.textContent = 'Scanning…';
+        status.classList.remove('hidden');
+
+        try {
+            const resp = await fetch(
+                `/crm/api/prospect/${enc(OFFERING)}/${enc(ORG)}/email-scan`,
+                { method: 'POST' }
+            );
+            const data = await resp.json();
+            if (!resp.ok) throw new Error(data.error || 'Scan failed');
+
+            status.className = 'scan-status success';
+            status.textContent = data.message || `+${data.added} emails found`;
+
+            // Refresh email list if new emails were found
+            if (data.added > 0) {
+                const briefResp = await fetch(
+                    `/crm/api/prospect/${enc(OFFERING)}/${enc(ORG)}/brief`
+                );
+                if (briefResp.ok) {
+                    const briefData = await briefResp.json();
+                    renderEmails(briefData.email_history);
+                }
+            }
+        } catch (err) {
+            status.className = 'scan-status error';
+            status.textContent = err.message || 'Scan failed';
+        } finally {
+            btn.disabled = false;
+        }
+    }
+
+    // ============================================
+    // ESCAPE HTML
+    // ============================================
+    function esc(t) {
+        if (t == null) return '';
+        const map = {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'};
+        return String(t).replace(/[&<>"']/g, c => map[c]);
+    }
+    </script>
+</body>
+</html>

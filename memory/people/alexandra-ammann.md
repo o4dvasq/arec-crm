@@ -1,18 +1,17 @@
 # Alexandra Ammann
 
-**Title:** Senior Portfolio Manager
-**Company:** Diamond Capital Management (Switzerland) Ltd.
-**Phone:** +41 22 731 7530
+**Organization:** Diamond Capital (Jaglom family office, est. 1972 Geneva)
+**Role:** Senior Portfolio Manager & Board Member
 **Email:** alexandra@diamondcapital.ch
-**Location:** Rue Guillaume-Tell 10, P.O. Box 1909, CH-1211 Geneva 1, Switzerland
-
-## AREC Prospect
-- **Fund:** AREC Debt Fund II
-- **Status:** Interested
-- **Type:** HNWI/FO
-- **Size:** $2M
-- **Assigned to:** Max Angeloni
+**Phone:** +41 22 731 7530
+**Type:** Family Office
+**Fund II Status:** Prospect ($5M target)
+**Stage:** 5
+**Assignee:** Max Angeloni
+**Met:** Geneva, Mar 4 2026
 
 ## Notes
-- Met in Geneva on March 4, 2026
-- Diamond Capital Management — Geneva-based asset management firm
+- Diamond Capital Management — Geneva-based family office established 1972
+- Senior Portfolio Manager & Board Member
+- Fund II prospect with $5M target
+- Tony has meeting scheduled with Diamond Capital US head in NYC on Mar 13

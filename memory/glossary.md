@@ -52,20 +52,21 @@
 | Brim | John Brimberry | CLO (Chief Lending Officer) at AREC — "Brim" is nickname |
 | Lewis | (last name TBD) | Northern Trust — portfolio manager, ex-BlackRock 15 yrs |
 | Hayden | Hayden Watson | Founder, Hayden Homes — largest private builder in Pacific NW, LPAC member |
-| Mike R | Mike Righetti | GC (General Counsel) at AREC — mike@avilacapllc.com |
-| Patrick | Patrick Fichtner | AREC partner/colleague |
-| Zach | Zachary Reisner | AREC team — zachary.reisner@avilacapllc.com |
-| Truman | Truman Flynn | AREC team, IR/fundraising — truman@avilacapllc.com |
-| Sahil | Sahil Jehti | AREC team, Performance & Portfolio Monitoring — sahil@avilacapllc.com |
-| Kevin V | Kevin Van Gorder | AREC internal, Cayman feeder — kevin@avilacapllc.com |
+| Mike R | Mike Righetti | GC (General Counsel) / Deals & Acquisitions Lead at AREC — mike@avilacapllc.com |
+| Patrick | Patrick Fichtner | Senior Originator / Capital Markets Lead at AREC — patrick@avilacapllc.com; also patrick.fichtner@encorefunds.com; 703-402-1164 |
+| Zach | Zachary Reisner | IR / Capital Markets Lead at AREC — zachary.reisner@avilacapllc.com |
+| Truman | Truman Flynn | VP, Investor Relations at AREC — truman@avilacapllc.com |
+| Sahil | Sahil Jethi | Sr. Manager, Portfolio Management at AREC — sahil@avilacapllc.com (corrected from "Jehti") |
+| Kevin V | Kevin Van Gorder | CCO (Chief Compliance Officer) at AREC — kevin@avilacapllc.com; Irvine office; 949.519.6176 |
 | Jane | Jane Lumley | Head of HR at AREC — jane@avilacapllc.com |
 | Alex B | Alexandra Baldwin | AREC team, marketing/brand |
 | Jake | Jake Weintraub | AREC team — jake@avilacapllc.com |
-| Nate | Nate Cichon | AREC team — nate@avilacapllc.com |
+| Nate | Nate Cichon | Director, Homebuilder Finance at AREC — nate@avilacapllc.com; 773.368.3644 (m) / 415.561.0600 (o) |
+| Glen | Glen Martin | MD, Asset Management at AREC — glen@avilacapllc.com; 925-382-2408 |
 | Robert J | Robert Johnson Jr. | New AREC advisor — Off-Grid Capital Advisors — robert@off-gridcapital.com |
 | Adrian | Adrian Vasquez | Lead data architect at AREC; Oscar's son |
 | Anthony | Anthony Albuquerque | AREC fundraising team |
-| Paige | (last name TBD) | Chief of Staff at AREC; supports IR |
+| Paige | Paige Kinsey | Chief of Staff at AREC; supports IR / AGM logistics |
 | James Del G | James Del Gaudio | Potential investor at PSERS; role TBD |
 | Issa | Vasquez | Oscar's daughter |
 | Joaquin | Vasquez | Oscar's son |
@@ -97,7 +98,7 @@
 | Brian Lichter | Brian Lichter | Davis Polk — outside counsel for RXR on JV term sheet |
 | Kyle Cyr | Kyle Cyr | JNJ (Johnson & Johnson?) — LP prospect; follow-up email in inbox 2/26 |
 | Agnes | Agnes (last name TBD) | New potential investor — met during Europe trip Mar 2-4, 2026; Tony to follow up |
-| Glenn | Glenn (last name TBD) | AREC team — operations/construction oversight; leads deal assessment discussions |
+| Glen | Glen Martin | MD, Asset Management at AREC — glen@avilacapllc.com; 925-382-2408 (consolidated from prior "Glenn" entry) |
 | Eitan | Eitan (last name TBD) | Greshler Finance — Israel-based placement agent; sent proposed terms 3/4/26 |
 | Brian Gogan | Brian Gogan | Chief Investment Officer, Barron Collier Companies — 50% owner of Chris Brown Homes; 65K+ acres in FL |
 | Katie King | Katie King | CFO, Chris Brown Homes |
@@ -113,6 +114,10 @@
 | Kevin Godin | Kevin Godin | Texas PSF — Kevin.Godin@texaspsf.org; intro call 3/5/26 |
 | Reid Spears | Reid Spears | Texas PSF — reid.spears@texaspsf.org; intro call 3/5/26 |
 | Fred Balda | Fred Balda | Hillwood — President; UTIMCO reference call confirmed 10:30 CT |
+| Felicia Siegel | Felicia Siegel | Clifford Chance — outside counsel on RXR term sheet (with Jeanne Roig-Irwin) |
+| David Hardy | David Hardy | AREC team — leading Future Fund (March 17) content/presentation |
+| Sho Homma | Sho Homma | Open House Group (Japan) — LP prospect contact; legal counsel review in progress; Truman managing |
+| Susannah Friar | Susannah Friar | Merseyside Pension Fund — LP contact; on Encore Fund III investor response thread |
 
 ## Project Codenames / Internal References
 | Name | Description |
@@ -131,7 +136,11 @@
 | Chris Brown Homes | Borrower prospect — Fort Myers FL, #94 nationally, 500+ homes/yr; $30M line at prime+0.75%; Barron Collier owns 50%; Nate underwriting (3/3/26) |
 | Stonehill Capital | Mountain House co-invest prospect; April Chang + Michael Stern are contacts; call 3/4/26 |
 | Watson Development Ltd | Developer/deal counterparty — referenced in deal context; details TBD |
-| AREC AGM | Annual General Meeting for Fund II — April 14, 2026, Austin TX, Fairmont hotel |
+| AREC AGM | Annual General Meeting for Fund II — April 13–14, 2026, Austin TX, Fairmont hotel; 14 RSVPs as of 3/5 |
+| Rurka Homes | Borrower — deal CLOSED (Mar 2026); Nate Cichon originated |
+| PRESPRO Homes | Borrower prospect — Nate Cichon sent vetting memo; John Brimberry escalated to team for discussion |
+| Christopher Alan Homes (CAH) | Borrower prospect — Nate's vetting memo; Glen approved, Patrick approved pending pro forma IRR (expects 20%+ gross); pre-LOI stage |
+| Ren DAF | Distribution agreement — Truman, Patrick, and AWLegal (outside counsel) on thread |
 
 ## Investor Universe — Fund II
 | Name | Type | Status | Notes |
@@ -158,7 +167,8 @@
 | Adinger LLC | LP | Prospect | New contact added 2/27; Adele is contact; details TBD |
 | SMBC | LP | Prospect | Sumitomo Mitsui Banking Corporation — Japanese bank; active diligence prospect for Fund II; background in asset-based RE lending (less familiar with corporate credit underwriting); Oscar fact-checked AI-drafted DD responses for them 2/24/26 |
 | ERS Texas | LP | Prospect | Employees Retirement System of Texas — LP prospect; Simon Mok is contact; met at PREA; Oscar to reconnect at PREA Nashville |
-| Open House Group | LP/Partner | Prospect | Onboarding call scheduled 2/27; nature of relationship (LP, partner, or vendor) TBD |
+| Met Life | LP | Hot Prospect | Patrick and Zach own relationship; "coming in" per Tony (Mar 2026); interested in "dipping their toe" at smaller initial size; high priority for Fund II close |
+| Open House Group | LP/Partner | Prospect | Sho Homma is contact; legal counsel review expected this week, commitment next week (as of 3/5/26); Truman managing follow-up |
 | TwinFocus | LP | Prospect | Family office / wealth management firm — LP prospect for Fund II |
 | Flatrock Wealth | LP | Prospect | Wealth management / family office — LP prospect for Fund II |
 | NEPC | Consultant | Prospect | Investment consultant / gatekeeper firm — LP prospect channel for Fund II |

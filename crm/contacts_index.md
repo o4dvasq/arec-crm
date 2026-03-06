@@ -10,6 +10,16 @@
 - Meritz: haijoung-kim, jinho-conor-lee
 - Merseyside Pension Fund: susannah-friar, dragos-serbanica, zyan-nuafal, saneeza-asrar
 - StepStone: tom-hester, aayaan-mehta
-- Steyn Group: matt-sopp
+- BC Partners: sam-hillier
+- Future Fund: julia-mcardle
+- Manning Family SFO: christopher-henry
+- Merseyside Pension Fund: susannah-friar, dragos-serbanica, zyan-nuafal, saneeza-asrar
+- Steyn Group: matthew-sopp
 - Stonehill Capital: michael-stern
 - Sumitomo Mitsui Banking Corporation (SMBC): masayuki-fujishiro, hiroki-hirayama
+- Texas Permanent School Fund: viktor-makaroff, reid-spears, kevin-godin, nick-tramontana
+- UTIMCO - Hedge Fund: jared-brimberry
+- UTIMCO - Real Estate: matt-saverin
+- Vobis Members: francesco-galdiero
+- Ontario Power Generation Pension Fund: joseph-lyn, terrence-chin, vlad-agache, atif-ali, wentao-shi
+- San Joaquin County Employees' Retirement Association: trent-kaeslin

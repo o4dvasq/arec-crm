@@ -2,32 +2,35 @@
 
 **Date:** 2026-02-25
 **Source:** [Notion](https://www.notion.so/3128c54f8b2c808b84e6f33f5aa9011a)
-**Attendees:** Oscar Vasquez, Stacey, Juan (dropped early for technical discussion later)
+**Attendees:** Oscar Vasquez, Stacey, Juan (dropped early)
 
 ## Summary
 
-Oscar spoke with Stacey, who recently migrated her organization from Citrix ShareFile to SharePoint. The conversation was an information-gathering session for Oscar, who is evaluating a similar migration from Egnyte/Ignite to SharePoint for AREC.
+Knowledge-sharing call with Stacey about her organization's migration from Citrix ShareFile to SharePoint. Oscar is evaluating a similar move from Egnyte/Ignite and wanted lessons learned.
 
-Stacey's migration started between Christmas and New Year's and is still ongoing — she described the execution as "an absolute failure," largely because Ali (her IT lead) didn't follow the structured game plan she had outlined (pilot migration first, work out bugs, then systematically roll out). Despite the rough implementation, Stacey is pleased with the end result and says SharePoint is significantly better than both ShareFile and Ignite.
+**Migration Experience:** Stacey's migration started between Christmas and New Year's and is still not complete months later. She described the execution as "an absolute failure" — primarily because Ali (their IT lead) didn't follow the planned approach of starting with a test subject migration, working out bugs, then proceeding systematically. Despite the rocky implementation, Stacey is pleased with the end result and says it was worth it.
 
-Key practical lessons: file naming conventions must be addressed before migration because SharePoint has character limits on file paths (Microsoft automatically consumes characters with its path prefix). Stacey's team had to reorganize over a million records post-migration to shorten file names. They had ~9-10 TB of data to migrate. The team reorganized their file structure from June to October before the migration to avoid moving a mess to a new platform.
+**Key Lessons for AREC:** The biggest technical gotcha: SharePoint has character limits on file paths, and Microsoft automatically consumes characters with its own path prefix (SharePoint/files/documents/...). Stacey's team had to reorganize file names post-migration across over a million records. Oscar should address file naming conventions before any migration begins. The team spent June through October reorganizing their file structure before the migration — "don't migrate a pile of dog poop from one platform to another." Total data: ~9-10 TB (7.85 TB in one person's personal folder alone).
 
-Oscar shared his advanced AI workflow — using Copilot to consolidate all IC meeting transcripts from the past year, feeding that into Claude to extract lending standards and best practices, then using that institutional knowledge database to evaluate new deals. Stacey was impressed.
+**SharePoint Benefits:** Native Windows Explorer integration (no separate client app like ShareFile/Ignite), automatic OneDrive backup of personal folders, real-time document collaboration eliminating version-control email chains, seamless save/share from any Microsoft app, Teams integration for collaborative documents, and cross-platform consistency across tablets and laptops.
 
-The call was meant to include a technical discussion with Juan, but that was deferred to later in the day.
+**Workflow Insights:** Stacey's team uses SharePoint primarily through Teams and Windows Explorer (not browser-based SharePoint pages). The loan originations team at AREC is already building browser-based SharePoint pages with dashboards and role-based views. Stacey's best practice: collaborative working documents live in SharePoint; only finalized "platinum versions" go to Ignite for auditors.
+
+**AI Integration:** Stacey is transitioning from Claude/ChatGPT to Copilot for the cohesive Microsoft interface. Oscar shared his advanced use case: using Copilot to consolidate a year's worth of IC meeting transcripts, then feeding that into Claude to extract lending standards and best practices — creating an institutional knowledge database for evaluating new deals.
+
+**AREC Context:** Oscar noted AREC isn't "broken" on Ignite currently, but sees benefits in driving real-time collaboration and reducing friction. There's apparently a conversion program that runs data from Ignite to SharePoint, which would make AREC's migration smoother than Stacey's ShareFile experience.
 
 ## Key Decisions
 
-- Oscar confirmed AREC's motivation is collaboration improvement, not fixing a broken system
-- Technical discussion with Juan rescheduled for later the same day
+- No decisions — informational call for Oscar's planning
 
 ## Action Items
 
-- [ ] **Juan** — Schedule follow-up technical discussion with Oscar and Stacey
-- [ ] **Oscar** — Address file naming conventions and path length limits before any migration planning
+- [ ] **Oscar** — Address file naming conventions / character limits before any migration
+- [ ] **Oscar/Juan** — Schedule follow-up technical discussion with Stacey's team
 
 ## Open Questions
 
-- Is there a conversion program from Ignite to SharePoint (Stacey mentioned one exists)?
-- What's the timeline/priority for AREC's potential migration?
-- How does this fit with AREC's current Egnyte setup?
+- Timeline for AREC's potential Ignite → SharePoint migration
+- Scope: full migration vs. phased approach starting with specific teams
+- Ignite-to-SharePoint conversion tool capabilities and limitations

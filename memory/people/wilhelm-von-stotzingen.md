@@ -1,24 +1,17 @@
 # Wilhelm von Stotzingen
 
-**Title:** Senior Partner
-**Company:** Marcuard Family Office Ltd.
-**Phone:** +41 43 344 60 10
+**Organization:** Marcuard Family Office Ltd.
+**Role:** Senior Partner
 **Email:** w.vonstotzingen@mfo.ch
-**Website:** www.mfo.ch
-**Location:** Switzerland
-
-## AREC Prospect
-- **Fund:** AREC Debt Fund II
-- **Status:** Interested
-- **Type:** HNWI/FO
-- **Size:** $2M
-- **Assigned to:** Max Angeloni
+**Phone:** +41 43 344 60 10
+**Type:** Multi-Family Office
+**Fund II Status:** Prospect ($5M target)
+**Stage:** 4
+**Assignee:** Max Angeloni
+**Met:** Zurich, Mar 4 2026
 
 ## Notes
-- Met in Geneva on March 4, 2026
-- Marcuard Family Office — Swiss multi-family office (est. 1746)
-- Meeting arranged by Max Angeloni as part of European trip
-- First known AREC contact with Marcuard
-
-## Interaction History
-- 2026-03-04 — Meeting in Geneva (Tony, Oscar, Wilhelm von Stotzingen, Max Angeloni)
+- Marcuard Family Office — established 1746, Swiss multi-family office
+- Fund II prospect with $5M target, low probability
+- Stage 4 — early engagement
+- Meeting arranged by Max Angeloni during March 2-4 European trip

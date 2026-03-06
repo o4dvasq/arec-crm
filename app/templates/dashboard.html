@@ -7,6 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/crm.css">
   <link rel="stylesheet" href="/static/task-edit-modal.css">
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -22,7 +23,6 @@
       --accent-hover: #c4684a;
       --border: #e5e7eb;
       --radius: 10px;
-      --nav-bg: #1a1a2e;
     }
 
     body {
@@ -33,52 +33,31 @@
       line-height: 1.5;
     }
 
-    /* ===== NAV ===== */
-    nav {
-      background: var(--nav-bg);
-      padding: 0 24px;
-      display: flex;
-      align-items: center;
-      height: 52px;
-      position: sticky;
-      top: 0;
-      z-index: 100;
-    }
-    nav .nav-links { display: flex; align-items: center; gap: 24px; }
-    nav a { color: #94a3b8; text-decoration: none; font-size: 14px; font-weight: 500; }
-    nav a:hover { color: #e2e8f0; }
-    nav a.active { color: #e2e8f0; }
-    nav .brand {
-      position: absolute;
-      left: 50%;
-      transform: translateX(-50%);
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      color: #e2e8f0;
-      font-weight: 700;
-      font-size: 16px;
-      letter-spacing: 0.04em;
-    }
-    nav .brand svg { opacity: 0.85; }
-    nav .nav-right {
-      margin-left: auto;
-      display: flex;
-      align-items: center;
-      gap: 16px;
-    }
-    nav .nav-date { color: #64748b; font-size: 13px; font-weight: 500; }
-
     .refreshed { font-size: 12px; color: var(--text-muted); padding: 8px 28px 0; }
 
     /* ===== LAYOUT ===== */
     .grid {
       display: grid;
-      grid-template-columns: 1fr 1fr 1fr;
-      gap: 24px;
+      grid-template-columns: 1fr 1fr 1fr 0.8fr;
+      gap: 1.5rem;
       padding: 20px 28px 28px;
       min-height: calc(100vh - 80px);
       align-items: start;
+    }
+
+    @media (max-width: 1200px) {
+      .grid {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+
+    @media (max-width: 768px) {
+      .grid {
+        grid-template-columns: 1fr;
+      }
+      .col-meetings {
+        order: -1; /* Meetings first on mobile */
+      }
     }
 
     .panel {
@@ -94,6 +73,52 @@
       color: var(--text-sec);
       border-bottom: 1px solid var(--border);
       display: flex; justify-content: space-between; align-items: center;
+    }
+
+    .btn-refresh {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 5px 10px;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      background: none;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text-sec);
+      cursor: pointer;
+      transition: all 0.15s ease;
+      font-family: inherit;
+    }
+
+    .btn-refresh:hover {
+      background: var(--bg-muted);
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    .btn-refresh:active {
+      transform: scale(0.95);
+    }
+
+    .btn-refresh:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .btn-refresh svg {
+      transition: transform 0.3s ease;
+    }
+
+    .btn-refresh:hover svg {
+      transform: rotate(180deg);
+    }
+
+    @keyframes spin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
     }
 
     .panel-body { padding: 0; max-height: calc(100vh - 200px); overflow-y: auto; }
@@ -158,6 +183,46 @@
     .priority-med { background: #fef3c7; color: #d97706; }
     .priority-low { background: #e0e7ff; color: #4f46e5; }
 
+    /* Status Pills */
+    .status-pill {
+      display: inline-block;
+      font-size: 10px;
+      font-weight: 600;
+      padding: 3px 8px;
+      border-radius: 4px;
+      margin-left: 6px;
+      cursor: pointer;
+      user-select: none;
+      transition: opacity 0.1s;
+    }
+    .status-pill:hover { opacity: 0.8; }
+    .status-in-progress { background: #dbeafe; color: #1d4ed8; }
+    .status-complete { background: #dcfce7; color: #16a34a; }
+
+    /* Status Dropdown */
+    .status-dropdown {
+      position: absolute;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      z-index: 1000;
+      min-width: 140px;
+      margin-top: 2px;
+    }
+    .status-option {
+      padding: 8px 12px;
+      font-size: 12px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      border-bottom: 1px solid var(--border);
+    }
+    .status-option:last-child { border-bottom: none; }
+    .status-option:hover { background: var(--bg-muted); }
+    .status-option.selected { background: var(--bg-muted); font-weight: 600; }
+
     .org-link {
       display: inline-block;
       font-size: 10px; font-weight: 600;
@@ -199,6 +264,9 @@
     .meeting-attendees { font-size: 12px; color: var(--text-muted); margin-top: 2px; max-width: 280px; }
     .meeting-arrow { color: var(--text-muted); font-size: 14px; margin-left: 8px; margin-top: 2px; }
     .meeting-empty { padding: 24px 18px; color: var(--text-muted); font-size: 13px; text-align: center; }
+    /* Past meeting style */
+    .meeting-item.past .cal-time,
+    .meeting-item.past .cal-title { color: #9ca3af; }
 
     .edit-btn {
       background: none; border: none; cursor: pointer; color: var(--text-muted);
@@ -216,127 +284,272 @@
 </head>
 <body>
 
-<nav>
-  <div class="nav-links">
-    <a href="/" class="active">Dashboard</a>
-    <a href="/tasks">Tasks</a>
-    <a href="/crm">Pipeline</a>
-  </div>
-  <div class="brand">
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm-1.5 11.5h3c.55 0 1-.45 1-1v-.5c0-1.1-.9-2-2-2h-.5v-1h1c.55 0 1-.45 1-1s-.45-1-1-1h-2c-.55 0-1 .45-1 1v2.5c0 .55.45 1 1 1h.5c.55 0 1 .45 1 1v.5h-1.5c-.55 0-1 .45-1 1s.45.5 1 .5z" fill="none"/>
-      <path d="M15.7 8.6c-.2-.4-.5-.7-.9-.8-.4-.2-.8-.1-1.2.1l-2.3 1.3c-.4.2-.6.5-.7.9-.1.4 0 .8.2 1.1l.9 1.2c-.5.3-1.1.5-1.7.5-1.7 0-3-1.3-3-3s1.3-3 3-3c.9 0 1.8.4 2.3 1.1.3.4.9.5 1.3.2.4-.3.5-.9.2-1.3C13.8 5.7 12.5 5 11 5c-2.8 0-5 2.2-5 5s2.2 5 5 5c1.5 0 2.8-.7 3.8-1.7l.5.7c.2.4.6.6 1 .6.2 0 .3 0 .5-.1.6-.3.8-1 .5-1.6L15.7 8.6z" fill="currentColor" opacity="0.9"/>
-    </svg>
-    Overwatch
-  </div>
-  <div class="nav-right">
-    <span class="nav-date">{{ now.strftime('%B %d, %Y') }}</span>
-  </div>
-</nav>
+{% set active_tab = 'dashboard' %}
+{% include '_nav.html' %}
 <div class="refreshed">Refreshed: {{ now.strftime('%-I:%M %p') }}</div>
 
 <div class="grid">
 
-  <!-- ===== TASKS ===== -->
-  <div class="panel">
-    <div class="panel-header">
-      <span>Fundraising Tasks</span>
-      <a href="/tasks" style="font-size:11px;color:var(--text-muted);text-decoration:none;font-weight:500;">All Tasks &rarr;</a>
-    </div>
-    <form class="task-add-form" onsubmit="return addTask(event)">
-      <input type="text" id="newTaskText" placeholder="New task..." autocomplete="off">
-      <select id="newTaskPriority">
-        <option value="Med">Med</option>
-        <option value="Hi">Hi</option>
-        <option value="Low">Low</option>
-      </select>
-      <button type="submit" class="btn btn-primary">Add</button>
-    </form>
-    <div class="panel-body">
-      {% set ns = namespace(last_pri='') %}
-      {% for sec in tasks_by_section %}
-      {% for task in sec.tasks %}
-      {% if not task.done and (not task.assigned_to or task.assigned_to == 'Oscar') %}
-      {% if task.priority != ns.last_pri %}
-      <div class="priority-section-label">
-        <span class="pri-dot pri-dot-{{ task.priority | lower }}"></span>
-        {{ task.priority }}
+  <!-- ===== COLUMN 1: FUNDRAISING (A) ===== -->
+  <div class="col-fundraising-a" style="display:flex;flex-direction:column;gap:24px;">
+    <!-- Fundraising (A) panel - populated by JS -->
+    <div class="panel" id="fundraising-a-panel">
+      <div class="panel-header">
+        <span>FUNDRAISING</span>
+        <a href="/tasks" style="font-size:11px;color:var(--text-muted);text-decoration:none;font-weight:500;">All Tasks &rarr;</a>
       </div>
-      {% set ns.last_pri = task.priority %}
-      {% endif %}
-      <div class="task-item" data-raw="{{ task.raw | e }}" data-section="{{ sec.name }}" data-index="{{ task.index }}" data-text="{{ task.text | e }}" data-priority="{{ task.priority }}" data-assigned="{{ task.assigned_to | e }}" data-org="{{ task.org | e }}">
-        <input type="checkbox" onchange="completeTask(this, '{{ task.raw | replace("'", "\\'") | e }}')" {% if task.done %}checked{% endif %}>
-        <span class="task-text">
-          {{ task.text }}
-          {% if task.org %}<a href="/crm/org/{{ task.org | urlencode }}" class="org-link">{{ task.org }}</a>{% endif %}
-        </span>
-        <button class="edit-btn" onclick="openEditModal(this.closest('.task-item'))" title="Edit">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+      <form class="task-add-form" onsubmit="return addTask(event)">
+        <input type="text" id="newTaskText" placeholder="New task..." autocomplete="off">
+        <select id="newTaskPriority">
+          <option value="Med">Med</option>
+          <option value="Hi">Hi</option>
+          <option value="Low">Low</option>
+        </select>
+        <button type="submit" class="btn btn-primary">Add</button>
+      </form>
+      <div class="panel-body" id="fundraising-a-body">
+        <!-- Tasks inserted by JS -->
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== COLUMN 2: FUNDRAISING (B) ===== -->
+  <div class="col-fundraising-b" style="display:flex;flex-direction:column;gap:24px;">
+    <div class="panel" id="fundraising-b-panel">
+      <div class="panel-header">
+        <span>FUNDRAISING (CONT'D)</span>
+      </div>
+      <div class="panel-body" id="fundraising-b-body">
+        <!-- Tasks inserted by JS -->
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== COLUMN 3: OTHER WORK + PERSONAL ===== -->
+  <div class="col-other" style="display:flex;flex-direction:column;gap:24px;">
+    <!-- Other Work section -->
+    <div class="panel" id="other-work-panel">
+      <div class="panel-header">OTHER WORK</div>
+      <div class="panel-body" id="other-work-body">
+        <!-- Tasks inserted by JS -->
+      </div>
+    </div>
+
+    <!-- Personal section -->
+    <div class="panel" id="personal-panel">
+      <div class="panel-header">PERSONAL</div>
+      <div class="panel-body" id="personal-body">
+        <!-- Tasks inserted by JS -->
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== COLUMN 4: TODAY'S MEETINGS ===== -->
+  <div class="col-meetings" style="display:flex;flex-direction:column;gap:24px;">
+    <div class="panel">
+      <div class="panel-header">
+        TODAY'S MEETINGS
+        <button id="cal-refresh-btn" onclick="refreshCalendar()" class="btn-refresh" title="Refresh calendar from Outlook">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="23 4 23 10 17 10"></polyline>
+            <polyline points="1 20 1 14 7 14"></polyline>
+            <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+          </svg>
+          Refresh
         </button>
       </div>
-      {% endif %}
-      {% endfor %}
-      {% endfor %}
-    </div>
-  </div>
-
-  <!-- ===== TODAY ===== -->
-  <div class="panel">
-    <div class="panel-header">Today</div>
-    <div class="panel-body">
-      {% if calendar %}
-      {% for evt in calendar %}
-      <div class="cal-item">
-        <div class="cal-time">{{ evt.time }}</div>
-        <div class="cal-details">
-          <div class="cal-title">{{ evt.title }}</div>
-          <div class="cal-meta">
-            {% if evt.attendees %}{{ evt.attendees }}{% endif %}
-            {% if evt.location %}<br>{{ evt.location }}{% endif %}
+      <div class="panel-body" id="cal-body">
+        {% if calendar %}
+        {% for evt in calendar %}
+        <div class="cal-item meeting-item" data-end-time="{{ evt.end_time }}">
+          <div class="cal-time">{{ evt.time }}</div>
+          <div class="cal-details">
+            <div class="cal-title">{{ evt.title | replace(' (Past)', '') | replace(' (Future)', '') }}</div>
           </div>
         </div>
-      </div>
-      {% endfor %}
-      {% else %}
-      {% if calendar_stale %}
-      <div class="cal-empty">Calendar data is from {{ calendar_stale }}. Run /productivity:update to sync today's events.</div>
-      {% else %}
-      <div class="cal-empty">No calendar events today.</div>
-      {% endif %}
-      {% endif %}
-    </div>
-  </div>
-
-  <!-- ===== RECENT MEETINGS ===== -->
-  <div class="panel">
-    <div class="panel-header">Recent Meetings</div>
-    <div class="panel-body">
-      {% if meetings %}
-      {% set ns = namespace(last_date='') %}
-      {% for mtg in meetings %}
-      {% if mtg.date != ns.last_date %}
-      <div class="meeting-date-group">{{ mtg.date }}</div>
-      {% set ns.last_date = mtg.date %}
-      {% endif %}
-      <div class="meeting-item" {% if mtg.url %}onclick="window.open('{{ mtg.url }}','_blank')" style="cursor:pointer"{% endif %}>
-        <div>
-          <div class="meeting-title">{{ mtg.title }}</div>
-          <div class="meeting-attendees">{{ mtg.attendees }}</div>
+        {% endfor %}
+        {% else %}
+        <div class="cal-empty" id="cal-stale-msg">
+          {% if calendar_stale %}
+          Calendar data is from {{ calendar_stale }}.
+          <a href="#" onclick="refreshCalendar();return false;" style="color:var(--accent);text-decoration:none;">Refresh now →</a>
+          {% else %}
+          No calendar events today.
+          {% endif %}
         </div>
-        {% if mtg.url %}<span class="meeting-arrow">&#9654;</span>{% endif %}
+        {% endif %}
       </div>
-      {% endfor %}
-      {% else %}
-      <div class="meeting-empty">No meeting summaries found.</div>
-      {% endif %}
     </div>
   </div>
 
 </div>
 
+<!-- Hidden data for JS to process -->
+<script id="tasks-data" type="application/json">
+{{ tasks_by_section | tojson }}
+</script>
+
 <script>
+// --- Distribute tasks across 4-column layout ---
+document.addEventListener('DOMContentLoaded', function() {
+  const tasksDataEl = document.getElementById('tasks-data');
+  if (!tasksDataEl) return;
+
+  const allSections = JSON.parse(tasksDataEl.textContent);
+
+  // Separate sections by type
+  const fundraisingSections = [];
+  const otherWorkSections = [];
+  const personalSections = [];
+
+  allSections.forEach(sec => {
+    const nameLower = sec.name.toLowerCase();
+    if (nameLower.includes('fundraising') || nameLower.includes('ir')) {
+      fundraisingSections.push(sec);
+    } else if (nameLower.includes('personal')) {
+      personalSections.push(sec);
+    } else {
+      otherWorkSections.push(sec);
+    }
+  });
+
+  // Collect all fundraising tasks and sort by priority
+  const allFundraisingTasks = [];
+  fundraisingSections.forEach(sec => {
+    sec.tasks.forEach(task => {
+      if (!task.done && (!task.assigned_to || task.assigned_to === 'Oscar' || task.assigned_to === 'Oscar Vasquez')) {
+        allFundraisingTasks.push({...task, section: sec.name});
+      }
+    });
+  });
+
+  // Sort by priority: Hi -> Med -> Low
+  const priOrder = {'Hi': 0, 'Med': 1, 'Low': 2, 'Lo': 2};
+  allFundraisingTasks.sort((a, b) => {
+    const aPri = priOrder[a.priority] ?? 3;
+    const bPri = priOrder[b.priority] ?? 3;
+    return aPri - bPri;
+  });
+
+  // Height-balance split fundraising tasks into columns A and B
+  const fundraisingA = [];
+  const fundraisingB = [];
+  let heightA = 0;
+  let heightB = 0;
+
+  allFundraisingTasks.forEach((task, i) => {
+    // Estimate task height: base 48px + 20px per 60 chars beyond first 60
+    const textLen = (task.text || '').length;
+    const extraHeight = Math.max(0, Math.floor((textLen - 60) / 60)) * 20;
+    const taskHeight = 48 + extraHeight;
+
+    // First task always goes to A
+    if (i === 0) {
+      fundraisingA.push(task);
+      heightA += taskHeight;
+    } else {
+      // Assign to column with lesser height
+      if (heightA <= heightB) {
+        fundraisingA.push(task);
+        heightA += taskHeight;
+      } else {
+        fundraisingB.push(task);
+        heightB += taskHeight;
+      }
+    }
+  });
+
+  // Render fundraising tasks
+  renderTaskList(fundraisingA, 'fundraising-a-body');
+  renderTaskList(fundraisingB, 'fundraising-b-body');
+
+  // Collect and render Other Work tasks
+  const otherWorkTasks = [];
+  otherWorkSections.forEach(sec => {
+    sec.tasks.forEach(task => {
+      if (!task.done && (!task.assigned_to || task.assigned_to === 'Oscar' || task.assigned_to === 'Oscar Vasquez')) {
+        otherWorkTasks.push({...task, section: sec.name});
+      }
+    });
+  });
+  otherWorkTasks.sort((a, b) => (priOrder[a.priority] ?? 3) - (priOrder[b.priority] ?? 3));
+  renderTaskList(otherWorkTasks, 'other-work-body');
+
+  // Collect and render Personal tasks
+  const personalTasks = [];
+  personalSections.forEach(sec => {
+    sec.tasks.forEach(task => {
+      if (!task.done && (!task.assigned_to || task.assigned_to === 'Oscar' || task.assigned_to === 'Oscar Vasquez')) {
+        personalTasks.push({...task, section: sec.name});
+      }
+    });
+  });
+  personalTasks.sort((a, b) => (priOrder[a.priority] ?? 3) - (priOrder[b.priority] ?? 3));
+  renderTaskList(personalTasks, 'personal-body');
+});
+
+function renderTaskList(tasks, containerId) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+
+  if (tasks.length === 0) {
+    container.innerHTML = '<div class="meeting-empty">No tasks</div>';
+    return;
+  }
+
+  let html = '';
+  let lastPri = '';
+
+  tasks.forEach(task => {
+    // Priority section label
+    if (task.priority !== lastPri) {
+      const priClass = (task.priority || 'Med').toLowerCase();
+      html += `
+        <div class="priority-section-label">
+          <span class="pri-dot pri-dot-${priClass}"></span>
+          ${task.priority || 'Med'}
+        </div>
+      `;
+      lastPri = task.priority;
+    }
+
+    // Task item
+    const statusPill = task.status === 'In Progress'
+      ? '<span class="status-pill status-in-progress" onclick="toggleStatusDropdown(this, event)">→ In Progress</span>'
+      : '';
+
+    const orgBadge = task.org
+      ? `<a href="/crm/org/${encodeURIComponent(task.org)}" class="org-link">${esc(task.org)}</a>`
+      : '';
+
+    html += `
+      <div class="task-item"
+           data-raw="${esc(task.raw)}"
+           data-section="${esc(task.section)}"
+           data-index="${task.index}"
+           data-text="${esc(task.text)}"
+           data-priority="${esc(task.priority)}"
+           data-assigned="${esc(task.assigned_to || '')}"
+           data-org="${esc(task.org || '')}"
+           data-status="${esc(task.status)}">
+        <input type="checkbox" onchange="completeTask(this, '${esc(task.raw).replace(/'/g, "\\'")}')">
+        <span class="task-text" onclick="handleTaskTextClick(event, this)">
+          ${esc(task.text)}
+          ${statusPill}
+          ${orgBadge}
+        </span>
+        <button class="edit-btn" onclick="openEditModal(this.closest('.task-item'))" title="Edit">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+        </button>
+      </div>
+    `;
+  });
+
+  container.innerHTML = html;
+}
+
 // --- Shared task edit modal setup ---
-window.TASK_MODAL_TEAM = {{ config.team | tojson }};
+window.TASK_MODAL_TEAM = {{ config.team | map(attribute='name') | list | tojson }};
 window.TASK_MODAL_TEAM_MAP = {{ config.team_map | tojson }};
 window.TASK_MODAL_SECTIONS = ['Fundraising - Me', 'Work', 'Personal'];
 window.taskModalOnSave = function() { location.reload(); };
@@ -359,18 +572,104 @@ function openEditModal(taskItem) {
 }
 
 async function completeTask(el, raw) {
-  const res = await fetch('/api/task/complete', {
-    method: 'POST',
-    headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({text: raw})
-  });
-  if (res.ok) {
-    const item = el.closest('.task-item');
-    item.classList.add('done');
-    item.querySelector('.task-text').style.textDecoration = 'line-through';
-    item.style.opacity = '0.45';
+  const item = el.closest('.task-item');
+  const section = item.dataset.section;
+  const taskText = item.dataset.text;
+  const isChecked = el.checked;
+
+  // Update status based on checkbox
+  const newStatus = isChecked ? 'Complete' : 'New';
+  await updateTaskStatus(item, section, taskText, newStatus);
+}
+
+async function refreshCalendar() {
+  const btn = document.getElementById('cal-refresh-btn');
+  const body = document.getElementById('cal-body');
+
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = `
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="animation: spin 1s linear infinite;">
+        <polyline points="23 4 23 10 17 10"></polyline>
+        <polyline points="1 20 1 14 7 14"></polyline>
+        <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+      </svg>
+      Refreshing...
+    `;
+  }
+
+  body.innerHTML = '<div class="cal-empty" style="color:var(--text-muted);">Fetching calendar from Outlook...</div>';
+
+  try {
+    const resp = await fetch('/api/calendar/refresh', { method: 'POST' });
+    const data = await resp.json();
+    if (!resp.ok || !data.ok) throw new Error(data.error || 'Refresh failed');
+
+    // Re-render calendar panel
+    if (data.events && data.events.length > 0) {
+      body.innerHTML = data.events.map(evt => {
+        // Strip (Past) and (Future) labels from title
+        const title = (evt.title || '').replace(/\s*\((Past|Future)\)\s*$/, '').trim();
+        return `
+        <div class="cal-item meeting-item" data-end-time="${esc(evt.end_time || '')}">
+          <div class="cal-time">${esc(evt.time)}</div>
+          <div class="cal-details">
+            <div class="cal-title">${esc(title)}</div>
+          </div>
+        </div>`;
+      }).join('');
+      applyPastMeetingStyles();
+    } else {
+      body.innerHTML = '<div class="cal-empty">No calendar events today.</div>';
+    }
+  } catch (err) {
+    body.innerHTML = `<div class="cal-empty" style="color:#dc2626;">Could not refresh: ${esc(err.message)}</div>`;
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = `
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="23 4 23 10 17 10"></polyline>
+          <polyline points="1 20 1 14 7 14"></polyline>
+          <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+        </svg>
+        Refresh
+      `;
+    }
   }
 }
+
+function applyPastMeetingStyles() {
+  const nowPacific = new Date().toLocaleString("en-US", { timeZone: "America/Los_Angeles" });
+  const nowPT = new Date(nowPacific);
+
+  document.querySelectorAll('.meeting-item[data-end-time]').forEach(item => {
+    const endTimeStr = item.dataset.endTime;
+    if (!endTimeStr) return;
+
+    // Parse end time as today's date in Pacific timezone
+    const endTime = new Date(endTimeStr);
+
+    if (endTime < nowPT) {
+      item.classList.add('past');
+    } else {
+      item.classList.remove('past');
+    }
+  });
+}
+
+function esc(t) {
+  if (t == null) return '';
+  return String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// Auto-refresh calendar if stale
+{% if calendar_stale %}
+document.addEventListener('DOMContentLoaded', () => refreshCalendar());
+{% else %}
+// Apply past meeting styles on page load
+document.addEventListener('DOMContentLoaded', () => applyPastMeetingStyles());
+{% endif %}
 
 async function addTask(e) {
   e.preventDefault();
@@ -383,6 +682,151 @@ async function addTask(e) {
     body: JSON.stringify({text, priority, section: 'Fundraising - Me'})
   });
   if (res.ok) location.reload();
+}
+
+// Status dropdown management
+let activeDropdown = null;
+
+function handleTaskTextClick(event, taskTextEl) {
+  // Don't open status dropdown if clicking on org link
+  if (event.target.classList.contains('org-link')) {
+    return;
+  }
+
+  // Don't open if clicking on existing status pill (it has its own handler)
+  if (event.target.classList.contains('status-pill')) {
+    return;
+  }
+
+  event.stopPropagation();
+
+  const taskItem = taskTextEl.closest('.task-item');
+  const status = taskItem.dataset.status;
+
+  // Only open dropdown if task is in New or In Progress status
+  if (status === 'New' || status === 'In Progress') {
+    const existingPill = taskTextEl.querySelector('.status-pill');
+    const targetElement = existingPill || taskTextEl;
+    toggleStatusDropdown(targetElement, event);
+  }
+}
+
+function toggleStatusDropdown(pill, event) {
+  event.stopPropagation();
+
+  // Close existing dropdown if any
+  if (activeDropdown) {
+    activeDropdown.remove();
+    activeDropdown = null;
+  }
+
+  const taskItem = pill.closest('.task-item');
+  const currentStatus = taskItem.dataset.status;
+  const section = taskItem.dataset.section;
+  const taskText = taskItem.dataset.text;
+
+  // Create dropdown
+  const dropdown = document.createElement('div');
+  dropdown.className = 'status-dropdown';
+  dropdown.innerHTML = `
+    <div class="status-option ${currentStatus === 'New' ? 'selected' : ''}" data-status="New">
+      <span style="opacity:0.5;">○</span> New
+    </div>
+    <div class="status-option ${currentStatus === 'In Progress' ? 'selected' : ''}" data-status="In Progress">
+      <span style="color:#1d4ed8;">→</span> In Progress
+    </div>
+    <div class="status-option ${currentStatus === 'Complete' ? 'selected' : ''}" data-status="Complete">
+      <span style="color:#16a34a;">✓</span> Complete
+    </div>
+  `;
+
+  // Position dropdown below pill
+  const rect = pill.getBoundingClientRect();
+  dropdown.style.position = 'fixed';
+  dropdown.style.left = rect.left + 'px';
+  dropdown.style.top = (rect.bottom + 2) + 'px';
+
+  // Add click handlers
+  dropdown.querySelectorAll('.status-option').forEach(opt => {
+    opt.addEventListener('click', () => {
+      const newStatus = opt.dataset.status;
+      updateTaskStatus(taskItem, section, taskText, newStatus);
+      dropdown.remove();
+      activeDropdown = null;
+    });
+  });
+
+  document.body.appendChild(dropdown);
+  activeDropdown = dropdown;
+}
+
+// Close dropdown when clicking outside
+document.addEventListener('click', (e) => {
+  if (activeDropdown && !e.target.closest('.status-dropdown') && !e.target.closest('.status-pill')) {
+    activeDropdown.remove();
+    activeDropdown = null;
+  }
+});
+
+async function updateTaskStatus(taskItem, section, taskText, newStatus) {
+  // Optimistic update
+  const oldStatus = taskItem.dataset.status;
+  const oldHtml = taskItem.innerHTML;
+  taskItem.dataset.status = newStatus;
+
+  // Update UI
+  const taskTextEl = taskItem.querySelector('.task-text');
+  const existingPill = taskTextEl.querySelector('.status-pill');
+
+  if (newStatus === 'In Progress') {
+    if (!existingPill) {
+      const orgLink = taskTextEl.querySelector('.org-link');
+      const pill = document.createElement('span');
+      pill.className = 'status-pill status-in-progress';
+      pill.textContent = '→ In Progress';
+      pill.onclick = (e) => toggleStatusDropdown(pill, e);
+      if (orgLink) {
+        taskTextEl.insertBefore(pill, orgLink);
+      } else {
+        taskTextEl.appendChild(pill);
+      }
+    }
+    taskItem.querySelector('input[type=checkbox]').checked = false;
+  } else if (newStatus === 'Complete') {
+    if (existingPill) existingPill.remove();
+    taskItem.querySelector('input[type=checkbox]').checked = true;
+    taskItem.classList.add('done');
+  } else { // New
+    if (existingPill) existingPill.remove();
+    taskItem.querySelector('input[type=checkbox]').checked = false;
+    taskItem.classList.remove('done');
+  }
+
+  // Send to server
+  try {
+    const index = parseInt(taskItem.dataset.index, 10);
+    const res = await fetch(`/tasks/api/task/${encodeURIComponent(section)}/${index}/status`, {
+      method: 'PATCH',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        status: newStatus
+      })
+    });
+
+    const data = await res.json();
+
+    if (!res.ok || !data.ok) {
+      // Revert on error
+      taskItem.dataset.status = oldStatus;
+      taskItem.innerHTML = oldHtml;
+      alert('Failed to update status: ' + (data.error || 'Unknown error'));
+    }
+  } catch (err) {
+    // Revert on error
+    taskItem.dataset.status = oldStatus;
+    taskItem.innerHTML = oldHtml;
+    alert('Failed to update status: ' + err.message);
+  }
 }
 </script>
 <script src="/static/task-edit-modal.js"></script>

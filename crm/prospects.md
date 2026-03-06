@@ -253,14 +253,14 @@
 - **Last Touch:** 2026-03-05
 
 ### 1900 Wealth
-- **Stage:** 5. Interested
+- **Stage:** 7. Legal / DD
 - **Target:** $20,000,000
 - **Primary Contact:** Bobby Jones
 - **Closing:** 2nd
-- **Urgency:** Med
+- **Urgent:** False
 - **Assigned To:** Oscar Vasquez
 - **Notes:** Referral from Wayne Moravitz; San Antonio; Bobby Jones
-- **Last Touch:** 2026-03-03
+- **Last Touch:** 2026-03-05
 
 ### Patrick Zalupski
 - **Stage:** 6. Verbal
@@ -276,10 +276,11 @@
 - **Stage:** 6. Verbal
 - **Target:** $50,000,000
 - **Primary Contact:** Susannah Friar; Dragos Serbanica; Zyan Nuafal; Saneeza Asrar
-- **Urgency:** High
+- **Closing:** 
+- **Urgent:** Yes
 - **Assigned To:** Oscar Vasquez
 - **Notes:** Sent Credit and Index Comparisons on 2/25
-- **Last Touch:** 2026-03-02
+- **Last Touch:** 2026-03-05
 ### LGI
 - **Stage:** 6. Verbal
 - **Target:** $10,000,000
@@ -330,35 +331,35 @@
 - **Notes:** 3/3: Avila met Jan 10; requested investment in Fund II and The Ridge; may be second close on The Ridge. DECLINED per TA list.
 - **Last Touch:** 2026-02-28
 
-### University of Texas Investment Management Company (UTIMCO) (Jared Brimberry)
+### UTIMCO - Hedge Fund
 - **Stage:** 5. Interested
 - **Target:** $100,000,000
 - **Primary Contact:** Jared Brimberry
 - **Closing:** 
-- **Urgency:** High
+- **Urgent:** Yes
 - **Assigned To:** Tony Avila
-- **Notes:** JARED/HEDGE
-- **Last Touch:** 2026-02-28
+- **Notes:** UTIMCO hedge fund division. Meeting scheduled for 3/10
+- **Last Touch:** 2026-03-06
 
-### University of Texas Investment Management Company (UTIMCO) (Matt Saverin)
+### UTIMCO - Real Estate
 - **Stage:** 5. Interested
 - **Target:** $100,000,000
 - **Primary Contact:** Matt Saverin
-- **Closing:** 
-- **Urgency:** High
+- **Closing:**
+- **Urgent:** Yes
 - **Assigned To:** Tony Avila
-- **Notes:** MATT/RE.  Sent Credit and Index Comparisons on 2/25
-- **Last Touch:** 2026-02-28
+- **Notes:** UTIMCO real estate division.
+- **Last Touch:** 2026-03-05
 
 ### Travelers Insurance
 - **Stage:** 5. Interested
 - **Target:** $25,000,000
 - **Primary Contact:** Bob O'Leary
 - **Closing:** 
-- **Urgency:** High
+- **Urgent:** False
 - **Assigned To:** Tony Avila
 - **Notes:** Sent Credit and Index Comparisons on 2/25
-- **Last Touch:** 2026-02-28
+- **Last Touch:** 2026-03-05
 
 ### Sumitomo Mitsui Banking Corporation (SMBC)
 - **Stage:** 5. Interested
@@ -390,53 +391,53 @@
 - **Last Touch:** 2026-02-28
 
 ### Stonehill Capital
-- **Stage:** 5. Interested
+- **Stage:** 4. Engaged
 - **Target:** $50,000,000
 - **Primary Contact:** April Chang; Michael Stern
 - **Closing:** 
-- **Urgency:** High
+- **Urgent:** False
 - **Assigned To:** Tony Avila
 - **Notes:** Can't pay fees
-- **Last Touch:** 2026-02-28
+- **Last Touch:** 2026-03-05
 
 ### Steyn Group
 - **Stage:** 5. Interested
 - **Target:** $5,000,000
 - **Primary Contact:** Ivan Karsten; Matt Sopp
 - **Closing:** 
-- **Urgency:** High
+- **Urgent:** False
 - **Assigned To:** Ian Morgan
 - **Notes:** 
-- **Last Touch:** 2026-02-28
+- **Last Touch:** 2026-03-05
 
 ### StepStone
 - **Stage:** 5. Interested
 - **Target:** $30,000,000
 - **Primary Contact:** Andrew Mitro; Tom Hester; Aayaan Mehta
 - **Closing:** 
-- **Urgency:** High
+- **Urgent:** False
 - **Assigned To:** Oscar Vasquez
 - **Notes:** Provided track record on 2/17
-- **Last Touch:** 2026-02-28
+- **Last Touch:** 2026-03-05
 
 ### Todd Platt
-- **Stage:** 5. Interested
+- **Stage:** 4. Engaged
 - **Target:** $2,000,000
 - **Primary Contact:** Todd Platt
 - **Closing:** Final
-- **Urgency:** Med
+- **Urgent:** False
 - **Assigned To:** Tony Avila
-- **Notes:**
-- **Last Touch:** 2026-03-03
+- **Notes:** 
+- **Last Touch:** 2026-03-05
 ### Ontario Power Generation Pension Fund
 - **Stage:** 5. Interested
 - **Target:** $100,000,000
-- **Primary Contact:** Joseph Lyn
+- **Primary Contact:** Joseph Lyn (RE/OPG); Atif Ali + Wentao Shi (Credit/OFA — key decision-makers)
 - **Closing:**
 - **Urgency:** High
-- **Assigned To:** Tony Avila; Zach Reisner
-- **Notes:**
-- **Last Touch:** 2026-02-28
+- **Assigned To:** Zach Reisner
+- **Notes:** AREC fits **credit bucket**, not RE bucket — OFA credit team drives decision. Pension + Nuclear Fund co-managed (different tax structures). 2/12/26 intro call (Tony, Anthony, Zach): detailed diligence Q&A. AREC sent data room, REIT tax memo, fund model, prior deal model, SMBC response doc. 2/26/26: Zach sent index analysis + fund comparison. 5 contacts total across OPG RE, OPG Credit, OFA Credit.
+- **Last Touch:** 2026-02-26
 
 ### NPS (Korea SWF)
 - **Stage:** 0. Declined
@@ -450,33 +451,24 @@
 
 ### Brightside Capital Partners
 - **Stage:** 5. Interested
-- **Target:** $0
+- **Target:** $5,000,000
 - **Primary Contact:** Patrick Aslanian; Ashton Newhall
 - **Closing:** 
-- **Urgency:** High
+- **Urgent:** False
 - **Assigned To:** Anthony Albuquerque
 - **Notes:** Had call on 2/26
-- **Last Touch:** 2026-02-28
+- **Last Touch:** 2026-03-05
 
-### John Ryan (Metro Development)
-- **Stage:** 5. Interested
+### John Ryan
+- **Stage:** 4. Engaged
 - **Target:** $5,000,000
 - **Primary Contact:** John Ryan (Metro Development)
-- **Closing:**
-- **Urgency:** Med
+- **Closing:** 
+- **Urgent:** False
 - **Assigned To:** Tony Avila
 - **Notes:** 3/3: Avila to work with Bavouset and John
-- **Last Touch:** 2026-02-28
+- **Last Touch:** 2026-03-05
 
-### Meritz
-- **Stage:** 5. Interested
-- **Target:** $100,000,000
-- **Primary Contact:** Jihyun Heo; Haijoung Kim; Jinho Conor Lee
-- **Closing:**
-- **Urgency:** Med
-- **Assigned To:** Zach Reisner
-- **Notes:**
-- **Last Touch:** 2026-02-28
 
 ### J.P. Morgan Asset Management
 - **Stage:** 5. Interested
@@ -492,31 +484,31 @@
 - **Stage:** 5. Interested
 - **Target:** $100,000,000
 - **Primary Contact:** Rob Little; Drew Dickey; Jessica Li
-- **Closing:**
+- **Closing:** 
 - **Urgency:** High
-- **Assigned To:** Zach Reisner; Truman Flynn
+- **Assigned To:** Tony Avila
 - **Notes:** Sent Credit and Index Comparisons on 2/25
-- **Last Touch:** 2026-02-28
+- **Last Touch:** 2026-03-05
 
 ### Berkshire Hathaway
 - **Stage:** 5. Interested
 - **Target:** $20,000,000
 - **Primary Contact:** Calvin Haack; Partha Manchiraju; Chuck Chang
 - **Closing:** 
-- **Urgency:** High
-- **Assigned To:** Tony Avila; Oscar Vasquez
+- **Urgent:** False
+- **Assigned To:** Oscar Vasquez
 - **Notes:** Keep close, send any updates, try to get in at final close
-- **Last Touch:** 2026-02-28
+- **Last Touch:** 2026-03-05
 
 ### World Bank
-- **Stage:** 5. Interested
+- **Stage:** 4. Engaged
 - **Target:** $100,000,000
 - **Primary Contact:** Faye Zhao
-- **Closing:**
-- **Urgency:** High
+- **Closing:** 
+- **Urgent:** False
 - **Assigned To:** Tony Avila
 - **Notes:** Sent Credit and Index Comparisons on 2/25; 3/3: Mariane Barrotti from São Paulo now at World Bank DC; reviewing with colleagues
-- **Last Touch:** 2026-03-03
+- **Last Touch:** 2026-03-05
 
 ### JRT Partners
 - **Stage:** 4. Engaged
@@ -529,14 +521,14 @@
 - **Last Touch:** 2026-02-28
 
 ### Flatrock Wealth Partners
-- **Stage:** 4. Engaged
+- **Stage:** 5. Interested
 - **Target:** $20,000,000
 - **Primary Contact:** Kevin Winters
-- **Closing:**
-- **Urgency:** High
-- **Assigned To:** Tony Avila; Oscar Vasquez; Kevin Van Gorder
-- **Notes:**
-- **Last Touch:** 2026-02-28
+- **Closing:** 
+- **Urgent:** False
+- **Assigned To:** Tony Avila
+- **Notes:** 
+- **Last Touch:** 2026-03-05
 
 ### Wilshire Associates
 - **Stage:** 4. Engaged
@@ -549,44 +541,44 @@
 - **Last Touch:** 2026-02-28
 
 ### Willis Towers Watson
-- **Stage:** 5. Interested
+- **Stage:** 4. Engaged
 - **Target:** $100,000,000
 - **Primary Contact:** 
 - **Closing:** 
-- **Urgency:** High
+- **Urgent:** False
 - **Assigned To:** James Walton
 - **Notes:** 
-- **Last Touch:** 2026-03-03
+- **Last Touch:** 2026-03-05
 
 ### Utah State Retirement Systems
-- **Stage:** 4. Engaged
+- **Stage:** 3. Outreach
 - **Target:** $0
 - **Primary Contact:** Rich Matheson
 - **Closing:** 
-- **Urgency:** 
+- **Urgent:** False
 - **Assigned To:** Oscar Vasquez
 - **Notes:** 2/11/26: Tony spoke with Rich Matheson, he is thinking about investing in the fund, however, they are generally full.
-- **Last Touch:** 2026-02-28
+- **Last Touch:** 2026-03-05
 
-### University of Minnesota Foundation Investment Advisors (UMFIA)
-- **Stage:** 4. Engaged
+### University of Minnesota Foundation Investment Advisors
+- **Stage:** 5. Interested
 - **Target:** $10,000,000
 - **Primary Contact:** Riley Erkenbrack
 - **Closing:** 
-- **Urgency:** High
+- **Urgent:** False
 - **Assigned To:** Anthony Albuquerque
 - **Notes:** 
-- **Last Touch:** 2026-02-28
+- **Last Touch:** 2026-03-05
 
 ### United Nations Joint Staff Pension Fund
 - **Stage:** 4. Engaged
 - **Target:** $25,000,000
 - **Primary Contact:** Moojae Kim
-- **Closing:**
-- **Urgency:** High
+- **Closing:** 
+- **Urgent:** False
 - **Assigned To:** Tony Avila
-- **Notes:**
-- **Last Touch:** 2026-02-28
+- **Notes:** 
+- **Last Touch:** 2026-03-05
 
 ### Perennial Capital Advisors
 - **Stage:** 4. Engaged
@@ -609,14 +601,14 @@
 - **Last Touch:** 2026-02-28
 
 ### Sekisui House
-- **Stage:** 5. Interested
+- **Stage:** 4. Engaged
 - **Target:** $100,000,000
 - **Primary Contact:** Toru Ishii; David Viger
-- **Closing:**
-- **Urgency:** Med
+- **Closing:** 
+- **Urgent:** False
 - **Assigned To:** Tony Avila
 - **Notes:** Sent Credit and Index Comparisons on 2/25; 3/3: Tony to call Ishii-san; schedule through David Viger
-- **Last Touch:** 2026-03-03
+- **Last Touch:** 2026-03-05
 
 ### NEPC
 - **Stage:** 0. Declined
@@ -628,25 +620,16 @@
 - **Notes:** Taking to Committee; primed by Kroger. 3/2: NEPC passed — no capacity to pick back up; will be in touch when time comes.
 - **Last Touch:** 2026-03-02
 
-### Local Pension Partnerships (LPP)
-- **Stage:** 4. Engaged
-- **Target:** $50,000,000
-- **Primary Contact:** Richard Tomlinson
-- **Closing:** 
-- **Urgency:** High
-- **Assigned To:** James Walton
-- **Notes:** 
-- **Last Touch:** 2026-02-28
 
 ### Greater London Authority
-- **Stage:** 4. Engaged
+- **Stage:** 0. Declined
 - **Target:** $50,000,000
 - **Primary Contact:** Richard Tomlinson
 - **Closing:** 
-- **Urgency:** 
+- **Urgent:** False
 - **Assigned To:** James Walton
 - **Notes:** 
-- **Last Touch:** 2026-02-28
+- **Last Touch:** 2026-03-05
 
 ### Tishman Capital Partners
 - **Stage:** 4. Engaged
@@ -688,15 +671,15 @@
 - **Notes:** 
 - **Last Touch:** 2026-02-28
 
-### Teachers Retirement System of Texas (Texas Teachers)
-- **Stage:** 4. Engaged
+### Teachers Retirement System of Texas
+- **Stage:** 5. Interested
 - **Target:** $100,000,000
 - **Primary Contact:** Lucas McNulty
-- **Closing:**
-- **Urgency:** High
+- **Closing:** 
+- **Urgent:** False
 - **Assigned To:** Tony Avila
 - **Notes:** Sent Credit and Index Comparisons on 2/25
-- **Last Touch:** 2026-02-28
+- **Last Touch:** 2026-03-05
 
 ### Aozora Bank
 - **Stage:** 4. Engaged
@@ -733,10 +716,10 @@
 - **Target:** $10,000,000
 - **Primary Contact:** Jim Hardman
 - **Closing:** 
-- **Urgency:** High
+- **Urgent:** False
 - **Assigned To:** Oscar Vasquez
 - **Notes:** Met 2/20. Manage Jon Jaffe $$
-- **Last Touch:** 2026-02-28
+- **Last Touch:** 2026-03-05
 
 ### ORG Portfolio Management (Edward Schwartz)
 - **Stage:** 4. Engaged
@@ -749,34 +732,34 @@
 - **Last Touch:** 2026-02-28
 
 ### San Joaquin County Employees' Retirement Association
-- **Stage:** 4. Engaged
-- **Target:** $50,000,000
-- **Primary Contact:** Paris Ba
-- **Closing:** 
-- **Urgency:** High
-- **Assigned To:** 
-- **Notes:** Call on 2/20. Work via consultant.
-- **Last Touch:** 2026-02-28
+- **Stage:** 5. Interested
+- **Target:** $50,000,000–$100,000,000
+- **Primary Contact:** Trent Kaeslin (sole investment officer)
+- **Closing:**
+- **Urgency:** Med
+- **Assigned To:** Anthony Albuquerque
+- **Notes:** $5.4B fund. Ticket range $50M–$100M. Works via Meketa consultant — key RE contact is Scott Maynard; David Sancewich is general contact. 2/17/26 intro call (Oscar + Anthony): Trent asked about Fund I performance, Encore history, fund size increase. Follow-up: send deck to Trent + request meeting with Scott Maynard at Meketa. Zach has Meketa contact Christy Fields (cfields@meketagroup.com). Intro came via Michael Restuccia (VIP conference 2/4/26).
+- **Last Touch:** 2026-02-17
 
 ### Samsung Fire & Marine
-- **Stage:** 5. Interested
+- **Stage:** 4. Engaged
 - **Target:** $100,000,000
 - **Primary Contact:** Eugene Hong
-- **Closing:**
-- **Urgency:** Med
+- **Closing:** 
+- **Urgent:** False
 - **Assigned To:** Tony Avila
 - **Notes:** Gone silent.  Sent Credit and Index Comparisons on 2/25, asked for meeting; 3/3: Meeting needs to be rescheduled
-- **Last Touch:** 2026-03-03
+- **Last Touch:** 2026-03-05
 
 ### Fred Rothman
-- **Stage:** 5. Interested
+- **Stage:** 4. Engaged
 - **Target:** $0
 - **Primary Contact:** Fred Rothman
-- **Closing:**
-- **Urgency:** Med
+- **Closing:** 
+- **Urgent:** False
 - **Assigned To:** Tony Avila
-- **Notes:**
-- **Last Touch:** 2026-03-03
+- **Notes:** 
+- **Last Touch:** 2026-03-05
 
 ### Scott Richland
 - **Stage:** 0. Declined
@@ -808,15 +791,15 @@
 - **Notes:** 
 - **Last Touch:** 2026-02-28
 
-### Pennsylvania Public School Employees' Retirement System (PSERS)
+### Pennsylvania Public School Employees' Retirement System
 - **Stage:** 5. Interested
 - **Target:** $100,000,000
 - **Primary Contact:** James Del Gaudio
-- **Closing:**
-- **Urgency:** Med
-- **Assigned To:** Tony Avila; Lubert
+- **Closing:** 
+- **Urgent:** False
+- **Assigned To:** Tony Avila
 - **Notes:** Meeting confirmed on Friday, 2/23 at 10AM PT
-- **Last Touch:** 2026-03-03
+- **Last Touch:** 2026-03-05
 
 ### Michael Røhling Pedersen
 - **Stage:** 4. Engaged
@@ -868,25 +851,25 @@
 - **Notes:** 11/11: TA meeting with Naselli Jr. to meet their RIA in PHL
 - **Last Touch:** 2026-02-28
 
-### Khazanah (Malaysia Sovereign Wealth Fund)
-- **Stage:** 4. Engaged
+### Khazanah
+- **Stage:** 5. Interested
 - **Target:** $100,000,000
 - **Primary Contact:** Ryan Mulligan
-- **Closing:**
-- **Urgency:** High
-- **Assigned To:** Tony Avila; Zach Reisner
+- **Closing:** 
+- **Urgent:** False
+- **Assigned To:** Tony Avila
 - **Notes:** Sent Credit and Index Comparisons on 2/25
-- **Last Touch:** 2026-02-28
+- **Last Touch:** 2026-03-05
 
 ### Texas Permanent School Fund
 - **Stage:** 5. Interested
-- **Target:** $100,000,000
-- **Primary Contact:** Nick Tramontan
-- **Closing:**
-- **Urgency:** High
+- **Target:** $500,000,000
+- **Primary Contact:** Viktor Makaroff
+- **Closing:** 
+- **Urgent:** Yes
 - **Assigned To:** Tony Avila
-- **Notes:**
-- **Last Touch:** 2026-03-03
+- **Notes:** Teams call 3/5 with Viktor Makaroff, Kevin Godin, Reid Spears (all @texaspsf.org). Aka Texas Perm.
+- **Last Touch:** 2026-03-05
 
 ### Employees' Retirement System of Texas (Texas ERS)
 - **Stage:** 4. Engaged
@@ -909,34 +892,25 @@
 - **Last Touch:** 2026-02-28
 
 ### MetLife Insurance Company
-- **Stage:** 4. Engaged
-- **Target:** $400,000,000
-- **Primary Contact:** Chris Aiken
-- **Closing:**
-- **Urgency:**
-- **Assigned To:** Zach Reisner; Tony Avila
-- **Notes:** Would be GP investment
-- **Last Touch:** 2026-02-28
-
-### St Thomas University
 - **Stage:** 5. Interested
-- **Target:** $10,000,000
-- **Primary Contact:**
-- **Closing:**
-- **Urgency:** Med
-- **Assigned To:** Oscar Vasquez
-- **Notes:**
-- **Last Touch:** 2026-03-03
+- **Target:** $50,000,000
+- **Primary Contact:** Chris Aiken
+- **Closing:** 
+- **Urgent:** Yes
+- **Assigned To:** Zach Reisner
+- **Notes:** wants to work with us; start small and expand
+- **Last Touch:** 2026-03-05
+
 
 ### Aimee Martin
-- **Stage:** 5. Interested
+- **Stage:** 4. Engaged
 - **Target:** $2,000,000
 - **Primary Contact:** Aimee Martin
-- **Closing:**
-- **Urgency:** Med
+- **Closing:** 
+- **Urgent:** False
 - **Assigned To:** Tony Avila
-- **Notes:**
-- **Last Touch:** 2026-03-03
+- **Notes:** 
+- **Last Touch:** 2026-03-05
 
 ### LB Forsikring
 - **Stage:** 4. Engaged
@@ -969,14 +943,14 @@
 - **Last Touch:** 2026-02-28
 
 ### Emirates NBD
-- **Stage:** 4. Engaged
+- **Stage:** 5. Interested
 - **Target:** $10,000,000
 - **Primary Contact:** Nigel Burton
 - **Closing:** 
-- **Urgency:** High
+- **Urgent:** False
 - **Assigned To:** James Walton
 - **Notes:** 
-- **Last Touch:** 2026-02-28
+- **Last Touch:** 2026-03-05
 
 ### Olivier Combastet
 - **Stage:** 4. Engaged
@@ -992,61 +966,61 @@
 - **Stage:** 5. Interested
 - **Target:** $5,000,000
 - **Primary Contact:** Stephen O'Kane (stephen.okane@heritageholdings.com, +44 7870 999178)
-- **Closing:**
-- **Urgency:** High
-- **Assigned To:** Max Angeloni; Tony Avila; Oscar Vasquez
+- **Closing:** 
+- **Urgent:** 
+- **Assigned To:** Oscar Vasquez
 - **Notes:** HNWI/FO — multifamily office managing private wealth for families. Strong prospect per Oscar. Met Mar 3 at Little House Mayfair. Introduced via Max Angeloni (Angeloni & Co). Truman sent data room access. Blinq card exchanged.
-- **Last Touch:** 2026-03-03
+- **Last Touch:** 2026-03-06
 
 ### Justin Roberts
-- **Stage:** 5. Interested
+- **Stage:** 4. Engaged
 - **Target:** $5,000,000
 - **Primary Contact:** Justin Roberts (justin@tomlinson.ch)
-- **Closing:**
-- **Urgency:** High
-- **Assigned To:** Tony Avila; Oscar Vasquez
+- **Closing:** 
+- **Urgent:** 
+- **Assigned To:** Tony Avila
 - **Notes:** HNWI/FO — strong prospect per Oscar. Full name: Justin Roberts (uses tomlinson.ch domain). Met at dinner @ 5 Hertford Street, London, Mar 3 (with Martin Ash/Plurimi). Introduced via Max Angeloni. Tony sent follow-up email + Truman sent data room access same evening. Also attending: Martin Ash (martin.ash@plurimi.com) from Plurimi Wealth.
-- **Last Touch:** 2026-03-03
+- **Last Touch:** 2026-03-05
 
 ### Luigi Bellini
-- **Stage:** 4. Engaged
+- **Stage:** 3. Outreach
 - **Target:** $10,000,000
 - **Primary Contact:** Luigi Bellini
 - **Closing:** 
-- **Urgency:** Low
+- **Urgent:** False
 - **Assigned To:** 
 - **Notes:** 9/28: PK sent data room - F/U discussion scheduled for Oct 10
-- **Last Touch:** 2026-02-28
+- **Last Touch:** 2026-03-05
 
-### Blackstone Multi-Asset Investing (BXMA)
-- **Stage:** 4. Engaged
-- **Target:** $100,000,000
-- **Primary Contact:** Amit Rind
-- **Closing:**
-- **Urgency:** High
-- **Assigned To:** Tony Avila; Oscar Vasquez
-- **Notes:** Also Mountain House co-invest prospect. Truman sent MH co-invest + Fund II data room links 2/27. Amit Rind = MD, Blackstone Multi-Asset Investing. Kaitlin Campbell = scheduling assistant.
-- **Last Touch:** 2026-03-02
-
-### Future Fund (Australia)
-- **Stage:** 3. Meeting Scheduled
-- **Target:** $0
-- **Primary Contact:** TBD
-- **Closing:**
-- **Urgency:** High
-- **Assigned To:** Oscar Vasquez; Tony Avila
-- **Notes:** Australia sovereign wealth fund. Tony wants strategy-focused pitch (not Fund II sales). Team presentation: Glen (ops), David Hardy (construction/dev), Kevin (deals). Per Greg Kostka/Hillwood advice.
-- **Last Touch:** 2026-03-02
-
-### Penn State (Jim Steinbugl)
+### Blackstone Multi-Asset Investing
 - **Stage:** 5. Interested
+- **Target:** $30,000,000
+- **Primary Contact:** Amit Rind
+- **Closing:** 
+- **Urgent:** False
+- **Assigned To:** Tony Avila
+- **Notes:** Also Mountain House co-invest prospect. Truman sent MH co-invest + Fund II data room links 2/27. Amit Rind = MD, Blackstone Multi-Asset Investing. Kaitlin Campbell = scheduling assistant.
+- **Last Touch:** 2026-03-05
+
+### Future Fund
+- **Stage:** 5. Interested
+- **Target:** $200,000,000
+- **Primary Contact:** TBD
+- **Closing:** 
+- **Urgent:** Yes
+- **Assigned To:** Oscar Vasquez
+- **Notes:** Australia sovereign wealth fund. Tony wants strategy-focused pitch (not Fund II sales). Team presentation: Glen (ops), David Hardy (construction/dev), Kevin (deals). Per Greg Kostka/Hillwood advice.
+- **Last Touch:** 2026-03-05
+
+### Penn State
+- **Stage:** 0. Declined
 - **Target:** $0
 - **Primary Contact:** Jim Steinbugl
-- **Closing:**
-- **Urgency:** Med
-- **Assigned To:** Tony Avila; Lubert
+- **Closing:** 
+- **Urgent:** False
+- **Assigned To:** Tony Avila
 - **Notes:** Contact via Tony. Tony sent UTIMCO analyses, requested follow-up call. jbs218@psu.edu
-- **Last Touch:** 2026-03-03
+- **Last Touch:** 2026-03-05
 
 ### Tricon / Blackstone
 - **Stage:** 4. Engaged
@@ -1069,207 +1043,254 @@
 - **Last Touch:** 2026-03-03
 
 ### CHERN Family Office
-- **Stage:** 5. Interested
-- **Target:** $0
-- **Primary Contact:**
-- **Closing:**
-- **Urgency:** High
+- **Stage:** 3. Outreach
+- **Target:** $20,000,000
+- **Primary Contact:** 
+- **Closing:** 
+- **Urgent:** False
 - **Assigned To:** Tony Avila
 - **Notes:** Connect via Canarelli
-- **Last Touch:** 2026-03-03
+- **Last Touch:** 2026-03-05
 
 ### Don Klein
-- **Stage:** 5. Interested
+- **Stage:** 4. Engaged
 - **Target:** $10,000,000
-- **Org Type:** HNWI/FO
-- **Assigned To:** Tony Avila; Patrick Fichtner
+- **Primary Contact:** 
+- **Closing:** 
+- **Urgent:** False
+- **Assigned To:** Tony Avila
 - **Notes:** Don, Patrick and Tony spoke on Jan 6; we will get him in by June — final closing and perhaps have him in GP for a piece
-- **Last Touch:** 2026-03-03
+- **Last Touch:** 2026-03-05
 
-### Repole Family (Body Armor)
-- **Stage:** 5. Interested
+### Repole Family
+- **Stage:** 4. Engaged
 - **Target:** $0
-- **Org Type:** HNWI/FO
+- **Primary Contact:** 
+- **Closing:** 
+- **Urgent:** False
 - **Assigned To:** Tony Avila
 - **Notes:** via Journey Capre (Peter Calatozzo); spoke with Peter; will discuss next week; they have a new CIO
-- **Last Touch:** 2026-03-03
+- **Last Touch:** 2026-03-05
 
 ### Leonardo Partners
-- **Stage:** 5. Interested
+- **Stage:** 4. Engaged
 - **Target:** $0
-- **Org Type:** HNWI/FO
+- **Primary Contact:** 
+- **Closing:** 
+- **Urgent:** False
 - **Assigned To:** Tony Avila
 - **Notes:** In Fort Worth; referred by Mike Amoia of Met Life; Kevin McGrail; he may intro us to others
-- **Last Touch:** 2026-03-03
+- **Last Touch:** 2026-03-05
 
 ### Amin J Khoury
-- **Stage:** 5. Interested
+- **Stage:** 3. Outreach
 - **Target:** $0
-- **Org Type:** HNWI/FO
+- **Primary Contact:** 
+- **Closing:** 
+- **Urgent:** False
 - **Assigned To:** Tony Avila
 - **Notes:** quid pro quo on Immersion investment
-- **Last Touch:** 2026-03-03
+- **Last Touch:** 2026-03-05
 
-### Pennsylvania State Retirement System (PERS)
-- **Stage:** 5. Interested
-- **Target:** $0
-- **Org Type:** Institution
-- **Assigned To:** Tony Avila; Lubert
+### Pennsylvania State Retirement System
+- **Stage:** 4. Engaged
+- **Target:** $200,000,000
+- **Primary Contact:** 
+- **Closing:** 
+- **Urgent:** 
+- **Assigned To:** Tony Avila
 - **Notes:** Ira emailed Richard Vague (PSERS Chairman) on Jan 15; Oscar sent email to Joe Del Gaudio
-- **Last Touch:** 2026-03-03
+- **Last Touch:** 2026-03-05
 
 ### State of Arizona Retirement
-- **Stage:** 5. Interested
+- **Stage:** 3. Outreach
 - **Target:** $0
-- **Org Type:** Institution
+- **Primary Contact:** 
+- **Closing:** 
+- **Urgent:** False
 - **Assigned To:** Tony Avila
 - **Notes:** call with Ed on Feb 3
-- **Last Touch:** 2026-03-03
+- **Last Touch:** 2026-03-05
 
 ### McGuyer/Tesch
-- **Stage:** 5. Interested
+- **Stage:** 4. Engaged
 - **Target:** $12,000,000
-- **Org Type:** HNWI/FO
+- **Primary Contact:** 
+- **Closing:** 
+- **Urgent:** False
 - **Assigned To:** Tony Avila
 - **Notes:** Meeting Feb 11 — thinking about it
-- **Last Touch:** 2026-03-03
+- **Last Touch:** 2026-03-05
 
 ### Lee Wingate
-- **Stage:** 5. Interested
+- **Stage:** 4. Engaged
 - **Target:** $10,000,000
-- **Org Type:** HNWI/FO
+- **Primary Contact:** 
+- **Closing:** 
+- **Urgent:** False
 - **Assigned To:** Tony Avila
 - **Notes:** Avila discussing re: The Ridge and then Fund II more like June; Lee's friend Pete may invest
-- **Last Touch:** 2026-03-03
+- **Last Touch:** 2026-03-05
 
 ### Villanova University Endowment
-- **Stage:** 5. Interested
+- **Stage:** 4. Engaged
 - **Target:** $10,000,000
-- **Org Type:** Institution
+- **Primary Contact:** 
+- **Closing:** 
+- **Urgent:** False
 - **Assigned To:** Anthony Albuquerque
 - **Notes:** Meeting Feb 3; unlikely due to lack of realizations; Anthony is pushing
-- **Last Touch:** 2026-03-03
+- **Last Touch:** 2026-03-05
 
 ### U Penn Endowment
-- **Stage:** 5. Interested
-- **Target:** $0
-- **Org Type:** Institution
+- **Stage:** 4. Engaged
+- **Target:** $100,000,000
+- **Primary Contact:** 
+- **Closing:** 
+- **Urgent:** False
 - **Assigned To:** Anthony Albuquerque
 - **Notes:** Wigrizer to connect
-- **Last Touch:** 2026-03-03
+- **Last Touch:** 2026-03-05
 
 ### RXR Contacts
-- **Stage:** 5. Interested
+- **Stage:** 3. Outreach
 - **Target:** $0
-- **Org Type:** Institution
+- **Primary Contact:** 
+- **Closing:** 
+- **Urgent:** False
 - **Assigned To:** Zach Reisner
 - **Notes:** SMA for vertical
-- **Last Touch:** 2026-03-03
+- **Last Touch:** 2026-03-05
 
 ### Doc Buffington and Team
-- **Stage:** 5. Interested
+- **Stage:** 4. Engaged
 - **Target:** $3,000,000
-- **Org Type:** HNWI/FO
+- **Primary Contact:** 
+- **Closing:** 
+- **Urgent:** False
 - **Assigned To:** Tony Avila
 - **Notes:** ask after deal closes
-- **Last Touch:** 2026-03-03
+- **Last Touch:** 2026-03-05
 
 ### Dwight Sandlin
-- **Stage:** 5. Interested
+- **Stage:** 4. Engaged
 - **Target:** $2,000,000
-- **Org Type:** HNWI/FO
+- **Primary Contact:** 
+- **Closing:** 
+- **Urgent:** False
 - **Assigned To:** Tony Avila
 - **Notes:** Wait until he sees performance — likely Jan 2026
-- **Last Touch:** 2026-03-03
+- **Last Touch:** 2026-03-05
 
 ### Jon Wolf
-- **Stage:** 5. Interested
+- **Stage:** 4. Engaged
 - **Target:** $2,000,000
-- **Org Type:** HNWI/FO
+- **Primary Contact:** 
+- **Closing:** 
+- **Urgent:** False
 - **Assigned To:** Tony Avila
 - **Notes:** Dick and Patrice connection; reviewing PPM; spoke on 1/19
-- **Last Touch:** 2026-03-03
+- **Last Touch:** 2026-03-05
 
 ### Wayne Moravitz
-- **Stage:** 5. Interested
+- **Stage:** 4. Engaged
 - **Target:** $1,000,000
-- **Org Type:** HNWI/FO
+- **Primary Contact:** 
+- **Closing:** 
+- **Urgent:** False
 - **Assigned To:** Tony Avila
 - **Notes:** Wait until he sees performance — likely Jan 2026
-- **Last Touch:** 2026-03-03
+- **Last Touch:** 2026-03-05
 
 ### Fred Balda
-- **Stage:** 5. Interested
+- **Stage:** 4. Engaged
 - **Target:** $1,000,000
-- **Org Type:** HNWI/FO
+- **Primary Contact:** 
+- **Closing:** 
+- **Urgent:** False
 - **Assigned To:** Tony Avila
 - **Notes:** Avila to call
-- **Last Touch:** 2026-03-03
+- **Last Touch:** 2026-03-05
 
 ### Bill Cellar
-- **Stage:** 5. Interested
+- **Stage:** 4. Engaged
 - **Target:** $1,000,000
-- **Org Type:** HNWI/FO
+- **Primary Contact:** 
+- **Closing:** 
+- **Urgent:** False
 - **Assigned To:** Tony Avila
 - **Notes:** talk to Bill in early March
-- **Last Touch:** 2026-03-03
+- **Last Touch:** 2026-03-05
 
 ### Tim Phillips
-- **Stage:** 5. Interested
+- **Stage:** 4. Engaged
 - **Target:** $0
-- **Org Type:** HNWI/FO
+- **Primary Contact:** 
+- **Closing:** 
+- **Urgent:** False
 - **Assigned To:** Oscar Vasquez
-- **Notes:**
-- **Last Touch:** 2026-03-03
+- **Notes:** 
+- **Last Touch:** 2026-03-05
 
 ### Wade McGuinn
-- **Stage:** 5. Interested
+- **Stage:** 3. Outreach
 - **Target:** $0
-- **Org Type:** HNWI/FO
+- **Primary Contact:** 
+- **Closing:** 
+- **Urgent:** False
 - **Assigned To:** Tony Avila
 - **Notes:** Tony to follow up week of Feb 2 re: call last week
-- **Last Touch:** 2026-03-03
+- **Last Touch:** 2026-03-05
 
 ### NYSTRS
-- **Stage:** 5. Interested
+- **Stage:** 4. Engaged
 - **Target:** $0
-- **Org Type:** Institution
+- **Primary Contact:** 
+- **Closing:** 
+- **Urgent:** False
 - **Assigned To:** Zach Reisner
-- **Notes:**
-- **Last Touch:** 2026-03-03
+- **Notes:** 
+- **Last Touch:** 2026-03-05
 
 ### NY Common
-- **Stage:** 5. Interested
+- **Stage:** 4. Engaged
 - **Target:** $0
-- **Org Type:** Institution
+- **Primary Contact:** 
+- **Closing:** 
+- **Urgent:** False
 - **Assigned To:** Zach Reisner
-- **Notes:**
-- **Last Touch:** 2026-03-03
+- **Notes:** 
+- **Last Touch:** 2026-03-05
 
 ### NY Life
-- **Stage:** 5. Interested
+- **Stage:** 4. Engaged
 - **Target:** $0
 - **Primary Contact:** Jac Mclean
-- **Org Type:** Institution
+- **Closing:** 
+- **Urgent:** False
 - **Assigned To:** Zach Reisner
 - **Notes:** Jac is following up; sent builder's daily article
-- **Last Touch:** 2026-03-03
+- **Last Touch:** 2026-03-05
 
 ### Jay Frem
-- **Stage:** 5. Interested
+- **Stage:** 4. Engaged
 - **Target:** $2,000,000
-- **Org Type:** HNWI/FO
+- **Primary Contact:** 
+- **Closing:** 
+- **Urgent:** False
 - **Assigned To:** Oscar Vasquez
-- **Notes:**
-- **Last Touch:** 2026-03-03
+- **Notes:** 
+- **Last Touch:** 2026-03-05
 
 ### General Mills
-- **Stage:** 5. Interested
+- **Stage:** 4. Engaged
 - **Target:** $0
-- **Org Type:** Institution
+- **Primary Contact:** 
+- **Closing:** 
+- **Urgent:** False
 - **Assigned To:** Oscar Vasquez
 - **Notes:** radio silent
-- **Last Touch:** 2026-03-03
+- **Last Touch:** 2026-03-05
 
 ### Marty Connor
 - **Stage:** 0. Declined
@@ -1288,36 +1309,56 @@
 - **Last Touch:** 2026-03-03
 
 ### Phillips & Co, Portland
-- **Stage:** 1. Prospect
+- **Stage:** 4. Engaged
 - **Target:** $0
 - **Primary Contact:** 
 - **Closing:** 
-- **Urgency:** 
+- **Urgent:** 
 - **Assigned To:** 
 - **Notes:** 
-- **Last Touch:** 
+- **Last Touch:** 2026-03-05
 
 ### Hillwood
 - **Stage:** 6. Verbal
 - **Target:** $50,000,000
-- **Primary Contact:** 
-- **Closing:** 
+- **Primary Contact:**
+- **Closing:**
 - **Urgency:** Low
 - **Assigned To:** Tony Avila
-- **Notes:** 
+- **Notes:**
 - **Last Touch:** 2026-03-05
+
+### Sutton Capital Group
+- **Stage:** 3. Presentation
+- **Target:** TBD
+- **Primary Contact:** Darren Sutton — dsutton@suttoncapitalgroup.com
+- **Closing:**
+- **Urgency:** Med
+- **Assigned To:** Tony Avila
+- **Notes:** Tony called Darren today (2026-03-06); Fund II deck sent same day. Paige CC'd. Tony wants to "connect in person in the coming months." New prospect — warm intro, early stage.
+- **Last Touch:** 2026-03-06
 
 ## JVs and Finance
 ### Nomura
-- **Stage:** 5. Interested
+- **Stage:** 0. Declined
 - **Target:** $500,000,000
-- **Primary Contact:** 
-- **Closing:** 
-- **Urgency:** 
-- **Assigned To:** 
-- **Notes:** 
-- **Last Touch:** 2026-03-04
+- **Primary Contact:**
+- **Closing:**
+- **Urgency:**
+- **Assigned To:**
+- **Notes:** 3/6: Oscar called pencils down — too lawyerly, not moving in AREC's direction. Walk away.
+- **Last Touch:** 2026-03-06
 
+
+### BC Partners
+- **Stage:** 4. Engaged
+- **Target:** $0
+- **Primary Contact:** Sam Hillier
+- **Closing:**
+- **Urgency:** Med
+- **Assigned To:** Oscar Vasquez; Tony Avila
+- **Notes:** Intro via Michael Wigrizer (Belgravia). shillier@bcpartnersllc.com. Responded positively to intro. Major global PE firm — early stage, size TBD.
+- **Last Touch:** 2026-03-06
 
 ### Starwood
 - **Stage:** 5. Interested
@@ -1325,6 +1366,207 @@
 - **Primary Contact:** 
 - **Closing:** 
 - **Urgency:** 
+- **Assigned To:** 
+- **Notes:** 
+- **Last Touch:** 
+
+## Mountain House Refi
+### Crestline Investors
+- **Stage:** 1. Prospect
+- **Target:** $0
+- **Primary Contact:** 
+- **Closing:** 
+- **Urgent:** 
+- **Assigned To:** 
+- **Notes:** 
+- **Last Touch:** 
+
+### Stonehill Capital
+- **Stage:** 4. Engaged
+- **Target:** 
+- **Primary Contact:** 
+- **Closing:** 
+- **Urgent:** 
+- **Assigned To:** 
+- **Notes:** 
+- **Last Touch:** 
+
+### Hamilton Lane
+- **Stage:** 3. Outreach
+- **Target:** 
+- **Primary Contact:** 
+- **Closing:** 
+- **Urgent:** 
+- **Assigned To:** 
+- **Notes:** 
+- **Last Touch:** 
+
+### Ghost Tree
+- **Stage:** 3. Outreach
+- **Target:** 
+- **Primary Contact:** 
+- **Closing:** 
+- **Urgent:** 
+- **Assigned To:** 
+- **Notes:** 
+- **Last Touch:** 
+
+### Meritz
+- **Stage:** 3. Outreach
+- **Target:** 
+- **Primary Contact:** 
+- **Closing:** 
+- **Urgent:** 
+- **Assigned To:** 
+- **Notes:** 
+- **Last Touch:** 
+
+### MetLife Insurance Company
+- **Stage:** 3. Outreach
+- **Target:** 
+- **Primary Contact:** 
+- **Closing:** 
+- **Urgent:** 
+- **Assigned To:** 
+- **Notes:** 
+- **Last Touch:** 
+
+### AEW
+- **Stage:** 3. Outreach
+- **Target:** 
+- **Primary Contact:** 
+- **Closing:** 
+- **Urgent:** 
+- **Assigned To:** 
+- **Notes:** 
+- **Last Touch:** 
+
+### Invesco Private Capital
+- **Stage:** 3. Outreach
+- **Target:** 
+- **Primary Contact:** 
+- **Closing:** 
+- **Urgent:** 
+- **Assigned To:** 
+- **Notes:** 
+- **Last Touch:** 
+
+### Sculptor
+- **Stage:** 3. Outreach
+- **Target:** 
+- **Primary Contact:** 
+- **Closing:** 
+- **Urgent:** 
+- **Assigned To:** 
+- **Notes:** 
+- **Last Touch:** 
+
+### JVP Management
+- **Stage:** 3. Outreach
+- **Target:** 
+- **Primary Contact:** 
+- **Closing:** 
+- **Urgent:** 
+- **Assigned To:** 
+- **Notes:** 
+- **Last Touch:** 
+
+### NPS (Korea SWF)
+- **Stage:** 3. Outreach
+- **Target:** 
+- **Primary Contact:** 
+- **Closing:** 
+- **Urgent:** 
+- **Assigned To:** 
+- **Notes:** 
+- **Last Touch:** 
+
+### Teachers Retirement System of Texas (Texas Teachers)
+- **Stage:** 3. Outreach
+- **Target:** 
+- **Primary Contact:** 
+- **Closing:** 
+- **Urgent:** 
+- **Assigned To:** 
+- **Notes:** 
+- **Last Touch:** 
+
+### Future Fund
+- **Stage:** 3. Outreach
+- **Target:** 
+- **Primary Contact:** 
+- **Closing:** 
+- **Urgent:** 
+- **Assigned To:** 
+- **Notes:** 
+- **Last Touch:** 
+
+### Nomura
+- **Stage:** 1. Prospect
+- **Target:** 
+- **Primary Contact:** 
+- **Closing:** 
+- **Urgent:** 
+- **Assigned To:** 
+- **Notes:** 
+- **Last Touch:** 
+
+### Davidson Kempner
+- **Stage:** 1. Prospect
+- **Target:** 
+- **Primary Contact:** 
+- **Closing:** 
+- **Urgent:** 
+- **Assigned To:** 
+- **Notes:** 
+- **Last Touch:** 
+
+### Fortress Group
+- **Stage:** 1. Prospect
+- **Target:** 
+- **Primary Contact:** 
+- **Closing:** 
+- **Urgent:** 
+- **Assigned To:** 
+- **Notes:** 
+- **Last Touch:** 
+
+### Farallon Capital Management
+- **Stage:** 1. Prospect
+- **Target:** 
+- **Primary Contact:** 
+- **Closing:** 
+- **Urgent:** 
+- **Assigned To:** 
+- **Notes:** 
+- **Last Touch:** 
+
+### Siguler Guff
+- **Stage:** 1. Prospect
+- **Target:** 
+- **Primary Contact:** 
+- **Closing:** 
+- **Urgent:** 
+- **Assigned To:** 
+- **Notes:** 
+- **Last Touch:** 
+
+### Koch Real Estate Investments
+- **Stage:** 1. Prospect
+- **Target:** 
+- **Primary Contact:** 
+- **Closing:** 
+- **Urgent:** 
+- **Assigned To:** 
+- **Notes:** 
+- **Last Touch:** 
+
+### Angelo Gordon
+- **Stage:** 1. Prospect
+- **Target:** 
+- **Primary Contact:** 
+- **Closing:** 
+- **Urgent:** 
 - **Assigned To:** 
 - **Notes:** 
 - **Last Touch:** 

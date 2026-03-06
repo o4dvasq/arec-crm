@@ -1,20 +1,16 @@
 # Mark Tschudy
 
-**Title:** CEO / Managing Partner
-**Company:** Trius Partners
+**Organization:** Trius Partners
+**Role:** CEO / Managing Partner
+**Email:** mark.tschudy@triuspartners.ch
 **Phone:** +41 44 215 60 70
 **Cell:** +41 79 459 10 84
-**Email:** mark.tschudy@triuspartners.ch
-**Website:** www.triuspartners.ch
-**Location:** Chamerstrasse 175, CH-6300 Zug, Switzerland
-
-## AREC Prospect
-- **Fund:** AREC Debt Fund II
-- **Status:** Interested
-- **Type:** HNWI/FO
-- **Size:** $2M
-- **Assigned to:** Max Angeloni
+**Type:** Hedge Fund (FX/Precious Metals)
+**Fund II Status:** Declined (sector mismatch)
+**Assignee:** Max Angeloni
+**Met:** Zurich, Mar 4 2026
 
 ## Notes
-- Met in Geneva on March 4, 2026
-- Trius Partners — Zug-based investment firm
+- Trius Partners — Zug-based hedge fund, focuses on FX and precious metals
+- Sector mismatch with AREC's real estate debt strategy
+- Declined Fund II participation

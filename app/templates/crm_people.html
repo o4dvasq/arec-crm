@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>People — Overwatch</title>
+  <link rel="stylesheet" href="/static/crm.css">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f8fafc; color: #1e293b; min-height: 100vh; }
+
+    .page { padding: 24px; max-width: 900px; margin: 0 auto; }
+
+    .page-header { margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between; }
+    .page-title { font-size: 20px; font-weight: 700; color: #0f172a; }
+    .page-count { font-size: 13px; color: #64748b; }
+
+    .search-bar { margin-bottom: 16px; }
+    .search-bar input {
+      width: 100%; max-width: 360px; padding: 8px 12px;
+      border: 1px solid #e2e8f0; border-radius: 6px; font-size: 14px;
+      font-family: inherit; outline: none; background: #fff;
+    }
+    .search-bar input:focus { border-color: #2563eb; }
+
+    .people-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 12px;
+    }
+
+    .person-card {
+      background: #fff;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 16px;
+      text-decoration: none;
+      color: inherit;
+      display: block;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    .person-card:hover {
+      border-color: #2563eb;
+      box-shadow: 0 2px 8px rgba(37, 99, 235, 0.1);
+    }
+
+    .person-name { font-size: 15px; font-weight: 600; color: #0f172a; margin-bottom: 4px; }
+    .person-org { font-size: 13px; color: #64748b; margin-bottom: 4px; }
+    .person-role { font-size: 12px; color: #94a3b8; }
+    .person-email { font-size: 12px; color: #3b82f6; margin-top: 6px; }
+
+    .empty-state { text-align: center; padding: 60px 20px; color: #94a3b8; }
+  </style>
+</head>
+<body>
+
+{% set active_tab = 'people' %}
+{% include '_nav.html' %}
+
+<div class="page">
+  <div class="page-header">
+    <span class="page-title">People</span>
+    <span class="page-count" id="people-count"></span>
+  </div>
+
+  <div class="search-bar">
+    <input type="text" id="search" placeholder="Search people..." oninput="filterPeople(this.value)" autocomplete="off">
+  </div>
+
+  <div class="people-grid" id="people-grid">
+    <div class="empty-state">Loading...</div>
+  </div>
+</div>
+
+<script>
+let allPeople = [];
+
+async function loadPeople() {
+  const res = await fetch('/crm/api/kb-people');
+  allPeople = await res.json();
+  renderPeople(allPeople);
+}
+
+function filterPeople(q) {
+  const lower = q.toLowerCase();
+  const filtered = allPeople.filter(p =>
+    p.name.toLowerCase().includes(lower) ||
+    (p.org || '').toLowerCase().includes(lower) ||
+    (p.role || '').toLowerCase().includes(lower)
+  );
+  renderPeople(filtered);
+}
+
+function renderPeople(people) {
+  const grid = document.getElementById('people-grid');
+  const count = document.getElementById('people-count');
+  count.textContent = people.length + ' people';
+
+  if (!people.length) {
+    grid.innerHTML = '<div class="empty-state">No people found</div>';
+    return;
+  }
+
+  grid.innerHTML = people.map(p => {
+    const slug = p.slug || p.name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+    return `<a href="/crm/people/${slug}" class="person-card">
+      <div class="person-name">${p.name}</div>
+      ${p.org ? `<div class="person-org">${p.org}</div>` : ''}
+      ${p.role ? `<div class="person-role">${p.role}</div>` : ''}
+      ${p.email ? `<div class="person-email">${p.email}</div>` : ''}
+    </a>`;
+  }).join('');
+}
+
+loadPeople();
+</script>
+
+</body>
+</html>

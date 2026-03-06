@@ -7,6 +7,7 @@ Scheduled via launchd at 5 AM daily.
 Flow:
 1. Authenticate with Microsoft Graph
 2. Fetch today's calendar events + last 18h of email
+2a. Write dashboard_calendar.json so the web dashboard is current at startup
 3. Load tasks, memory context, inbox
 4. Build Claude prompt (includes investor intel if applicable)
 5. Generate briefing via Claude API
@@ -15,11 +16,12 @@ Flow:
 8. Log to ~/Library/Logs/arec-morning-briefing.log
 """
 
+import json
 import logging
 import os
 import sys
 import time
-from datetime import datetime
+from datetime import datetime, timezone
 
 # Allow running from the app/ directory
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -59,6 +61,10 @@ BRIEFING_PATH = os.path.expanduser(
     "~/Dropbox/Tech/ClaudeProductivity/briefing_latest.md"
 )
 
+# dashboard_calendar.json lives at the project root (one level above app/)
+_PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+CALENDAR_JSON_PATH = os.path.join(_PROJECT_ROOT, "dashboard_calendar.json")
+
 
 # ---------------------------------------------------------------------------
 # Write output
@@ -83,6 +89,82 @@ investor_meetings: {investor_meetings}
         f.write(frontmatter + briefing_text)
 
     log.info(f"Briefing written to {path}")
+
+
+# ---------------------------------------------------------------------------
+# Write dashboard calendar JSON
+# ---------------------------------------------------------------------------
+
+def write_dashboard_calendar(events: list[dict]) -> None:
+    """Format Graph events and write dashboard_calendar.json for the web app.
+
+    Uses the same format as /api/calendar/refresh so the dashboard reads it
+    correctly whether it was written by the morning script or the in-app button.
+    """
+    try:
+        from zoneinfo import ZoneInfo
+        pacific = ZoneInfo("America/Los_Angeles")
+    except Exception:
+        pacific = None
+
+    def _parse_dt(s: str, tz_fallback: str):
+        if not s:
+            return None
+        s = s.rstrip("Z")
+        try:
+            dt = datetime.fromisoformat(s)
+        except ValueError:
+            return None
+        if dt.tzinfo is None:
+            try:
+                from zoneinfo import ZoneInfo
+                dt = dt.replace(tzinfo=ZoneInfo(tz_fallback))
+            except Exception:
+                dt = dt.replace(tzinfo=timezone.utc)
+        return dt
+
+    def _fmt_time(dt) -> str:
+        if not dt:
+            return ""
+        h = dt.hour % 12 or 12
+        ampm = "AM" if dt.hour < 12 else "PM"
+        return f"{h}:{dt.minute:02d} {ampm}"
+
+    formatted = []
+    for evt in events:
+        if evt.get("is_all_day"):
+            continue
+
+        start_dt = _parse_dt(evt.get("start", ""), evt.get("timezone", "UTC"))
+        end_dt   = _parse_dt(evt.get("end", ""),   evt.get("timezone", "UTC"))
+
+        if start_dt and pacific:
+            start_dt = start_dt.astimezone(pacific)
+        if end_dt and pacific:
+            end_dt = end_dt.astimezone(pacific)
+
+        time_str = (
+            f"{_fmt_time(start_dt)} \u2013 {_fmt_time(end_dt)}"
+            if start_dt and end_dt else ""
+        )
+        attendees = ", ".join(
+            a["name"] or a["email"]
+            for a in evt.get("attendees", [])
+            if a.get("name") or a.get("email")
+        )
+        formatted.append({
+            "time":      time_str,
+            "title":     evt.get("subject", ""),
+            "attendees": attendees,
+            "location":  evt.get("location", ""),
+        })
+
+    try:
+        with open(CALENDAR_JSON_PATH, "w", encoding="utf-8") as f:
+            json.dump(formatted, f, ensure_ascii=False)
+        log.info(f"dashboard_calendar.json written ({len(formatted)} events)")
+    except IOError as e:
+        log.warning(f"Could not write dashboard_calendar.json: {e}")
 
 
 # ---------------------------------------------------------------------------
@@ -129,6 +211,7 @@ def run_briefing() -> None:
     try:
         events = get_today_events(token)
         log.info(f"Fetched {len(events)} events")
+        write_dashboard_calendar(events)  # seed dashboard before generating briefing
     except Exception as e:
         log.warning(f"Calendar fetch failed: {e}")
         events = []

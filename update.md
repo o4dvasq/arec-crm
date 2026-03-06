@@ -21,6 +21,65 @@ Keep your task list and memory current. Two modes:
 
 ## Default Mode
 
+### 0. Sync Dashboard Calendar
+
+Refresh `dashboard_calendar.json` so the web dashboard shows today's events. This runs first, every time, before any other step.
+
+#### 0a. Fetch today's calendar events
+
+Use `outlook_calendar_search` to fetch today's events:
+
+```json
+{
+  "query": "*",
+  "afterDateTime": "<today>T00:00:00Z",
+  "beforeDateTime": "<today>T23:59:59Z",
+  "limit": 50
+}
+```
+
+#### 0b. Format and write dashboard_calendar.json
+
+Convert each event to the dashboard format and write the file at `dashboard_calendar.json` in the workspace root.
+
+Skip all-day events. Format each timed event as:
+
+```json
+{
+  "time": "10:00 AM – 11:00 AM",
+  "title": "Event subject",
+  "attendees": "Name1, Name2",
+  "location": "Location or blank"
+}
+```
+
+Time formatting rules:
+- Convert all times to **Pacific Time (America/Los_Angeles)**
+- Format: `H:MM AM – H:MM PM` (no leading zero on hour, two digits on minutes)
+- Use `–` (en-dash) between start and end times
+
+Attendee formatting: join display names with `, `. If no display name, use email. Omit Oscar himself.
+
+Write the result as a JSON array to `dashboard_calendar.json`. Example:
+
+```json
+[
+  {"time": "9:00 AM – 9:30 AM", "title": "Standup", "attendees": "Tony Avila, Patrick Fichtner", "location": ""},
+  {"time": "2:00 PM – 3:00 PM", "title": "LP Call – Northern Trust", "attendees": "Jim Hartman, Lewis", "location": "Microsoft Teams"}
+]
+```
+
+If there are no events today (or the calendar fetch fails), write an empty array `[]` — do not leave the file stale from a prior day.
+
+#### 0c. Report
+
+After writing, include a single line in the final report:
+```
+- Calendar: N events synced → dashboard_calendar.json updated
+```
+
+---
+
 ### 1. Load Current State
 
 Read `TASKS.md` and `memory/` directory. If they don't exist, suggest `/productivity:start` first.

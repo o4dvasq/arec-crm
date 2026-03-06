@@ -1,6 +1,7 @@
 # Environment & secrets
 .env
-.env.local
+.env*
+.env-transfer
 app/.env
 token_cache.bin
 *.token
@@ -33,6 +34,13 @@ Thumbs.db
 # Temp files
 *.tmp
 *.bak
+
+# Office temp/lock files
+~$*
+.~lock.*
+
+# Excel files (may contain sensitive data)
+*.xlsx
 
 # Dropbox conflict copies
 *conflicted copy*

@@ -1,17 +1,12 @@
-# Justin Tomlinson
+# Justin (Tomlinson)
 
-## Overview
-- **Organization:** Tomlinson (tomlinson.ch — Switzerland-based)
-- **Role:** (TBD)
-- **Email:** justin@tomlinson.ch
-- **Phone:**
-- **Type:** investor / contact
-- **Met via:** Max Angeloni dinner, London, Mar 3 2026
+**Email:** justin@tomlinson.ch
+**Org:** Tomlinson (London)
+**Role:** Unknown — likely principal or partner
+**Type:** Family office / HNWI prospect
 
-## Intel
-- Attendee at "Dinner @ 5H" organized by Max Angeloni
-- Swiss connection (.ch domain) — likely part of Max's European investor network
-- Also at dinner: Martin Ash (Plurimi), Tony, Oscar
-
-## Interaction History
-- 2026-03-03 — Dinner at 5H, London (Max Angeloni, Justin Tomlinson, Martin Ash, Tony, Oscar)
+## Notes
+- Met Tony Avila at the 5H dinner in London (March 2026 Europe trip)
+- Responded positively to Fund II materials Mar 6, 2026
+- Wants to connect end of week of March 16
+- Based in London (domain .ch may be Swiss entity or personal)

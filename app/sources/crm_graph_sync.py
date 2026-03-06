@@ -6,6 +6,7 @@ Matches participants to CRM orgs and logs interactions.
 """
 
 import os
+import yaml
 from datetime import date, datetime
 
 from sources.crm_reader import (
@@ -28,11 +29,30 @@ INTERNAL_DOMAINS = {
 }
 
 
+def _get_user_email() -> str:
+    """Get user email from config or env."""
+    config_path = os.path.join(os.path.dirname(__file__), '..', '..', 'config.yaml')
+    if os.path.exists(config_path):
+        with open(config_path) as f:
+            config = yaml.safe_load(f)
+            if config and 'graph' in config:
+                return config['graph'].get('user_email', '')
+    return os.getenv('MS_USER_ID', 'oscar@avilacapllc.com')
+
+
 def _is_internal(email: str) -> bool:
     if not email:
         return True
-    domain = email.lower().split("@")[-1]
-    return domain in INTERNAL_DOMAINS
+    email_lower = email.lower()
+    # Check against internal domains
+    domain = email_lower.split("@")[-1]
+    if domain in INTERNAL_DOMAINS:
+        return True
+    # Check against configured user email
+    user_email = _get_user_email().lower()
+    if user_email and email_lower == user_email:
+        return True
+    return False
 
 
 def _fuzzy_match_org(display_name: str, org_names: list[str]) -> str | None:

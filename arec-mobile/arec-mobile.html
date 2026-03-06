@@ -701,18 +701,16 @@
 
     .prospect-meta-sep { color: var(--border); }
 
-    .prospect-urgency {
-      display: flex;
-      align-items: center;
-      gap: 4px;
-      font-size: 13px;
-      font-weight: 500;
+    .prospect-card.urgent {
+      border-left: 4px solid #ca8a04;
+      background-color: #fefce8;
     }
 
-    .prospect-urgency .dot { width: 8px; height: 8px; border-radius: 50%; }
-    .urgency-hi-dot { background: var(--urgency-hi); }
-    .urgency-med-dot { background: var(--urgency-med); }
-    .urgency-lo-dot { background: var(--urgency-lo); }
+    .prospect-urgent-indicator {
+      font-size: 13px;
+      font-weight: 500;
+      color: #ca8a04;
+    }
 
     .prospect-next-action {
       font-size: 13px;
@@ -1149,10 +1147,7 @@
           <button class="filter-chip" id="stage-filter-btn">Stage ▾</button>
           <div class="filter-dropdown-menu" id="stage-dropdown"></div>
         </div>
-        <div class="filter-dropdown-wrap" id="urgency-filter-wrap">
-          <button class="filter-chip" id="urgency-filter-btn">Urgency ▾</button>
-          <div class="filter-dropdown-menu" id="urgency-dropdown"></div>
-        </div>
+        <button class="filter-chip" id="urgent-filter-btn" onclick="toggleUrgentFilter()">⚡ Urgent</button>
         <button class="filter-chip" id="more-filters-btn">More ▼</button>
         <button id="clear-filters-btn" style="display:none">Clear all</button>
       </div>
@@ -1250,7 +1245,7 @@ let state = {
 
   selectedOffering: '',
   filterStage: '',
-  filterUrgency: '',
+  filterUrgent: false,
   filterType: '',
   filterClosing: '',
   filterAssigned: '',
@@ -1460,7 +1455,7 @@ function parseProspectsMd(text) {
         committed:      '',
         primaryContact: '',
         closing:        '',
-        urgency:        '',
+        urgent:         false,
         assignedTo:     '',
         notes:          '',
         nextAction:     '',
@@ -1486,7 +1481,7 @@ function parseProspectField(line, prospect) {
     [/^- \*\*Committed:\*\* (.*)$/,      'committed'],
     [/^- \*\*Primary Contact:\*\* (.*)$/,'primaryContact'],
     [/^- \*\*Closing:\*\* (.*)$/,        'closing'],
-    [/^- \*\*Urgency:\*\* (.*)$/,        'urgency'],
+    [/^- \*\*Urgent:\*\* (.*)$/,          'urgent'],
     [/^- \*\*Assigned To:\*\* (.*)$/,    'assignedTo'],
     [/^- \*\*Notes:\*\* (.*)$/,          'notes'],
     [/^- \*\*Next Action:\*\* (.*)$/,    'nextAction'],
@@ -1494,7 +1489,11 @@ function parseProspectField(line, prospect) {
   ];
   for (const [rx, key] of fieldMap) {
     const m = line.match(rx);
-    if (m) { prospect[key] = m[1].trim(); return; }
+    if (m) {
+      const val = m[1].trim();
+      prospect[key] = (key === 'urgent') ? val.toLowerCase() === 'yes' : val;
+      return;
+    }
   }
 }
 
@@ -1516,7 +1515,7 @@ function serializeProspectsMd(prospects) {
       lines.push(`- **Committed:** ${p.committed}`);
       lines.push(`- **Primary Contact:** ${p.primaryContact}`);
       lines.push(`- **Closing:** ${p.closing}`);
-      lines.push(`- **Urgency:** ${p.urgency}`);
+      lines.push(`- **Urgent:** ${p.urgent ? 'Yes' : ''}`);
       lines.push(`- **Assigned To:** ${p.assignedTo}`);
       lines.push(`- **Notes:** ${p.notes}`);
       lines.push(`- **Next Action:** ${p.nextAction}`);
@@ -1557,7 +1556,6 @@ function parseConfigMd(text) {
     terminalStages: [],
     orgTypes:   [],
     closingOptions: [],
-    urgencyLevels: [],
     team:       [],
   };
 
@@ -1581,8 +1579,6 @@ function parseConfigMd(text) {
       config.orgTypes.push(val);
     } else if (currentSection === 'Closing Options') {
       config.closingOptions.push(val);
-    } else if (currentSection === 'Urgency Levels') {
-      config.urgencyLevels.push(val);
     } else if (currentSection === 'AREC Team') {
       config.team.push(val);
     }
@@ -1660,24 +1656,9 @@ function stalenessDot(isoDate) {
   return '<span class="staleness-dot stale-red"></span>';
 }
 
-function urgencyNum(urgency) {
-  const u = (urgency || '').toLowerCase();
-  if (u === 'high') return 3;
-  if (u === 'med')  return 2;
-  if (u === 'low')  return 1;
-  return 0;
-}
-
 function stageNum(stage) {
   const m = (stage || '').match(/^(\d+)/);
   return m ? parseInt(m[1], 10) : -1;
-}
-
-function urgencyDotClass(urgency) {
-  const u = (urgency || '').toLowerCase();
-  if (u === 'high') return 'urgency-hi-dot';
-  if (u === 'med')  return 'urgency-med-dot';
-  return 'urgency-lo-dot';
 }
 
 // ============================================================
@@ -2303,13 +2284,11 @@ function renderOfferingBar() {
 
 function populateFilterDropdowns() {
   const stages   = state.config.stages || [];
-  const urgencies = state.config.urgencyLevels || ['High', 'Med', 'Low'];
   const types    = state.config.orgTypes || [];
   const closings = state.config.closingOptions || [];
   const team     = state.config.team || [];
 
-  buildDropdown('stage-dropdown',    stages,    'stage',    state.filterStage);
-  buildDropdown('urgency-dropdown',  urgencies, 'urgency',  state.filterUrgency);
+  buildDropdown('stage-dropdown', stages, 'stage', state.filterStage);
   buildDropdown('type-dropdown',     types,     'type',     state.filterType);
   buildDropdown('closing-dropdown',  closings,  'closing',  state.filterClosing);
   buildDropdown('assigned-dropdown', team,      'assigned', state.filterAssigned);
@@ -2342,9 +2321,8 @@ function buildDropdown(containerId, items, filterKey, currentValue) {
 }
 
 function setFilter(key, value) {
-  if (key === 'stage')    state.filterStage    = value;
-  if (key === 'urgency')  state.filterUrgency  = value;
-  if (key === 'type')     state.filterType     = value;
+  if (key === 'stage')    state.filterStage = value;
+  if (key === 'type')     state.filterType  = value;
   if (key === 'closing')  state.filterClosing  = value;
   if (key === 'assigned') state.filterAssigned = value;
   updateFilterChips();
@@ -2353,7 +2331,7 @@ function setFilter(key, value) {
 
 function updateFilterChips() {
   const activeFilters = [
-    state.filterStage, state.filterUrgency, state.filterType,
+    state.filterStage, state.filterUrgent ? 'urgent' : '', state.filterType,
     state.filterClosing, state.filterAssigned
   ].filter(Boolean);
 
@@ -2361,8 +2339,7 @@ function updateFilterChips() {
   document.getElementById('stage-filter-btn').classList.toggle('active', !!state.filterStage);
   document.getElementById('stage-filter-btn').textContent = state.filterStage || 'Stage ▾';
 
-  document.getElementById('urgency-filter-btn').classList.toggle('active', !!state.filterUrgency);
-  document.getElementById('urgency-filter-btn').textContent = state.filterUrgency || 'Urgency ▾';
+  document.getElementById('urgent-filter-btn').classList.toggle('active', state.filterUrgent);
 
   document.getElementById('type-filter-btn').classList.toggle('active', !!state.filterType);
   document.getElementById('type-filter-btn').textContent = state.filterType || 'Type ▾';
@@ -2377,9 +2354,15 @@ function updateFilterChips() {
   clearBtn.style.display = activeFilters.length > 0 ? 'block' : 'none';
 }
 
+function toggleUrgentFilter() {
+  state.filterUrgent = !state.filterUrgent;
+  updateFilterChips();
+  renderPipeline();
+}
+
 function clearAllFilters() {
   state.filterStage    = '';
-  state.filterUrgency  = '';
+  state.filterUrgent   = false;
   state.filterType     = '';
   state.filterClosing  = '';
   state.filterAssigned = '';
@@ -2414,18 +2397,16 @@ function renderProspectsList() {
   if (q) prospects = prospects.filter(p => p.name.toLowerCase().includes(q));
 
   // Filter chips
-  if (state.filterStage)    prospects = prospects.filter(p => p.stage === state.filterStage);
-  if (state.filterUrgency)  prospects = prospects.filter(p => p.urgency.toLowerCase() === state.filterUrgency.toLowerCase());
-  if (state.filterType)     prospects = prospects.filter(p => (state.organizations[p.name] || {}).type === state.filterType);
+  if (state.filterStage)  prospects = prospects.filter(p => p.stage === state.filterStage);
+  if (state.filterUrgent) prospects = prospects.filter(p => p.urgent);
+  if (state.filterType)   prospects = prospects.filter(p => (state.organizations[p.name] || {}).type === state.filterType);
   if (state.filterClosing)  prospects = prospects.filter(p => p.closing === state.filterClosing);
   if (state.filterAssigned) prospects = prospects.filter(p => p.assignedTo === state.filterAssigned);
 
-  // Sort: stage desc, urgency desc, target desc
+  // Sort: stage desc, target desc
   prospects.sort((a, b) => {
     const stageDiff = stageNum(b.stage) - stageNum(a.stage);
     if (stageDiff !== 0) return stageDiff;
-    const urgDiff = urgencyNum(b.urgency) - urgencyNum(a.urgency);
-    if (urgDiff !== 0) return urgDiff;
     return parseMoney(b.target) - parseMoney(a.target);
   });
 
@@ -2441,11 +2422,10 @@ function renderProspectsList() {
 
 function buildProspectCard(prospect) {
   const card    = document.createElement('div');
-  card.className = 'prospect-card';
+  card.className = prospect.urgent ? 'prospect-card urgent' : 'prospect-card';
 
   const org     = state.organizations[prospect.name] || {};
   const orgType = org.type || '';
-  const urgClass = urgencyDotClass(prospect.urgency);
   const stale    = stalenessDot(prospect.lastTouch);
 
   card.innerHTML = `
@@ -2457,11 +2437,8 @@ function buildProspectCard(prospect) {
       ${prospect.closing ? `<span class="prospect-meta-sep">·</span><span>${escHtml(prospect.closing)}</span>` : ''}
     </div>
     <div class="prospect-meta-row">
-      <span class="prospect-urgency">
-        <span class="dot ${urgClass}"></span>
-        ${escHtml(prospect.urgency)}
-      </span>
-      ${prospect.assignedTo ? `<span class="prospect-meta-sep">·</span><span>${escHtml(prospect.assignedTo)}</span>` : ''}
+      ${prospect.urgent ? '<span class="prospect-urgent-indicator">⚡ Urgent</span>' : ''}
+      ${prospect.assignedTo ? `${prospect.urgent ? '<span class="prospect-meta-sep">·</span>' : ''}<span>${escHtml(prospect.assignedTo)}</span>` : ''}
     </div>
     ${prospect.nextAction ? `<div class="prospect-next-action">${escHtml(prospect.nextAction)}</div>` : ''}
     <div class="prospect-footer">
@@ -2494,9 +2471,10 @@ function openEditSheet(prospect) {
       </div>
     </div>
     <div class="sheet-field">
-      <span class="sheet-field-label">Urgency</span>
+      <span class="sheet-field-label">Urgent</span>
       <div class="sheet-field-value">
-        ${buildSelect('sheet-urgency', cfg.urgencyLevels || ['High', 'Med', 'Low'], prospect.urgency)}
+        <input type="checkbox" id="sheet-urgent" ${prospect.urgent ? 'checked' : ''}
+          style="width:18px;height:18px;accent-color:#ca8a04;cursor:pointer">
       </div>
     </div>
     <div class="sheet-field">
@@ -2563,7 +2541,8 @@ function saveEditSheet(updateTouch) {
   if (!p) return;
 
   p.stage          = document.getElementById('sheet-stage')?.value       || p.stage;
-  p.urgency        = document.getElementById('sheet-urgency')?.value     || p.urgency;
+  const sheetUrgent = document.getElementById('sheet-urgent');
+  if (sheetUrgent) p.urgent = sheetUrgent.checked;
   p.target         = document.getElementById('sheet-target')?.value      || p.target;
   p.committed      = document.getElementById('sheet-committed')?.value   || p.committed;
   p.closing        = document.getElementById('sheet-closing')?.value     || p.closing;
@@ -2667,7 +2646,6 @@ function initSetupScreen() {
 function initFilterDropdowns() {
   const dropdownPairs = [
     ['stage-filter-btn',   'stage-dropdown'],
-    ['urgency-filter-btn', 'urgency-dropdown'],
     ['type-filter-btn',    'type-dropdown'],
     ['closing-filter-btn', 'closing-dropdown'],
     ['assigned-filter-btn','assigned-dropdown'],

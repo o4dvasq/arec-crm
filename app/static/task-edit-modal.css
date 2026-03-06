@@ -60,6 +60,8 @@
 .task-modal-btn:hover { background: #f1f5f9; border-color: #94a3b8; }
 .task-modal-btn-primary { background: #D97757; color: #fff; border-color: #D97757; }
 .task-modal-btn-primary:hover { background: #c4684a; border-color: #c4684a; }
+.task-modal-btn-secondary { background: #64748b; color: #fff; border-color: #64748b; }
+.task-modal-btn-secondary:hover { background: #475569; border-color: #475569; }
 .task-modal-btn-danger {
   background: none; color: #dc2626; border-color: #fca5a5; margin-right: auto;
 }
@@ -71,3 +73,45 @@
   color: #2563eb; background: #eff6ff;
   padding: 2px 8px; border-radius: 4px; margin-top: 4px;
 }
+
+/* Searchable assignee dropdown */
+.task-modal-assignee-wrap {
+  position: relative;
+}
+.task-modal-assignee-wrap input[type="text"] {
+  width: 100%; padding: 7px 10px; border: 1px solid #e5e7eb; border-radius: 6px;
+  font-size: 13px; font-family: inherit; outline: none; background: #fff; color: #1e293b;
+}
+.task-modal-assignee-wrap input[type="text"]:focus { border-color: #D97757; }
+.task-modal-assignee-dropdown {
+  position: absolute; top: calc(100% + 2px); left: 0; right: 0;
+  background: #fff; border: 1px solid #e5e7eb; border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.12); z-index: 600;
+  max-height: 200px; overflow-y: auto;
+}
+.task-modal-assignee-option {
+  padding: 7px 12px; font-size: 13px; cursor: pointer; color: #1e293b;
+}
+.task-modal-assignee-option:hover { background: #f1f5f9; }
+.task-modal-assignee-none { color: #94a3b8; cursor: default; }
+
+/* Searchable prospect dropdown */
+.task-modal-org-wrap {
+  position: relative;
+}
+.task-modal-org-wrap input[type="text"] {
+  width: 100%; padding: 7px 10px; border: 1px solid #e5e7eb; border-radius: 6px;
+  font-size: 13px; font-family: inherit; outline: none; background: #fff; color: #1e293b;
+}
+.task-modal-org-wrap input[type="text"]:focus { border-color: #D97757; }
+.task-modal-org-dropdown {
+  position: absolute; top: calc(100% + 2px); left: 0; right: 0;
+  background: #fff; border: 1px solid #e5e7eb; border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.12); z-index: 600;
+  max-height: 200px; overflow-y: auto;
+}
+.task-modal-org-option {
+  padding: 7px 12px; font-size: 13px; cursor: pointer; color: #1e293b;
+}
+.task-modal-org-option:hover { background: #f1f5f9; }
+.task-modal-org-none { color: #94a3b8; cursor: default; }

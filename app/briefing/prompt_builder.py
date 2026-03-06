@@ -219,7 +219,6 @@ def build_prompt(
     task_lines = ["## OPEN TASKS"]
     active = tasks.get("active", [])
     personal = tasks.get("personal", [])
-    waiting = tasks.get("waiting", [])
 
     if active:
         task_lines.append("\n### Active")
@@ -229,11 +228,7 @@ def build_prompt(
         task_lines.append("\n### Personal")
         for t in personal:
             task_lines.append(f"- {t}")
-    if waiting:
-        task_lines.append("\n### Waiting On")
-        for t in waiting:
-            task_lines.append(f"- {t}")
-    if not (active or personal or waiting):
+    if not (active or personal):
         task_lines.append("- No open tasks")
     sections.append("\n".join(task_lines))
 

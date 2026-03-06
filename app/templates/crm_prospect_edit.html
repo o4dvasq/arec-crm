@@ -3,21 +3,13 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Edit Prospect</title>
+  <title>Edit Prospect — Overwatch</title>
+  <link rel="stylesheet" href="/static/crm.css">
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0f172a; color: #e2e8f0; min-height: 100vh; }
 
-    nav { background: #1a1a2e; border-bottom: 1px solid #1e293b; padding: 0 24px; display: flex; align-items: center; height: 52px; }
-    nav .nav-links { display: flex; align-items: center; gap: 24px; }
-    nav a { color: #94a3b8; text-decoration: none; font-size: 14px; font-weight: 500; }
-    nav a:hover { color: #e2e8f0; }
-    nav .brand { position: absolute; left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 8px; color: #e2e8f0; font-weight: 700; font-size: 16px; letter-spacing: 0.04em; }
-    nav .brand svg { opacity: 0.85; }
-
     .page { padding: 32px 24px; max-width: 640px; margin: 0 auto; }
-    .back-link { font-size: 13px; color: #64748b; text-decoration: none; display: inline-flex; align-items: center; gap: 4px; margin-bottom: 20px; }
-    .back-link:hover { color: #94a3b8; }
 
     .page-header { margin-bottom: 28px; }
     .page-header h1 { font-size: 22px; font-weight: 700; color: #f1f5f9; margin-bottom: 4px; }
@@ -81,20 +73,11 @@
 </head>
 <body>
 
-<nav>
-  <div class="nav-links">
-    <a href="/">Dashboard</a>
-    <a href="/tasks">Tasks</a>
-    <a href="/crm">Pipeline</a>
-  </div>
-  <div class="brand">
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M15.7 8.6c-.2-.4-.5-.7-.9-.8-.4-.2-.8-.1-1.2.1l-2.3 1.3c-.4.2-.6.5-.7.9-.1.4 0 .8.2 1.1l.9 1.2c-.5.3-1.1.5-1.7.5-1.7 0-3-1.3-3-3s1.3-3 3-3c.9 0 1.8.4 2.3 1.1.3.4.9.5 1.3.2.4-.3.5-.9.2-1.3C13.8 5.7 12.5 5 11 5c-2.8 0-5 2.2-5 5s2.2 5 5 5c1.5 0 2.8-.7 3.8-1.7l.5.7c.2.4.6.6 1 .6.2 0 .3 0 .5-.1.6-.3.8-1 .5-1.6L15.7 8.6z" fill="currentColor" opacity="0.9"/></svg>
-    Overwatch
-  </div>
-</nav>
+{% set active_tab = 'pipeline' %}
+{% include '_nav.html' %}
 
 <div class="page">
-  <a href="/crm" class="back-link">← Back to Pipeline</a>
+  <a href="/crm/prospect/{{ offering }}/{{ org }}/detail" class="breadcrumb-back">← Back to Detail</a>
 
   <div class="page-header">
     <h1>{{ org }}</h1>
@@ -120,14 +103,10 @@
       </div>
 
       <div class="field-row">
-        <label class="field-label" for="field-urgency">Urgency</label>
-        <div class="field-control">
-          <select id="field-urgency">
-            <option value="">— None —</option>
-            {% for u in config.urgency_levels %}
-            <option value="{{ u }}" {% if prospect.Urgency == u %}selected{% endif %}>{{ u }}</option>
-            {% endfor %}
-          </select>
+        <label class="field-label" for="field-urgent">Urgent</label>
+        <div class="field-control" style="display:flex;align-items:center;padding:6px 0">
+          <input type="checkbox" id="field-urgent" style="width:16px;height:16px;accent-color:#ca8a04;cursor:pointer"
+            {% if prospect.urgent %}checked{% endif %}>
         </div>
       </div>
 
@@ -151,7 +130,7 @@
       </div>
 
       <div class="field-row">
-        <label class="field-label" for="field-assigned_to">Assigned To</label>
+        <label class="field-label" for="field-assigned_to">Owner</label>
         <div class="field-control">
           <select id="field-assigned_to">
             <option value="">— None —</option>
@@ -167,12 +146,26 @@
         <div class="field-control">
           <select id="field-primary_contact" onchange="handleContactSelectChange(this)">
             <option value="">— Select —</option>
-            {% for contact in contacts %}
-            <option value="{{ contact.name }}"
-                    {% if prospect['Primary Contact'] == contact.name %}selected{% endif %}>
-              {{ contact.name }}{% if contact.role %} ({{ contact.role }}){% endif %}
-            </option>
-            {% endfor %}
+            {% if contacts %}
+            <optgroup label="This org">
+              {% for contact in contacts %}
+              <option value="{{ contact.name }}"
+                      {% if prospect['Primary Contact'] == contact.name %}selected{% endif %}>
+                {{ contact.name }}{% if contact.role %} — {{ contact.role }}{% endif %}
+              </option>
+              {% endfor %}
+            </optgroup>
+            {% endif %}
+            {% if other_contacts %}
+            <optgroup label="Known contacts">
+              {% for contact in other_contacts %}
+              <option value="{{ contact.name }}"
+                      {% if prospect['Primary Contact'] == contact.name %}selected{% endif %}>
+                {{ contact.name }}{% if contact.organization %} — {{ contact.organization }}{% endif %}
+              </option>
+              {% endfor %}
+            </optgroup>
+            {% endif %}
             <option value="__add_new__">+ Add new contact...</option>
           </select>
           <!-- Inline add-contact form (Delta 3) -->
@@ -194,6 +187,32 @@
         <label class="field-label" for="field-notes">Notes</label>
         <div class="field-control">
           <textarea id="field-notes" rows="4">{{ prospect.Notes or '' }}</textarea>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tasks panel -->
+    <div class="form-section" id="tasks-section">
+      <div class="field-row" style="align-items:flex-start">
+        <span class="field-label" style="padding-top:2px">Tasks</span>
+        <div class="field-control">
+          <div id="tasks-list" style="margin-bottom:10px"></div>
+          <div id="add-task-form" style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end">
+            <input type="text" id="new-task-text" placeholder="Task description…" style="flex:1;min-width:180px">
+            <select id="new-task-owner" style="width:140px">
+              <option value="">Owner…</option>
+              {% for member in config.team %}
+              <option value="{{ member }}">{{ member }}</option>
+              {% endfor %}
+            </select>
+            <select id="new-task-priority" style="width:80px">
+              <option value="Hi">Hi</option>
+              <option value="Med" selected>Med</option>
+              <option value="Lo">Lo</option>
+            </select>
+            <button class="btn-add" onclick="addTask()" style="padding:8px 14px">Add</button>
+          </div>
+          <div id="show-done-toggle" style="margin-top:8px;font-size:12px;color:#64748b;cursor:pointer;display:none" onclick="toggleDoneTasks()">Show completed</div>
         </div>
       </div>
     </div>
@@ -273,9 +292,8 @@ async function saveProspect() {
   const primaryContact = document.getElementById('field-primary_contact').value;
   const fields = {
     stage:           document.getElementById('field-stage').value,
-    urgency:         document.getElementById('field-urgency').value,
+    urgent:          document.getElementById('field-urgent').checked,
     target:          document.getElementById('field-target').value,
-    committed:       document.getElementById('field-committed').value,
     closing:         document.getElementById('field-closing').value,
     assigned_to:     document.getElementById('field-assigned_to').value,
     primary_contact: primaryContact === '__add_new__' ? '' : primaryContact,
@@ -304,6 +322,123 @@ function showError(msg) {
   banner.style.display = '';
   setTimeout(() => { banner.style.display = 'none'; }, 5000);
 }
+
+// ---------------------------------------------------------------------------
+// Tasks panel
+// ---------------------------------------------------------------------------
+
+let _tasks = [];
+
+async function loadTasks() {
+  const resp = await fetch(`/crm/api/tasks?org=${encodeURIComponent(ORG)}`);
+  if (!resp.ok) return;
+  _tasks = await resp.json();
+  renderTasks();
+}
+
+function renderTasks() {
+  const container = document.getElementById('tasks-list');
+  const open = _tasks.filter(t => t.status === 'open');
+  const done = _tasks.filter(t => t.status === 'done');
+
+  let html = '';
+  open.forEach((t, i) => {
+    const dotColor = t.priority === 'Hi' ? '#ef4444' : t.priority === 'Med' ? '#f59e0b' : '#94a3b8';
+    html += `<div style="display:flex;align-items:flex-start;gap:8px;padding:6px 0;border-bottom:1px solid #1e3a5f" data-task-idx="${i}">
+      <input type="checkbox" style="margin-top:3px;cursor:pointer;flex-shrink:0" onchange="completeTask(${i})">
+      <span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:${dotColor};flex-shrink:0;margin-top:6px"></span>
+      <div style="flex:1;min-width:0">
+        <span style="font-size:13px">${escHtml(t.text)}</span>
+        ${t.owner ? `<span style="font-size:11px;color:#64748b;margin-left:6px">${escHtml(t.owner)}</span>` : ''}
+      </div>
+    </div>`;
+  });
+
+  if (done.length) {
+    html += `<div id="done-tasks" style="display:none">`;
+    done.forEach(t => {
+      html += `<div style="display:flex;align-items:flex-start;gap:8px;padding:5px 0;opacity:0.5">
+        <input type="checkbox" checked disabled style="margin-top:3px;flex-shrink:0">
+        <span style="font-size:13px;text-decoration:line-through;color:#64748b">${escHtml(t.text)}</span>
+        ${t.owner ? `<span style="font-size:11px;color:#475569;margin-left:6px">${escHtml(t.owner)}</span>` : ''}
+      </div>`;
+    });
+    html += `</div>`;
+    const toggle = document.getElementById('show-done-toggle');
+    toggle.textContent = `Show ${done.length} completed`;
+    toggle.style.display = '';
+  } else {
+    document.getElementById('show-done-toggle').style.display = 'none';
+  }
+
+  container.innerHTML = html;
+}
+
+function toggleDoneTasks() {
+  const el = document.getElementById('done-tasks');
+  const toggle = document.getElementById('show-done-toggle');
+  if (!el) return;
+  if (el.style.display === 'none') {
+    el.style.display = '';
+    toggle.textContent = `Hide completed`;
+  } else {
+    el.style.display = 'none';
+    const done = _tasks.filter(t => t.status === 'done');
+    toggle.textContent = `Show ${done.length} completed`;
+  }
+}
+
+async function addTask() {
+  const text = document.getElementById('new-task-text').value.trim();
+  const owner = document.getElementById('new-task-owner').value;
+  const priority = document.getElementById('new-task-priority').value;
+  if (!text || !owner) {
+    if (!text) document.getElementById('new-task-text').focus();
+    else document.getElementById('new-task-owner').focus();
+    return;
+  }
+  const resp = await fetch('/crm/api/tasks', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ org: ORG, text, owner, priority, section: 'IR / Fundraising' }),
+  });
+  if (resp.ok) {
+    document.getElementById('new-task-text').value = '';
+    await loadTasks();
+  } else {
+    const err = await resp.json().catch(() => ({}));
+    showError(err.error || 'Failed to add task.');
+  }
+}
+
+async function completeTask(idx) {
+  const task = _tasks.filter(t => t.status === 'open')[idx];
+  if (!task) return;
+  const resp = await fetch('/crm/api/tasks/complete', {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ org: ORG, task_text: task.text }),
+  });
+  if (resp.ok) {
+    await loadTasks();
+  } else {
+    const err = await resp.json().catch(() => ({}));
+    showError(err.error || 'Failed to complete task.');
+  }
+}
+
+function escHtml(str) {
+  return String(str)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+// Enter key in add-task form
+document.getElementById('new-task-text').addEventListener('keydown', e => {
+  if (e.key === 'Enter') { e.preventDefault(); addTask(); }
+});
+
+loadTasks();
 
 async function deleteProspect() {
   if (!confirm(`Delete ${ORG} from ${OFFERING}? This cannot be undone.`)) return;

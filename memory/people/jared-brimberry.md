@@ -20,4 +20,4 @@
 - Sahil produced the quarterly returns, Zach pulled index data, Tony assembled and sent
 - Matt Saverin's feedback shaped final deliverable: "returns without fair value only, correlation without fair value"
 
-- **Email:** 
+- **Email:** jbrimberry@utimco.org
