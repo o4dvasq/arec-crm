@@ -2,6 +2,6 @@
 
 - **Organization:** Crestline Investors
 - **Type:** investor
-- **Email:** 
+- **Email:** taniol@crestlineinc.com
 - **Phone:** 
 - **Role:** 

@@ -101,6 +101,21 @@
     .muted { color: #94a3b8; font-size: 13px; }
     .error-msg { color: #dc2626; font-size: 13px; margin-top: 6px; }
 
+    /* ===== Org Brief ===== */
+    .brief-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+    .brief-title { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: #94a3b8; }
+    .brief-ts { font-size: 11px; color: #94a3b8; font-weight: 400; margin-left: 6px; opacity: 0.7; }
+    .brief-narrative { color: #1e293b; line-height: 1.7; font-size: 14px; white-space: pre-wrap; }
+    .brief-loading { display: flex; align-items: center; gap: 10px; color: #94a3b8; padding: 1.5rem 0; }
+    @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
+    .loading-pulse { width: 8px; height: 8px; border-radius: 50%; background: #2563eb; animation: pulse 1.2s ease infinite; }
+    .btn-brief-refresh {
+        background: none; border: 1px solid #475569; color: #94a3b8;
+        font-size: 12px; padding: 3px 10px; border-radius: 4px; cursor: pointer;
+        transition: border-color 0.15s, color 0.15s;
+    }
+    .btn-brief-refresh:hover { border-color: #2563eb; color: #2563eb; }
+
     /* ===== Add Contact Panel ===== */
     .add-contact-panel {
       background: #fff;
@@ -204,7 +219,17 @@
       </div>
     </div>
 
-    <!-- Section 2: Contacts -->
+    <!-- Section 2: Org Brief -->
+    <div class="card" id="org-brief-card">
+      <div class="card-body" id="org-brief">
+        <div class="brief-loading">
+          <div class="loading-pulse"></div>
+          <span>Loading brief...</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Section 3: Contacts -->
     <div class="card">
       <div class="card-header">
         <span class="card-title">Contacts</span>
@@ -381,6 +406,77 @@ async function init() {
   renderProspects();
   renderOfferingDropdown();
   loadMeetings();
+  loadOrgBrief(data.saved_brief);
+}
+
+// ---------------------------------------------------------------------------
+// Org Brief
+// ---------------------------------------------------------------------------
+
+async function loadOrgBrief(savedBrief) {
+  // Use server-persisted brief if present
+  if (savedBrief && savedBrief.narrative) {
+    renderOrgBrief(savedBrief.narrative, savedBrief.generated_at);
+    return;
+  }
+  // No saved brief — auto-synthesize on first visit
+  showBriefLoading();
+  await _synthesizeOrgBrief();
+}
+
+async function refreshOrgBrief() {
+  showBriefLoading();
+  await _synthesizeOrgBrief();
+}
+
+async function _synthesizeOrgBrief() {
+  try {
+    const resp = await fetch('/crm/api/synthesize-org-brief', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ org: ORG_NAME }),
+    });
+    if (!resp.ok) throw new Error('Synthesis failed');
+    const synth = await resp.json();
+    renderOrgBrief(synth.narrative);
+  } catch (err) {
+    renderOrgBriefError();
+  }
+}
+
+function renderOrgBrief(narrative, generatedAt) {
+  const tsHtml = generatedAt
+    ? `<span class="brief-ts" title="Generated ${generatedAt}">
+         ${new Date(generatedAt).toLocaleDateString('en-US', {month:'short', day:'numeric'})}
+       </span>`
+    : '';
+  document.getElementById('org-brief').innerHTML = `
+    <div class="brief-header">
+      <span class="brief-title">Relationship Brief ${tsHtml}</span>
+      <button class="btn-brief-refresh" onclick="refreshOrgBrief()">⟳ Refresh</button>
+    </div>
+    <div class="brief-narrative">${escHtml(narrative)}</div>
+  `;
+}
+
+function showBriefLoading() {
+  document.getElementById('org-brief').innerHTML = `
+    <div class="brief-header"><span class="brief-title">Relationship Brief</span></div>
+    <div class="brief-loading">
+      <div class="loading-pulse"></div>
+      <span>Synthesizing intelligence...</span>
+    </div>
+  `;
+}
+
+function renderOrgBriefError() {
+  document.getElementById('org-brief').innerHTML = `
+    <div class="brief-header">
+      <span class="brief-title">Relationship Brief</span>
+      <button class="btn-brief-refresh" onclick="refreshOrgBrief()">Retry</button>
+    </div>
+    <div class="muted" style="padding:0.5rem 0">Brief generation unavailable.</div>
+  `;
 }
 
 function escHtml(str) {

@@ -76,9 +76,18 @@
 let allPeople = [];
 
 async function loadPeople() {
-  const res = await fetch('/crm/api/kb-people');
-  allPeople = await res.json();
-  renderPeople(allPeople);
+  try {
+    const res = await fetch('/crm/api/kb-people');
+    if (!res.ok) {
+      throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+    }
+    allPeople = await res.json();
+    renderPeople(allPeople);
+  } catch (err) {
+    console.error('Failed to load people:', err);
+    document.getElementById('people-grid').innerHTML =
+      `<div class="empty-state">Error loading people: ${err.message}</div>`;
+  }
 }
 
 function filterPeople(q) {
@@ -86,7 +95,7 @@ function filterPeople(q) {
   const filtered = allPeople.filter(p =>
     p.name.toLowerCase().includes(lower) ||
     (p.org || '').toLowerCase().includes(lower) ||
-    (p.role || '').toLowerCase().includes(lower)
+    (p.title || '').toLowerCase().includes(lower)
   );
   renderPeople(filtered);
 }
@@ -106,7 +115,7 @@ function renderPeople(people) {
     return `<a href="/crm/people/${slug}" class="person-card">
       <div class="person-name">${p.name}</div>
       ${p.org ? `<div class="person-org">${p.org}</div>` : ''}
-      ${p.role ? `<div class="person-role">${p.role}</div>` : ''}
+      ${p.title ? `<div class="person-role">${p.title}</div>` : ''}
       ${p.email ? `<div class="person-email">${p.email}</div>` : ''}
     </a>`;
   }).join('');

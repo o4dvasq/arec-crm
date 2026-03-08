@@ -4,10 +4,10 @@
 - Brightside Capital Partners: ashton-newhall
 - Crestline Investors: john-cochran, rahul-vaid, brenda-diaz, michael-benard, thomas-aniol, jonathan-morgan
 - Hillwood Communities: danny-ellis
-- J.P. Morgan Asset Management: brian-mccann
+- J.P. Morgan Asset Management: brendan-cameron, brian-mccann, matthew-cummings
 - LGI: charles-merdian
 - Mass Mutual Life Insurance Co.: drew-dickey, jessica-li
-- Meritz: haijoung-kim, jinho-conor-lee
+- Meritz Securities (Korea): haijoung-kim, jinho-lee
 - Merseyside Pension Fund: susannah-friar, dragos-serbanica, zyan-nuafal, saneeza-asrar
 - StepStone: tom-hester, aayaan-mehta
 - BC Partners: sam-hillier
@@ -15,7 +15,7 @@
 - Manning Family SFO: christopher-henry
 - Merseyside Pension Fund: susannah-friar, dragos-serbanica, zyan-nuafal, saneeza-asrar
 - Steyn Group: matthew-sopp
-- Stonehill Capital: michael-stern
+- Stonehill Capital: michael-stern, april-chang
 - Sumitomo Mitsui Banking Corporation (SMBC): masayuki-fujishiro, hiroki-hirayama
 - Texas Permanent School Fund: viktor-makaroff, reid-spears, kevin-godin, nick-tramontana
 - UTIMCO - Hedge Fund: jared-brimberry
@@ -23,3 +23,7 @@
 - Vobis Members: francesco-galdiero
 - Ontario Power Generation Pension Fund: joseph-lyn, terrence-chin, vlad-agache, atif-ali, wentao-shi
 - San Joaquin County Employees' Retirement Association: trent-kaeslin
+- Hamilton Lane Advisors: elizabeth-bell, jackie-dash, wanli, scott-davies
+- Jordan Park: alex-etzkowitz, alek-yoder
+- MetLife Insurance Company: christopher-aiken
+- NPS (Korea SWF): john-s-kim, david-kim

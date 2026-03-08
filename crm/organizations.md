@@ -6,7 +6,7 @@
 
 
 ## AEW
-- **Type:** INSTITUTIONAL
+- **Type:** Asset Manager
 - **Notes:** 
 
 
@@ -16,11 +16,11 @@
 
 
 ## Angelo Gordon
-- **Type:** INSTITUTIONAL
+- **Type:** Asset Manager
 - **Notes:** 
 
 ## Aozora Bank
-- **Type:** INSTITUTIONAL
+- **Type:** Bank
 - **Domain:** @aozorabank.co.jp
 - **Notes:**
 
@@ -37,17 +37,17 @@
 
 
 ## Barbnet (Bass Brothers)
-- **Type:** 
+- **Type:** HNWI / FO
 - **Notes:**
 
 
 ## Baylor College of Medicine Endowment
-- **Type:** 
+- **Type:** Endowment
 - **Notes:**
 
 
 ## BC Partners
-- **Type:** INSTITUTIONAL
+- **Type:** Asset Manager
 - **Notes:** Intro via Wigrizer. Sam Hillier (shillier@bcpartnersllc.com). Global PE firm. Engaged prospect.
 
 ## Belgravia Management
@@ -55,23 +55,23 @@
 - **Notes:** Talk to Mike Wigrizer once they've closed to push harder on introductions
 
 ## Berkshire Hathaway
-- **Type:** INSTITUTIONAL
+- **Type:** Insurance
 - **Domain:** @berkshirehathaway.com
 - **Notes:**
 
 
 ## Bill Cellar
-- **Type:** 
+- **Type:** HNWI / FO
 - **Notes:**
 
 
 ## Boston Children's Hospital
-- **Type:** 
+- **Type:** Endowment
 - **Notes:**
 
 
 ## Boston Foundation
-- **Type:** 
+- **Type:** Endowment
 - **Notes:**
 
 
@@ -101,28 +101,28 @@
 
 
 ## Crestline Investors
-- **Type:** INSTITUTIONAL
-- **Domain:** @crestlineinvestors.com
+- **Type:** Private Credit
+- **Domain:** @crestlineinc.com
 - **Notes:** 
 
 
 ## Dana-Farber Cancer Institute
-- **Type:** 
+- **Type:** Endowment
 - **Notes:**
 
 
 ## Dartmouth College Endowment
-- **Type:** 
+- **Type:** Endowment
 - **Notes:**
 
 
 ## Davidson Kempner
-- **Type:** INSTITUTIONAL
+- **Type:** Asset Manager
 - **Notes:** 
 
 
 ## Don Klein (Chesmar)
-- **Type:** 
+- **Type:** HNWI / FO
 - **Notes:**
 
 
@@ -138,28 +138,28 @@
 
 
 ## Dwight Sandlin
-- **Type:** 
+- **Type:** HNWI / FO
 - **Notes:**
 
 
 ## ELC Capital
-- **Type:** 
+- **Type:** HNWI / FO
 - **Notes:**
 
 
 ## Emirates NBD
-- **Type:** INSTITUTIONAL
+- **Type:** Bank
 - **Domain:** @emiratesnbd.com
 - **Notes:**
 
 
 ## Employees' Retirement System of Texas (Texas ERS)
-- **Type:** INSTITUTIONAL
+- **Type:** Public Pension
 - **Notes:**
 
 
 ## Farallon Capital Management
-- **Type:** INSTITUTIONAL
+- **Type:** Asset Manager
 - **Notes:** 
 
 
@@ -169,7 +169,7 @@
 
 
 ## Fortress Group
-- **Type:** INSTITUTIONAL
+- **Type:** Asset Manager
 - **Notes:** 
 
 
@@ -184,7 +184,7 @@
 
 
 ## Fred Balda (Hillwood Communities)
-- **Type:** 
+- **Type:** HNWI / FO
 - **Notes:**
 
 
@@ -207,17 +207,17 @@
 
 
 ## General Mills Retirement Plan
-- **Type:** 
+- **Type:** Corporate Pension
 - **Notes:**
 
 
 ## Ghost Tree
-- **Type:** INSTITUTIONAL
+- **Type:** Private Credit
 - **Notes:** 
 
 
 ## Greater London Authority
-- **Type:** 
+- **Type:** Public Pension
 - **Notes:**
 
 
@@ -226,8 +226,8 @@
 - **Notes:**
 
 
-## Hamilton Lane
-- **Type:** INSTITUTIONAL
+## Hamilton Lane Advisors
+- **Type:** Fund of Funds / Advisor
 - **Notes:** 
 
 
@@ -237,7 +237,7 @@
 
 
 ## HC Asset Management
-- **Type:** INSTITUTIONAL
+- **Type:** Fund of Funds / Advisor
 - **Notes:**
 
 
@@ -253,28 +253,35 @@
 
 
 ## Invesco Private Capital
-- **Type:** INSTITUTIONAL
+- **Type:** Asset Manager
 - **Notes:** 
 
 
 ## J.P. Morgan Asset Management
-- **Type:** INSTITUTIONAL
+- **Type:** Asset Manager
 - **Domain:** @jpmorgan.com
 - **Notes:**
 
 
 ## James Irvine Foundation
-- **Type:** 
+- **Type:** Endowment
 - **Notes:**
+
+## Jordan Park
+- **Type:** Multi-Family Office / RIA
+- **Domain:** @jordanpark.com
+- **Contacts:** Alex Etzkowitz (primary), Alek Yoder
+- **Notes:** SF-based multi-family office. Referred by Peter Brosens (VP, Jordan Park). Existing OZ equity relationship with AREC. Alex Etzkowitz going on paternity leave.
+
 
 
 ## Jay Frem
-- **Type:** 
+- **Type:** HNWI / FO
 - **Notes:**
 
 
 ## Jeff Canarelli
-- **Type:** INSTITUTIONAL
+- **Type:** Family Office
 - **Notes:**
 
 
@@ -284,12 +291,12 @@
 
 
 ## Johnson & Johnson Pension Fund
-- **Type:** INSTITUTIONAL
+- **Type:** Corporate Pension
 - **Notes:**
 
 
 ## JRT Partners
-- **Type:** INSTITUTIONAL
+- **Type:** Asset Manager
 - **Notes:**
 
 
@@ -299,42 +306,47 @@
 
 
 ## JVP Management
-- **Type:** INSTITUTIONAL
+- **Type:** Asset Manager
 - **Notes:** 
 
 
 ## Kamehameha Schools
-- **Type:** 
+- **Type:** Endowment
 - **Notes:**
 
 
 ## Khazanah (Malaysia Sovereign Wealth Fund)
-- **Type:** INSTITUTIONAL
+- **Type:** Sovereign Wealth Fund
 - **Notes:**
 
 
 ## Kiri Capital
-- **Type:** INSTITUTIONAL
+- **Type:** Private Credit
 - **Notes:**
 
 
 ## Klarman Family Foundation
-- **Type:** 
+- **Type:** HNWI / FO
 - **Notes:**
 
 
 ## Koch Real Estate Investments
-- **Type:** INSTITUTIONAL
+- **Type:** Asset Manager
 - **Notes:** 
 
 
 ## LB Forsikring
-- **Type:** INSTITUTIONAL
+- **Type:** Insurance
 - **Notes:**
+
+## Liberty Mutual
+- **Type:** Insurance
+- **Notes:** Capital charge/risk sensitivity noted as potential concern. CRM note: "send Mountain House?" Under consideration for co-invest.
+
 
 
 ## Lee Wingate
-- **Type:** 
+- **Type:** HNWI / FO
 - **Notes:**
 
 
@@ -345,7 +357,7 @@
 
 
 ## Local Pension Partnerships (LPP)
-- **Type:** INSTITUTIONAL
+- **Type:** Public Pension
 - **Notes:**
 
 
@@ -359,30 +371,30 @@
 - **Notes:** Christopher A. Henry (cahenry@gmail.com). Met Arts Club breakfast London Mar 3.
 
 ## Mass Mutual Life Insurance Co.
-- **Type:** INSTITUTIONAL
+- **Type:** Insurance
 - **Domain:** @massmutual.com
 - **Notes:**
 
 
 ## Meritage Homes Corporation
-- **Type:** 
+- **Type:** BUILDER
 - **Notes:**
 
 
-## Meritz
-- **Type:** 
+## Meritz Securities (Korea)
+- **Type:** Broker/Advisor
 - **Domain:** @meritz.co.kr
 - **Notes:**
 
 
 ## Merseyside Pension Fund
-- **Type:** INSTITUTIONAL
-- **Domain:** @merseyside.org.uk
+- **Type:** Public Pension
+- **Domain:** @wirral.gov.uk
 - **Notes:** 
 
 
 ## MetLife Insurance Company
-- **Type:** INSTITUTIONAL
+- **Type:** Insurance
 - **Notes:**
 
 
@@ -392,18 +404,18 @@
 
 
 ## Mother Cabrini Health Foundation
-- **Type:** 
+- **Type:** Endowment
 - **Notes:**
 
 
 ## NEPC
-- **Type:** INSTITUTIONAL
+- **Type:** Investment Consultant
 - **Domain:** @nepc.com
 - **Notes:**
 
 
 ## Nomura
-- **Type:** INSTITUTIONAL
+- **Type:** Broker/Advisor
 - **Notes:** 
 
 
@@ -413,12 +425,12 @@
 
 
 ## Northern Trust Wealth Management
-- **Type:** INSTITUTIONAL
+- **Type:** Asset Manager
 - **Notes:**
 
 
 ## NPS (Korea SWF)
-- **Type:** INSTITUTIONAL
+- **Type:** Sovereign Wealth Fund
 - **Notes:**
 
 
@@ -428,7 +440,7 @@
 
 
 ## Ontario Power Generation Pension Fund
-- **Type:** INSTITUTIONAL
+- **Type:** Public Pension
 - **Notes:** Canadian pension co-managed by OPG and Ontario Financing Authority (OFA). Pension + Nuclear Fund are separate structures (different tax implications). AREC strategy fits in **credit bucket**, not RE bucket — OFA credit team is the relevant decision-maker. 5 contacts across OPG RE, OPG Credit, and OFA Credit. Zach Reisner owns relationship. 2/12/26 intro call: deep diligence Q&A on A&D/vertical structure, leverage, sourcing, markets, non-US investor structuring, fee economics. AREC follow-ups sent: data room, REIT tax memo, fund model, prior deal model, SMBC response doc. 2/26/26: Zach sent index analysis and fund comparison.
 
 
@@ -438,7 +450,7 @@
 
 
 ## ORG Portfolio Management
-- **Type:** INSTITUTIONAL
+- **Type:** Asset Manager
 - **Notes:**
 
 
@@ -453,12 +465,12 @@
 
 
 ## Pennsylvania Public School Employees' Retirement System (PSERS)
-- **Type:** INSTITUTIONAL
+- **Type:** Public Pension
 - **Notes:**
 
 
 ## Perennial Capital Advisors
-- **Type:** INSTITUTIONAL
+- **Type:** Investment Consultant
 - **Notes:**
 
 
@@ -473,12 +485,12 @@
 
 
 ## Samsung Fire & Marine
-- **Type:** INSTITUTIONAL
+- **Type:** Insurance
 - **Notes:**
 
 
 ## San Joaquin County Employees' Retirement Association
-- **Type:** INSTITUTIONAL
+- **Type:** Public Pension
 - **Notes:** $5.4B CA public pension. Sole investment staff: Trent Kaeslin. Uses Meketa as investment consultant — David Sancewich (general), Scott Maynard (RE specialist). 2026 deployment: $165M RE + $100M infrastructure. Ticket range $50M–$100M. Only residential exposure: Abacus Capital (multifamily). AREC intro via Michael Restuccia → Trent Kaeslin (VIP conference 2/4/26). 2/17/26 intro call (Oscar + Anthony): Trent asked about Fund I track record, Encore history, fund size increase rationale. Follow-ups: send updated deck to Trent + Scott Maynard at Meketa. Zach has Meketa contact: Christy Fields (cfields@meketagroup.com).
 
 
@@ -493,7 +505,7 @@
 
 
 ## Sculptor
-- **Type:** INSTITUTIONAL
+- **Type:** Asset Manager
 - **Notes:** 
 
 
@@ -503,12 +515,12 @@
 
 
 ## Siguler Guff
-- **Type:** INSTITUTIONAL
+- **Type:** Fund of Funds / Advisor
 - **Notes:** 
 
 
 ## St. Thomas University Endowment
-- **Type:** INSTITUTIONAL
+- **Type:** Endowment
 - **Notes:**
 
 
@@ -518,7 +530,7 @@
 
 
 ## StepStone
-- **Type:** INSTITUTIONAL
+- **Type:** Fund of Funds / Advisor
 - **Domain:** @stepstoneglobal.com
 - **Notes:**
 
@@ -530,8 +542,8 @@
 
 
 ## Stonehill Capital
-- **Type:** INSTITUTIONAL
-- **Domain:** @stonehillcapital.com
+- **Type:** Private Credit
+- **Domain:** @stonehillcap.com
 - **Notes:**
 
 
@@ -541,18 +553,18 @@
 
 
 ## Sumitomo Mitsui Banking Corporation (SMBC)
-- **Type:** INSTITUTIONAL
+- **Type:** Bank
 - **Domain:** @smbc.co.jp
 - **Notes:**
 
 
 ## Sumitomo Mitsui Trust Bank (SMTB)
-- **Type:** INSTITUTIONAL
+- **Type:** Bank
 - **Notes:**
 
 
 ## Teachers Retirement System of Texas (Texas Teachers)
-- **Type:** INSTITUTIONAL
+- **Type:** Public Pension
 - **Notes:**
 
 
@@ -588,48 +600,48 @@
 
 
 ## Travelers Insurance
-- **Type:** INSTITUTIONAL
+- **Type:** Insurance
 - **Notes:**
 
 
 ## Twin Focus Capital Partners
-- **Type:** INSTITUTIONAL
+- **Type:** Multi-Family Office / RIA
 - **Notes:**
 
 
 ## United Nations Joint Staff Pension Fund
-- **Type:** INSTITUTIONAL
+- **Type:** Public Pension
 - **Notes:**
 
 
 ## University of Georgia Foundation
-- **Type:** 
+- **Type:** Endowment
 - **Notes:**
 
 
 ## University of Kentucky Endowment
-- **Type:** 
+- **Type:** Endowment
 - **Notes:**
 
 
 ## University of Minnesota Foundation Investment Advisors (UMFIA)
-- **Type:** INSTITUTIONAL
+- **Type:** Endowment
 - **Notes:**
 
 
 ## Utah State Retirement Systems
-- **Type:** 
+- **Type:** Public Pension
 - **Notes:**
 
 
 ## UTIMCO - Hedge Fund
-- **Type:** INSTITUTIONAL
+- **Type:** Asset Manager
 - **Contacts:** Jared Brimberry
 - **Notes:** UTIMCO hedge fund division. Separated from UTIMCO - Real Estate to track distinct prospects and contacts.
 
 
 ## UTIMCO - Real Estate
-- **Type:** INSTITUTIONAL
+- **Type:** Asset Manager
 - **Contacts:** Matt Saverin
 - **Notes:** UTIMCO real estate division. Separated from UTIMCO - Hedge Fund to track distinct prospects and contacts.
 
@@ -639,17 +651,17 @@
 - **Notes:** Francesco Galdiero (francesco@vobismembers.com). Met Arts Club breakfast London Mar 3.
 
 ## Willis Towers Watson
-- **Type:** INSTITUTIONAL
+- **Type:** Investment Consultant
 - **Notes:**
 
 
 ## Wilshire Associates
-- **Type:** INSTITUTIONAL
+- **Type:** Investment Consultant
 - **Notes:**
 
 
 ## World Bank
-- **Type:** INSTITUTIONAL
+- **Type:** Sovereign Wealth Fund
 - **Notes:**
 
 

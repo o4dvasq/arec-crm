@@ -21,17 +21,40 @@
     .tab-meta { font-size: 11px; color: #94a3b8; margin-top: 2px; }
 
     /* Fund summary bar */
-    .fund-bar { background: #fff; border: 1px solid #e2e8f0; border-top: none; padding: 10px 16px; display: flex; gap: 32px; align-items: center; flex-wrap: wrap; margin-bottom: 12px; }
-    .fund-stat { font-size: 15px; color: #64748b; }
-    .fund-stat strong { color: #1e293b; }
+    .fund-bar { background: #fff; border: 1px solid #e2e8f0; border-top: none; padding: 10px 16px; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-bottom: 12px; }
+
+    .stat-chip {
+      display: flex;
+      flex-direction: column;
+      padding: 8px 14px;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+    }
+
+    .stat-value {
+      font-size: 18px;
+      font-weight: 700;
+      color: #0f172a;
+      line-height: 1.2;
+    }
+
+    .stat-label {
+      font-size: 11px;
+      color: #94a3b8;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+      margin-top: 2px;
+    }
 
     /* Filters */
-    .filters { display: flex; gap: 10px; margin-bottom: 12px; flex-wrap: wrap; align-items: center; }
-    .filters input[type=text] { padding: 6px 10px; border: 1px solid #e2e8f0; border-radius: 6px; font-size: 13px; width: 200px; outline: none; }
+    .filters { display: flex; gap: 8px; padding: 8px 16px; margin-bottom: 12px; flex-wrap: wrap; align-items: center; background: #fff; border: 1px solid #e2e8f0; border-radius: 8px; }
+    .filters input[type=text] { padding: 6px 10px; border: 1px solid #e2e8f0; border-radius: 6px; font-size: 13px; width: 180px; outline: none; }
     .filters input[type=text]:focus { border-color: #2563eb; }
     .filters select { padding: 6px 10px; border: 1px solid #e2e8f0; border-radius: 6px; font-size: 13px; background: #fff; outline: none; cursor: pointer; }
     .filters select:focus { border-color: #2563eb; }
     .toggle-label { font-size: 13px; color: #64748b; display: flex; align-items: center; gap: 6px; cursor: pointer; }
+    .filters .spacer { flex: 1; }
 
     /* Unmatched panel */
     .unmatched-panel { background: #fff; border: 1px solid #fbbf24; border-radius: 8px; margin-bottom: 16px; overflow: hidden; }
@@ -55,13 +78,28 @@
     th:hover { color: #1e293b; }
     td { padding: 10px 14px; font-size: 13px; border-bottom: 1px solid #f1f5f9; vertical-align: middle; }
     tr:last-child td { border-bottom: none; }
-    tr:hover td { background: #f8fafc; }
     tr { cursor: pointer; }
+
+    /* Row styling with urgency border */
+    tbody tr {
+      border-left: 3px solid transparent;
+      transition: border-left-color 0.2s ease;
+    }
+
+    tbody tr.urgent-row {
+      border-left-color: #ef4444;
+    }
+
+    tbody tr:nth-child(even):not(.stage-subtotal) {
+      background: #fafbfc;
+    }
+
+    tbody tr:hover:not(.stage-subtotal) {
+      background: #f1f5f9;
+    }
 
     /* Badges */
     .badge { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 600; }
-    tr.urgent-row { background-color: #fefce8; }
-    tr.urgent-row:hover { background-color: #fef9c3 !important; }
     .urgent-checkbox { cursor: pointer; width: 15px; height: 15px; accent-color: #ca8a04; }
     .filter-chip { padding: 5px 12px; border: 1px solid #334155; border-radius: 6px; background: #1e293b; color: #94a3b8; font-size: 12px; font-family: inherit; cursor: pointer; white-space: nowrap; }
     .filter-chip:hover { border-color: #475569; color: #e2e8f0; }
@@ -89,6 +127,141 @@
 
     /* Empty state */
     .empty-state { text-align: center; padding: 60px 20px; color: #94a3b8; }
+
+    /* Compact tasks column */
+    .tasks-cell {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 250px;
+      font-size: 13px;
+      color: #475569;
+    }
+
+    .task-count-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: #e2e8f0;
+      color: #475569;
+      font-size: 11px;
+      font-weight: 600;
+      margin-right: 6px;
+      flex-shrink: 0;
+      vertical-align: middle;
+    }
+
+    .task-preview-text {
+      vertical-align: middle;
+    }
+
+    /* Context Menu */
+    .ctx-menu {
+      position: fixed;
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 8px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+      z-index: 500;
+      min-width: 200px;
+      padding: 6px 0;
+      display: none;
+    }
+
+    .ctx-menu.open { display: block; }
+
+    .ctx-menu-item {
+      padding: 10px 16px;
+      color: #e2e8f0;
+      font-size: 13px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      user-select: none;
+    }
+
+    .ctx-menu-item:hover {
+      background: rgba(255,255,255,0.05);
+    }
+
+    .ctx-menu-item.with-submenu::after {
+      content: '▸';
+      margin-left: auto;
+      font-size: 10px;
+      color: #64748b;
+    }
+
+    .ctx-menu-divider {
+      height: 1px;
+      background: #334155;
+      margin: 4px 0;
+    }
+
+    .ctx-menu-header {
+      padding: 8px 16px;
+      font-size: 12px;
+      color: #94a3b8;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    /* Stage submenu */
+    .ctx-stage-submenu {
+      position: absolute;
+      left: 100%;
+      top: 0;
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 8px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+      min-width: 180px;
+      padding: 6px 0;
+      display: none;
+      margin-left: 4px;
+    }
+
+    .ctx-stage-submenu.open { display: block; }
+
+    .ctx-stage-item {
+      padding: 8px 16px;
+      color: #e2e8f0;
+      font-size: 13px;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .ctx-stage-item:hover {
+      background: rgba(255,255,255,0.05);
+    }
+
+    /* Mobile bottom sheet */
+    @media (max-width: 768px) {
+      .ctx-menu {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        top: auto;
+        border-radius: 16px 16px 0 0;
+        min-width: unset;
+        max-height: 60vh;
+        overflow-y: auto;
+      }
+
+      .ctx-stage-submenu {
+        position: static;
+        margin: 0;
+        border: none;
+        border-top: 1px solid #334155;
+        border-radius: 0;
+        box-shadow: none;
+      }
+    }
 
     /* Mobile */
     @media (max-width: 768px) {
@@ -233,8 +406,8 @@
     .col-row.dragging { opacity: 0.4; }
     .col-row.drag-over { border-top: 2px solid #2563eb; }
 
-    /* Drag handle */
-    .drag-handle {
+    /* Column manager drag handle */
+    .col-row .drag-handle {
       color: #64748b;
       cursor: grab;
       font-size: 14px;
@@ -242,6 +415,42 @@
       flex-shrink: 0;
     }
     .col-row.locked .drag-handle { cursor: default; color: #334155; }
+
+    /* Row drag handle */
+    td .drag-handle {
+      position: absolute;
+      left: 4px;
+      opacity: 0;
+      cursor: grab;
+      color: #94a3b8;
+      font-size: 14px;
+      transition: opacity 0.2s ease;
+      user-select: none;
+    }
+
+    tbody tr:hover .drag-handle {
+      opacity: 1;
+    }
+
+    tbody tr.dragging {
+      opacity: 0.5;
+      transform: scale(0.98);
+    }
+
+    tr.stage-subtotal.drag-over {
+      outline: 2px solid #3b82f6;
+      outline-offset: -2px;
+      background: #eff6ff !important;
+    }
+
+    @keyframes flash-red {
+      0%, 100% { background: inherit; }
+      50% { background: #fee2e2; }
+    }
+
+    .drag-error-flash {
+      animation: flash-red 0.6s ease;
+    }
 
     /* Reset button */
     .col-reset-btn {
@@ -293,6 +502,30 @@
     }
     tr.stage-subtotal.collapsed td:first-child .chevron { transform: rotate(-90deg); }
     tr.stage-group-row.hidden-row { display: none; }
+
+    /* Stage progress bar */
+    .stage-progress-bar {
+      height: 4px;
+      background: #e5e7eb;
+      border-radius: 2px;
+      margin-top: 6px;
+      overflow: hidden;
+      max-width: 200px;
+    }
+
+    .stage-progress-fill {
+      height: 100%;
+      background: #3b82f6;
+      border-radius: 2px;
+      transition: width 0.3s ease;
+    }
+
+    .stage-committed-label {
+      font-size: 11px;
+      color: #94a3b8;
+      margin-top: 2px;
+      font-weight: 400;
+    }
 
   </style>
 </head>
@@ -350,6 +583,7 @@
     <label class="toggle-label">
       <input type="checkbox" id="include-closed" checked onchange="reloadProspects()"> Include Closed
     </label>
+    <div class="spacer"></div>
     <button class="btn-new-prospect" onclick="openNewProspectModal()">+ New Prospect</button>
     <button class="btn-export" onclick="exportPipeline()">Export ↓</button>
     <div class="col-manager-wrap">
@@ -377,7 +611,7 @@
         </a>
         <a id="modal-org-btn" class="modal-btn modal-btn-secondary" href="#">
           <strong>Org</strong>
-          <span>Contacts, type, notes</span>
+          <span>Contacts, type, at a glance</span>
         </a>
       </div>
       <button id="modal-cancel" class="modal-cancel">Cancel</button>
@@ -463,7 +697,7 @@ const FIELD_MAP = {
   primary_contact:   'Primary Contact',
   last_touch:        'Last Touch',
   committed_display: 'Committed',
-  notes:             'Notes',
+  at_a_glance:       'at_a_glance',
 };
 
 // Maps column key → PATCH API field name
@@ -473,11 +707,10 @@ const PATCH_FIELD_MAP = {
   target_display: 'target',
   assigned_to:    'assigned_to',
   closing:        'closing',
-  notes:          'notes',
 };
 
 // Column keys that support inline editing
-const EDITABLE_KEYS = new Set(['stage', 'target_display', 'assigned_to', 'closing', 'notes']);
+const EDITABLE_KEYS = new Set(['stage', 'target_display', 'assigned_to', 'closing']);
 
 // Dropdown options keyed by column key
 const DROPDOWN_FIELDS_BY_KEY = {
@@ -492,11 +725,9 @@ const DROPDOWN_FIELDS_BY_KEY = {
 
 const DEFAULT_COLUMNS = [
   { key: 'org',              label: 'Organization',    visible: true,  locked: true  },
-  { key: 'urgent',           label: 'Urgent',          visible: true,  locked: false },
-  { key: 'stage',            label: 'Stage',           visible: true,  locked: false },
   { key: 'target_display',   label: 'Expected',        visible: true,  locked: false },
   { key: 'tasks',            label: 'Tasks',           visible: true,  locked: false },
-  { key: 'notes',            label: 'Notes',           visible: true,  locked: false },
+  { key: 'at_a_glance',      label: 'At a Glance',     visible: true,  locked: false },
   { key: 'org_type',         label: 'Type',            visible: false, locked: false },
   { key: 'assigned_to',      label: 'Assigned To',     visible: false, locked: false },
   { key: 'closing',          label: 'Closing',         visible: false, locked: false },
@@ -505,7 +736,7 @@ const DEFAULT_COLUMNS = [
   { key: 'committed_display',label: 'Committed',       visible: false, locked: false },
 ];
 
-const COL_CONFIG_VERSION = 2;  // Bump when DEFAULT_COLUMNS changes
+const COL_CONFIG_VERSION = 4;  // Bump when DEFAULT_COLUMNS changes
 
 let columnConfig = loadColumnConfig();
 
@@ -525,8 +756,10 @@ function loadColumnConfig() {
   }
   try {
     const parsed = JSON.parse(saved);
-    const savedKeys = parsed.map(c => c.key);
-    const merged = parsed
+    // Filter out removed columns (stage, urgent) for migration
+    const filtered = parsed.filter(c => !['stage', 'urgent'].includes(c.key));
+    const savedKeys = filtered.map(c => c.key);
+    const merged = filtered
       .map(c => {
         const def = DEFAULT_COLUMNS.find(d => d.key === c.key);
         if (!def) return null;
@@ -660,6 +893,182 @@ async function submitNewProspect() {
 }
 
 // ---------------------------------------------------------------------------
+// Context Menu
+// ---------------------------------------------------------------------------
+
+let ctxMenuState = {
+  open: false,
+  prospectIdx: null,
+  x: 0,
+  y: 0
+};
+
+function buildCtxMenu(idx) {
+  const p = filteredProspects[idx];
+  const offering = p.offering || currentOffering;
+  const org = p.org || '';
+
+  const detailUrl = `/crm/prospect/${encodeURIComponent(offering)}/${encodeURIComponent(org)}/detail`;
+  const urgentLabel = p.urgent ? 'Unmark Urgent' : 'Mark Urgent';
+
+  let html = `
+    <div class="ctx-menu-header">${escHtml(org)}</div>
+    <div class="ctx-menu-item" data-action="open-detail" data-url="${detailUrl}">
+      📋 Open Detail
+    </div>
+    <div class="ctx-menu-item" data-action="create-followup" data-idx="${idx}">
+      ➕ Create Follow-up
+    </div>
+    <div class="ctx-menu-divider"></div>
+    <div class="ctx-menu-item" data-action="toggle-urgent" data-idx="${idx}">
+      ${p.urgent ? '⭕' : '🔴'} ${urgentLabel}
+    </div>
+    <div class="ctx-menu-item with-submenu" data-action="show-stage-submenu">
+      🔄 Move to Stage
+    </div>
+    <div class="ctx-stage-submenu" id="ctx-stage-submenu">`;
+
+  CONFIG.stages.forEach(stage => {
+    html += `<div class="ctx-stage-item" data-action="set-stage" data-idx="${idx}" data-stage="${escHtml(stage)}">${escHtml(stage)}</div>`;
+  });
+
+  html += `</div>`;
+
+  return html;
+}
+
+function showContextMenu(idx, x, y) {
+  closeCtxMenu();
+
+  const existing = document.getElementById('ctx-menu');
+  if (existing) existing.remove();
+
+  const menu = document.createElement('div');
+  menu.id = 'ctx-menu';
+  menu.className = 'ctx-menu open';
+  menu.innerHTML = buildCtxMenu(idx);
+  document.body.appendChild(menu);
+
+  ctxMenuState = { open: true, prospectIdx: idx, x, y };
+  positionMenu(menu, x, y);
+
+  // Attach event listeners
+  menu.querySelectorAll('[data-action]').forEach(item => {
+    item.addEventListener('click', handleCtxMenuAction);
+  });
+}
+
+function positionMenu(menu, x, y) {
+  const isMobile = window.innerWidth <= 768;
+  if (isMobile) return; // Mobile uses bottom sheet, no positioning needed
+
+  const menuRect = menu.getBoundingClientRect();
+  let left = x;
+  let top = y;
+
+  // Keep menu within viewport
+  if (left + menuRect.width > window.innerWidth) {
+    left = window.innerWidth - menuRect.width - 10;
+  }
+  if (top + menuRect.height > window.innerHeight) {
+    top = window.innerHeight - menuRect.height - 10;
+  }
+
+  menu.style.left = left + 'px';
+  menu.style.top = top + 'px';
+}
+
+function closeCtxMenu() {
+  const menu = document.getElementById('ctx-menu');
+  if (menu) menu.remove();
+  ctxMenuState = { open: false, prospectIdx: null, x: 0, y: 0 };
+}
+
+function showStageSubmenu() {
+  const submenu = document.getElementById('ctx-stage-submenu');
+  if (submenu) submenu.classList.add('open');
+}
+
+async function handleCtxMenuAction(e) {
+  const action = e.currentTarget.dataset.action;
+  const idx = parseInt(e.currentTarget.dataset.idx);
+
+  switch (action) {
+    case 'open-detail':
+      window.location.href = e.currentTarget.dataset.url;
+      break;
+
+    case 'create-followup':
+      closeCtxMenu();
+      openFollowupModal(idx);
+      break;
+
+    case 'toggle-urgent':
+      closeCtxMenu();
+      await toggleUrgentViaMenu(idx);
+      break;
+
+    case 'show-stage-submenu':
+      showStageSubmenu();
+      break;
+
+    case 'set-stage':
+      closeCtxMenu();
+      await updateStageViaMenu(idx, e.currentTarget.dataset.stage);
+      break;
+  }
+}
+
+async function toggleUrgentViaMenu(idx) {
+  const p = filteredProspects[idx];
+  const newUrgent = !p.urgent;
+  const resp = await fetch('/crm/api/prospect/field', {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ org: p.org, offering: currentOffering, field: 'urgent', value: newUrgent }),
+  });
+  if (resp.ok) {
+    p.urgent = newUrgent;
+    const tr = document.querySelector(`tr[data-idx="${idx}"]`);
+    if (tr) tr.classList.toggle('urgent-row', p.urgent);
+    showToast(`✓ ${p.org} marked as ${newUrgent ? 'urgent' : 'not urgent'}`, 'success');
+  } else {
+    showToast('Failed to update urgency', 'error');
+  }
+}
+
+async function updateStageViaMenu(idx, newStage) {
+  const p = filteredProspects[idx];
+  const resp = await fetch('/crm/api/prospect/field', {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ org: p.org, offering: currentOffering, field: 'stage', value: newStage }),
+  });
+  if (resp.ok) {
+    showToast(`✓ ${p.org} moved to ${newStage}`, 'success');
+    reloadProspects();
+  } else {
+    showToast('Failed to update stage', 'error');
+  }
+}
+
+function openFollowupModal(idx) {
+  const p = filteredProspects[idx];
+  // Reuse existing task modal
+  openTaskEditModal({
+    title: `New Follow-up: ${p.org}`,
+    text: '',
+    priority: 'Med',
+    assigned_to: 'Oscar',
+    section: 'Fundraising - Me',
+    index: -1,
+    org: p.org,
+    showDelete: false,
+    hideFields: ['section', 'org'],
+  });
+}
+
+// ---------------------------------------------------------------------------
 // Init
 // ---------------------------------------------------------------------------
 
@@ -671,10 +1080,49 @@ async function init() {
   await loadOrgsList();
   await reloadProspects();
   loadUnmatched();
+  initRowDragHandlers();
 
   // Close column panel on outside click
   document.addEventListener('click', e => {
     if (!e.target.closest('.col-manager-wrap')) closeColumnPanel();
+    if (!e.target.closest('.ctx-menu')) closeCtxMenu();
+  });
+
+  // Context menu event delegation
+  document.addEventListener('contextmenu', e => {
+    const row = e.target.closest('tbody tr[data-idx]');
+    if (row && !row.classList.contains('stage-subtotal')) {
+      e.preventDefault();
+      const idx = parseInt(row.dataset.idx);
+      showContextMenu(idx, e.clientX, e.clientY);
+    }
+  });
+
+  // Mobile long-press support
+  let longPressTimer = null;
+  document.addEventListener('touchstart', e => {
+    const row = e.target.closest('tbody tr[data-idx]');
+    if (row && !row.classList.contains('stage-subtotal')) {
+      longPressTimer = setTimeout(() => {
+        const idx = parseInt(row.dataset.idx);
+        showContextMenu(idx, 0, 0);
+      }, 500);
+    }
+  });
+
+  document.addEventListener('touchend', () => {
+    if (longPressTimer) clearTimeout(longPressTimer);
+  });
+
+  document.addEventListener('touchmove', () => {
+    if (longPressTimer) clearTimeout(longPressTimer);
+  });
+
+  // Escape key closes context menu
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && ctxMenuState.open) {
+      closeCtxMenu();
+    }
   });
 }
 
@@ -718,11 +1166,24 @@ async function reloadProspects() {
 async function loadFundSummary() {
   const resp = await fetch(`/crm/api/fund-summary?offering=${encodeURIComponent(currentOffering)}`);
   const s = await resp.json();
+  const progressPct = s.fund_target > 0 ? Math.round((s.total_committed / s.fund_target) * 100) : 0;
   document.getElementById('fund-bar').innerHTML = `
-    <span class="fund-stat"><strong>${s.prospect_count}</strong> active prospects</span>
-    <span class="fund-stat">Pipeline: <strong>${s.total_target_fmt}</strong></span>
-    <span class="fund-stat">Committed (Closed + Legal/DD + Verbal): <strong>${s.total_committed_fmt}</strong></span>
-    <span class="fund-stat">Fund Target: <strong>${s.fund_target_fmt}</strong></span>
+    <div class="stat-chip">
+      <div class="stat-value">${s.prospect_count}</div>
+      <div class="stat-label">Prospects</div>
+    </div>
+    <div class="stat-chip">
+      <div class="stat-value">${s.total_target_fmt}</div>
+      <div class="stat-label">Pipeline</div>
+    </div>
+    <div class="stat-chip">
+      <div class="stat-value">${s.total_committed_fmt} / ${s.fund_target_fmt}</div>
+      <div class="stat-label">Committed / Target</div>
+    </div>
+    <div class="stat-chip">
+      <div class="stat-value">${progressPct}%</div>
+      <div class="stat-label">Progress</div>
+    </div>
   `;
 }
 
@@ -998,6 +1459,80 @@ function onDragEnd() {
 }
 
 // ---------------------------------------------------------------------------
+// Row drag and drop (for stage management)
+// ---------------------------------------------------------------------------
+
+let draggedProspect = null;
+let draggedRow = null;
+
+function initRowDragHandlers() {
+  document.addEventListener('dragstart', e => {
+    const handle = e.target.closest('.drag-handle[data-idx]');
+    if (handle) {
+      const idx = parseInt(handle.dataset.idx);
+      draggedProspect = filteredProspects[idx];
+      draggedRow = e.target.closest('tr');
+      if (draggedRow) draggedRow.classList.add('dragging');
+    }
+  });
+
+  document.addEventListener('dragover', e => {
+    const stageRow = e.target.closest('tr.stage-subtotal');
+    if (stageRow && draggedProspect) {
+      e.preventDefault();
+      document.querySelectorAll('tr.stage-subtotal').forEach(r => r.classList.remove('drag-over'));
+      stageRow.classList.add('drag-over');
+    }
+  });
+
+  document.addEventListener('drop', async e => {
+    const stageRow = e.target.closest('tr.stage-subtotal');
+    if (stageRow && draggedProspect) {
+      e.preventDefault();
+      const targetStage = stageRow.dataset.stage;
+      const currentStage = draggedProspect.Stage;
+
+      if (targetStage !== currentStage) {
+        const resp = await fetch('/crm/api/prospect/field', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            org: draggedProspect.org,
+            offering: currentOffering,
+            field: 'stage',
+            value: targetStage
+          }),
+        });
+
+        if (resp.ok) {
+          showToast(`✓ ${draggedProspect.org} moved to ${targetStage}`, 'success');
+          reloadProspects();
+        } else {
+          showToast('Failed to update stage', 'error');
+          if (draggedRow) {
+            draggedRow.classList.add('drag-error-flash');
+            setTimeout(() => draggedRow.classList.remove('drag-error-flash'), 700);
+          }
+        }
+      }
+    }
+
+    // Cleanup
+    document.querySelectorAll('tr.stage-subtotal').forEach(r => r.classList.remove('drag-over'));
+    if (draggedRow) draggedRow.classList.remove('dragging');
+    draggedProspect = null;
+    draggedRow = null;
+  });
+
+  document.addEventListener('dragend', () => {
+    document.querySelectorAll('tr.stage-subtotal').forEach(r => r.classList.remove('drag-over'));
+    if (draggedRow) draggedRow.classList.remove('dragging');
+    draggedProspect = null;
+    draggedRow = null;
+  });
+}
+
+// ---------------------------------------------------------------------------
 // Filtering & sorting
 // ---------------------------------------------------------------------------
 
@@ -1112,74 +1647,46 @@ function renderTableHeader() {
 function buildCellContent(col, p, idx) {
   const val = p[FIELD_MAP[col.key]];
   switch (col.key) {
-    case 'urgent':
-      return `<input type="checkbox" class="urgent-checkbox" ${p.urgent ? 'checked' : ''} onclick="toggleUrgent(event, ${idx})">`;
-
-
-    case 'stage': {
-      const stageNum = parseInt(val) || 0;
-      const cls = stageNum >= 7 ? 'stage-7' : stageNum >= 5 ? 'stage-5' : stageNum >= 3 ? 'stage-3' : 'stage-1';
-      return val
-        ? `<span class="badge ${cls}">${escHtml(val)}</span>`
-        : '<span style="color:#94a3b8">—</span>';
-    }
 
     case 'target_display':
-    case 'committed_display':
-      return escHtml(val || '—');
-
-    case 'tasks': {
-      const editUrl = `/crm/prospect/${encodeURIComponent(p.offering || currentOffering)}/${encodeURIComponent(p.org || '')}/detail`;
-      let html = '';
-
-      // New-format tasks [org: OrgName] — render open ones inline
-      const prospectTasks = (p.prospect_tasks || []).filter(t => t.status === 'open');
-      for (const t of prospectTasks) {
-        const shortDesc = t.text.length > 60 ? t.text.slice(0, 60) + '…' : t.text;
-        const dotColor = t.priority === 'Hi' ? '#ef4444' : t.priority === 'Med' ? '#f59e0b' : '#94a3b8';
-        const dot = `<span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:${dotColor};margin-right:6px;margin-top:4px;flex-shrink:0"></span>`;
-        const ownerLine = t.owner
-          ? `<div style="font-size:13px;font-weight:600;color:#1e293b;margin-top:1px">${escHtml(t.owner)}</div>`
-          : '';
-        html += `<div style="display:flex;align-items:flex-start;margin-bottom:5px;line-height:1.4">` +
-          dot +
-          `<a href="${editUrl}" onclick="event.stopPropagation()" title="${escHtml(t.text)}"` +
-          ` style="text-decoration:none;color:inherit;font-size:13px;cursor:pointer">` +
-          `<div style="font-weight:400">${escHtml(shortDesc)}</div>${ownerLine}</a></div>`;
-      }
-
-      // Old-format tasks (OrgName) suffix — render inline with edit modal
-      const tasks = p._tasks || [];
-      for (const t of tasks) {
-        const shortDesc = t.task.length > 60 ? t.task.slice(0, 60) + '…' : t.task;
-        const dotColor = t.priority === 'Hi' ? '#ef4444' : t.priority === 'Med' ? '#f59e0b' : '#94a3b8';
-        const dot = `<span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:${dotColor};margin-right:6px;margin-top:4px;flex-shrink:0"></span>`;
-        const ownerLine = t.owner
-          ? `<div style="font-size:13px;font-weight:600;color:#1e293b;margin-top:1px">${escHtml(t.owner)}</div>`
-          : '';
-        html += `<div style="display:flex;align-items:flex-start;margin-bottom:5px;line-height:1.4">` +
-          dot +
-          `<span class="pipeline-task-item" title="${escHtml(t.task)}"` +
-          ` data-section="${escHtml(t.section)}" data-index="${t.index}"` +
-          ` data-text="${escHtml(t.task)}" data-priority="${escHtml(t.priority)}"` +
-          ` data-owner="${escHtml(t.owner || '')}" data-org="${escHtml(p.org || '')}"` +
-          ` style="font-size:13px;cursor:pointer"` +
-          ` onclick="openPipelineTaskEdit(this);event.stopPropagation()"` +
-          `><div style="font-weight:400">${escHtml(shortDesc)}</div>${ownerLine}</span></div>`;
-      }
-
-      html += `<span data-org="${escHtml(p.org || '')}"` +
-        ` onclick="openPipelineTaskCreate(this.dataset.org);event.stopPropagation()"` +
-        ` style="font-size:11px;color:#64748b;cursor:pointer;display:inline-block;margin-top:2px"` +
-        ` onmouseover="this.style.color='#2563eb'" onmouseout="this.style.color='#64748b'"` +
-        `>+ task</span>`;
-      return html;
+    case 'committed_display': {
+      if (!val || val === '$0') return '<span style="color:#94a3b8">—</span>';
+      const abbrev = formatCurrencyAbbrev(val);
+      return `<span title="${escHtml(val)}">${escHtml(abbrev)}</span>`;
     }
 
-    case 'notes': {
+    case 'tasks': {
+      const allTasks = [
+        ...(p.prospect_tasks || []).filter(t => t.status === 'open'),
+        ...(p._tasks || [])
+      ];
+
+      if (allTasks.length === 0) {
+        return '<span style="color:#94a3b8">—</span>';
+      }
+
+      const firstTask = allTasks[0];
+      const firstText = firstTask.text || firstTask.task || '';
+      const truncated = firstText.length > 50 ? firstText.slice(0, 50) + '…' : firstText;
+
+      const badge = allTasks.length > 1
+        ? `<span class="task-count-badge">${allTasks.length}</span>`
+        : '';
+
+      const tooltipLines = allTasks.map(t => {
+        const pri = t.priority || 'Med';
+        const dot = pri === 'Hi' ? '🔴' : pri === 'Med' ? '🟡' : '⚪';
+        const text = t.text || t.task || '';
+        return `${dot} ${text}`;
+      }).join('\n');
+
+      return `<div class="tasks-cell">${badge}<span class="task-preview-text" title="${escHtml(tooltipLines)}">${escHtml(truncated)}</span></div>`;
+    }
+
+    case 'at_a_glance': {
       if (!val) return '<span style="color:#94a3b8">—</span>';
       const display = val.length > 60 ? val.slice(0, 60) + '…' : val;
-      return `<span title="${escHtml(val)}">${escHtml(display)}</span>`;
+      return `<span title="${escHtml(val)}" style="color:#475569;font-style:italic">⚡ ${escHtml(display)}</span>`;
     }
 
     case 'last_touch': {
@@ -1201,7 +1708,7 @@ function buildCellContent(col, p, idx) {
   }
 }
 
-function renderCell(col, p, idx) {
+function renderCell(col, p, idx, isFirstCell = false) {
   // Org cell has special structure for the click modal
   if (col.key === 'org') {
     const safeOrg = escHtml(p.org);
@@ -1209,17 +1716,20 @@ function renderCell(col, p, idx) {
     const contactLine = primaryContact
       ? `<div style="font-size:11px;color:#94a3b8;margin-top:2px;font-weight:400">${escHtml(primaryContact)}</div>`
       : '';
-    return `<td class="col-org org-cell" data-org="${safeOrg}" data-offering="${escHtml(p.offering)}" data-col-key="org"><a href="#" class="org-link">${safeOrg}</a>${contactLine}</td>`;
+    const dragHandle = isFirstCell ? `<span class="drag-handle" draggable="true" data-idx="${idx}">⠿</span>` : '';
+    return `<td class="col-org org-cell" data-org="${safeOrg}" data-offering="${escHtml(p.offering)}" data-col-key="org" style="position:relative;padding-left:${isFirstCell ? '24px' : '14px'}">${dragHandle}<a href="#" class="org-link">${safeOrg}</a>${contactLine}</td>`;
   }
   const isEditable = EDITABLE_KEYS.has(col.key);
   const extraClass = isEditable ? ' editable' : '';
   const onclickAttr = isEditable ? ` onclick="startEdit(event, ${idx}, '${col.key}')"` : '';
-  return `<td class="col-${col.key}${extraClass}" data-col-key="${col.key}"${onclickAttr}>${buildCellContent(col, p, idx)}</td>`;
+  const dragHandle = isFirstCell ? `<span class="drag-handle" draggable="true" data-idx="${idx}">⠿</span>` : '';
+  const cellStyle = isFirstCell ? ' style="position:relative;padding-left:24px"' : '';
+  return `<td class="col-${col.key}${extraClass}" data-col-key="${col.key}"${onclickAttr}${cellStyle}>${dragHandle}${buildCellContent(col, p, idx)}</td>`;
 }
 
 function renderTableRow(p, idx, extraClass = '') {
   const visibleCols = columnConfig.filter(c => c.visible);
-  const cells = visibleCols.map(col => renderCell(col, p, idx)).join('');
+  const cells = visibleCols.map((col, colIdx) => renderCell(col, p, idx, colIdx === 0)).join('');
   const classes = [extraClass, p.urgent ? 'urgent-row' : ''].filter(Boolean).join(' ');
   const classAttr = classes ? ` class="${classes}"` : '';
   return `<tr data-idx="${idx}"${classAttr}>${cells}</tr>`;
@@ -1273,8 +1783,24 @@ function renderTable() {
     const chevron = `<span class="chevron">&#9660;</span>`;
     const collapsedClass = isCollapsed ? ' collapsed' : '';
     const safeStage = escHtml(g.stage);
+
+    // Calculate committed sum for this stage
+    let committedSum = 0;
+    g.rows.forEach(r => {
+      committedSum += parseMoney(r.p.Committed || '$0');
+    });
+    const commitPct = g.sum > 0 ? Math.round((committedSum / g.sum) * 100) : 0;
+
+    // Progress bar (only if expanded and committed > 0)
+    const progressBar = !isCollapsed && committedSum > 0
+      ? `<div class="stage-progress-bar">
+           <div class="stage-progress-fill" style="width:${commitPct}%"></div>
+         </div>
+         <div class="stage-committed-label">${formatCurrencyAbbrev(committedSum)} committed</div>`
+      : '';
+
     const cells = visibleCols.map((col, ci) => {
-      if (ci === 0) return `<td>${chevron} ${safeStage} (${g.rows.length})</td>`;
+      if (ci === 0) return `<td><div>${chevron} ${safeStage} (${g.rows.length})</div>${progressBar}</td>`;
       if (ci === targetColIdx) return `<td class="subtotal-amount">$${g.sum.toLocaleString('en-US', {minimumFractionDigits: 0})}</td>`;
       return '<td></td>';
     }).join('');
@@ -1297,6 +1823,17 @@ function escHtml(str) {
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;');
+}
+
+function formatCurrencyAbbrev(val) {
+  if (!val) return '—';
+  const num = parseFloat(String(val).replace(/[$,]/g, ''));
+  if (isNaN(num) || num === 0) return '$0';
+
+  if (num >= 1e9) return '$' + (num / 1e9).toFixed(1).replace(/\.0$/, '') + 'B';
+  if (num >= 1e6) return '$' + (num / 1e6).toFixed(1).replace(/\.0$/, '') + 'M';
+  if (num >= 1e3) return '$' + (num / 1e3).toFixed(0) + 'K';
+  return '$' + num.toFixed(0);
 }
 
 // ---------------------------------------------------------------------------
@@ -1327,11 +1864,6 @@ function startEdit(event, idx, colKey) {
       if (opt === currentVal) o.selected = true;
       input.appendChild(o);
     });
-  } else if (colKey === 'notes') {
-    input = document.createElement('textarea');
-    input.className = 'cell-textarea';
-    input.value = currentVal;
-    input.rows = 3;
   } else {
     input = document.createElement('input');
     input.type = 'text';
@@ -1349,7 +1881,7 @@ function startEdit(event, idx, colKey) {
   input.addEventListener('click', e => e.stopPropagation());
   input.addEventListener('blur', () => saveEdit());
   input.addEventListener('keydown', e => {
-    if (e.key === 'Enter' && colKey !== 'notes') { e.preventDefault(); saveEdit(); }
+    if (e.key === 'Enter') { e.preventDefault(); saveEdit(); }
     if (e.key === 'Escape') { cancelEdit(); }
   });
 }

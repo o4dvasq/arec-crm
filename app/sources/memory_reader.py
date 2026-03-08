@@ -177,3 +177,33 @@ def update_task_status(section: str, task_text: str, new_status: str) -> bool:
         f.writelines(lines)
 
     return True
+
+
+def append_task_to_section(section: str, task_line: str) -> bool:
+    """
+    Append task line to section in TASKS.md. Returns True on success.
+    Example: append_task_to_section('Fundraising - Me', '- [ ] **[Hi]** Follow up with...')
+    """
+    path = os.path.join(PRODUCTIVITY_ROOT, "TASKS.md")
+    if not os.path.exists(path):
+        return False
+
+    with open(path, "r", encoding="utf-8") as f:
+        lines = f.readlines()
+
+    target = f"## {section}"
+    inserted = False
+    for i, ln in enumerate(lines):
+        if ln.strip() == target:
+            # Insert after section header
+            lines.insert(i + 1, task_line + "\n")
+            inserted = True
+            break
+
+    if not inserted:
+        return False
+
+    with open(path, "w", encoding="utf-8") as f:
+        f.writelines(lines)
+
+    return True

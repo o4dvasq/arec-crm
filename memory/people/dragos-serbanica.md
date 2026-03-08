@@ -2,6 +2,6 @@
 
 - **Organization:** Merseyside Pension Fund
 - **Type:** investor
-- **Email:** 
+- **Email:** dragosserbanica@wirral.gov.uk
 - **Phone:** 
 - **Role:** 

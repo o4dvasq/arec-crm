@@ -39,22 +39,22 @@ Do a single broad pull — do NOT query per org/domain. Let the matching step ha
 **Pass 1 — Archive (incoming):**
 ```
 outlook_email_search(
-  query: "*",
   folderName: "Archive",
   afterDateTime: "{scanStart}",
   limit: 50
 )
 ```
+⚠️ Do NOT include a `query` parameter — omitting it returns all emails. Using `"*"` causes a syntax error with this tool.
 
 **Pass 2 — Sent Items (outgoing):**
 ```
 outlook_email_search(
-  query: "*",
   folderName: "Sent Items",
   afterDateTime: "{scanStart}",
   limit: 50
 )
 ```
+⚠️ Same — omit `query` entirely.
 
 Collect all email metadata (subject, sender, recipients, date, messageId URI).
 

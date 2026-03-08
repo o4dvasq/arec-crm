@@ -2,6 +2,6 @@
 
 - **Organization:** J.P. Morgan Asset Management
 - **Type:** investor
-- **Email:** 
+- **Email:** brian.t.mccann@jpmorgan.com
 - **Phone:** 
 - **Role:** 

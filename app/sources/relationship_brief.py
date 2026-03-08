@@ -228,6 +228,10 @@ def collect_relationship_data(org, offering, base_dir=None):
     # Source 8: Email history
     email_history = get_emails_for_org(org) or []
 
+    # Source 9: Freeform notes log (phone calls, manual entries)
+    from sources.crm_reader import load_prospect_notes
+    notes_log = load_prospect_notes(org, offering) or []
+
     # Merged contacts for display (CRM + people intel)
     merged_contacts = merge_contacts_for_display(contacts, people_intel, org)
 
@@ -244,6 +248,7 @@ def collect_relationship_data(org, offering, base_dir=None):
         'active_tasks': active_tasks,
         'email_history': email_history[:20],
         'merged_contacts': merged_contacts,
+        'notes_log': notes_log,
     }
 
 
@@ -344,6 +349,20 @@ def build_context_block(raw_data):
     tasks = raw_data.get('active_tasks', [])
     if tasks:
         sections.append("ACTIVE TASKS:\n" + "\n".join(f"- {t}" for t in tasks))
+
+    # Freeform notes log (phone calls, manual team notes) — newest first
+    notes_log = raw_data.get('notes_log', [])
+    if notes_log:
+        note_lines = []
+        for n in reversed(notes_log):
+            date_str = n.get('date', '')[:10]  # YYYY-MM-DD
+            author = n.get('author', 'Unknown')
+            text = n.get('text', '')
+            if text:
+                note_lines.append(f"{date_str} [{author}]: {text}")
+        if note_lines:
+            sections.append("TEAM NOTES LOG (most recent first):\n" +
+                            "\n".join(f"- {nl}" for nl in note_lines))
 
     # Email history
     emails = raw_data.get('email_history', [])

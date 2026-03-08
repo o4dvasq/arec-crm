@@ -2,6 +2,6 @@
 
 - **Organization:** StepStone
 - **Type:** investor
-- **Email:** 
+- **Email:** Aayaan.Mehta@stepstonegroup.com
 - **Phone:** 
 - **Role:** 

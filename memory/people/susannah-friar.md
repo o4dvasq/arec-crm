@@ -2,6 +2,6 @@
 
 - **Organization:** Merseyside Pension Fund
 - **Type:** investor
-- **Email:** 
+- **Email:** susannahfriar@wirral.gov.uk
 - **Phone:** 
 - **Role:** 

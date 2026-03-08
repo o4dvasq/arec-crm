@@ -2,6 +2,6 @@
 
 - **Organization:** Meritz
 - **Type:** investor
-- **Email:** 
+- **Email:** haijoung.kim@meritz.co.kr
 - **Phone:** 
 - **Role:** 

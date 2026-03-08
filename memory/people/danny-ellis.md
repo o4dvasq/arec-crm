@@ -2,6 +2,6 @@
 
 - **Organization:** Hillwood Communities
 - **Type:** investor
-- **Email:** 
+- **Email:** danny.ellis@hillwood.com
 - **Phone:** 
 - **Role:** 

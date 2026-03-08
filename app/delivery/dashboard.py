@@ -33,6 +33,8 @@ from sources.crm_reader import (
     complete_prospect_task,
     load_email_log, get_emails_for_org, find_email_by_message_id,
     load_interactions, append_interaction,
+    save_brief, load_saved_brief, load_all_briefs,
+    load_prospect_notes, save_prospect_note,
 )
 from sources.relationship_brief import (
     find_people_files, find_glossary_entry, find_meeting_summaries, find_org_tasks,
@@ -584,7 +586,8 @@ def parse_kb_person_file(path: str) -> dict:
 def api_kb_people():
     q = request.args.get('q', '').lower().strip()
     config = load_crm_config()
-    arec_team = {name.lower() for name in config.get('team', [])}
+    team = config.get('team', [])
+    arec_team = {(m['name'] if isinstance(m, dict) else m).lower() for m in team}
     people_dir = os.path.join(PROJECT_ROOT, 'memory', 'people')
     results = []
     if os.path.isdir(people_dir):
@@ -754,32 +757,57 @@ def prospect_detail(offering, org):
 
 @crm_bp.route('/api/prospect/<offering>/<path:org>/brief', methods=['GET', 'POST'])
 def api_prospect_brief(offering, org):
-    """Return structured relationship intelligence from all KB sources + content hash."""
+    """GET: return relationship data + persisted brief.
+    POST: synthesize brief via AI, persist to prospects.md, return result."""
+    if request.method == 'POST':
+        return _synthesize_and_persist_brief(org, offering)
+
     raw_data = collect_relationship_data(org, offering, base_dir=PROJECT_ROOT)
     content_hash = compute_content_hash(raw_data)
-    return jsonify({**raw_data, 'content_hash': content_hash})
+    brief_key = f"{org}::{offering}"
+    saved = load_saved_brief('prospect', brief_key)
+    prospect = raw_data.get('prospect', {})
+    return jsonify({
+        **raw_data,
+        'content_hash': content_hash,
+        'saved_brief': saved,
+        'relationship_brief': prospect.get('Relationship Brief', ''),
+        'brief_refreshed': prospect.get('Brief Refreshed', ''),
+    })
 
 
-@crm_bp.route('/api/synthesize-brief', methods=['POST'])
-def api_synthesize_brief():
-    """Call Claude API to synthesize a narrative relationship brief from raw data."""
-    data = request.get_json(force=True)
-    org = data.get('org', '').strip()
-    offering = data.get('offering', '').strip()
-
-    if not org or not offering:
-        return jsonify({'error': 'org and offering required'}), 400
-
+def _synthesize_and_persist_brief(org: str, offering: str):
+    """Synthesize an AI relationship brief, persist to prospects.md, return result."""
     raw_data = collect_relationship_data(org, offering, base_dir=PROJECT_ROOT)
     content_hash = compute_content_hash(raw_data)
     context_block = build_context_block(raw_data)
+    today_str = date.today().isoformat()
+
+    narrative = ''
+    at_a_glance = ''
 
     try:
         client = anthropic.Anthropic()
+        glance_system = (
+            BRIEF_SYSTEM_PROMPT
+            + "\n\nIMPORTANT: Respond with ONLY a valid JSON object — no preamble, "
+            "no markdown fences — in this exact format:\n"
+            '{"narrative": "<2-4 paragraph prose brief>", '
+            '"at_a_glance": "<10 words or fewer: current status>"}\n\n'
+            "at_a_glance examples:\n"
+            '- "Follow-up meeting scheduled for March 24"\n'
+            '- "Waiting on response to our March 3 email"\n'
+            '- "No response to last 3 outreach attempts"\n'
+            '- "Paige scheduling intro call with their portfolio team"\n'
+            '- "Gone unresponsive since February IC meeting"\n'
+            '- "Verbal commit; sub docs outstanding"\n'
+            '- "In legal; targeting Q2 close"\n'
+            "Use specific dates and names. 10 words MAX."
+        )
         message = client.messages.create(
             model='claude-sonnet-4-6',
-            max_tokens=1500,
-            system=BRIEF_SYSTEM_PROMPT,
+            max_tokens=1600,
+            system=glance_system,
             messages=[{
                 'role': 'user',
                 'content': (
@@ -788,13 +816,134 @@ def api_synthesize_brief():
                 )
             }]
         )
-        narrative = message.content[0].text
+        raw_response = message.content[0].text
+        try:
+            clean = raw_response.strip()
+            clean = re.sub(r'^```[a-z]*\n?', '', clean)
+            clean = re.sub(r'\n?```\s*$', '', clean).strip()
+            parsed = json.loads(clean)
+            narrative = parsed.get('narrative', raw_response)
+            at_a_glance = (parsed.get('at_a_glance', '') or '').strip()
+        except (json.JSONDecodeError, AttributeError):
+            narrative = raw_response
+            at_a_glance = ''
     except Exception:
         narrative = build_fallback_summary(raw_data)
+        at_a_glance = ''
+
+    # Persist narrative + date to prospects.md (single-line, no newlines in field)
+    brief_text = narrative.replace('\n', ' ').strip()
+    update_prospect_field(org, offering, 'relationship_brief', brief_text)
+    update_prospect_field(org, offering, 'brief_refreshed', today_str)
+
+    # Also persist at_a_glance to briefs.json (unchanged feature)
+    brief_key = f"{org}::{offering}"
+    save_brief('prospect', brief_key, narrative, content_hash, at_a_glance=at_a_glance)
+
+    return jsonify({
+        'narrative': narrative,
+        'brief_refreshed': today_str,
+        'at_a_glance': at_a_glance,
+    })
+
+
+@crm_bp.route('/api/synthesize-brief', methods=['POST'])
+def api_synthesize_brief():
+    """Call Claude API to synthesize a narrative relationship brief from raw data.
+
+    When generate_glance=true (explicit Refresh), also generates an 'at_a_glance'
+    summary (10 words max) and persists it. Auto-synthesis preserves existing at_a_glance.
+    """
+    data = request.get_json(force=True)
+    org = data.get('org', '').strip()
+    offering = data.get('offering', '').strip()
+    generate_glance = bool(data.get('generate_glance', False))
+
+    if not org or not offering:
+        return jsonify({'error': 'org and offering required'}), 400
+
+    raw_data = collect_relationship_data(org, offering, base_dir=PROJECT_ROOT)
+    content_hash = compute_content_hash(raw_data)
+    context_block = build_context_block(raw_data)
+
+    narrative = ''
+    at_a_glance = ''
+
+    try:
+        client = anthropic.Anthropic()
+
+        if generate_glance:
+            # Ask Claude to return JSON with both narrative + at_a_glance
+            glance_system = (
+                BRIEF_SYSTEM_PROMPT
+                + "\n\nIMPORTANT: Respond with ONLY a valid JSON object — no preamble, "
+                "no markdown fences — in this exact format:\n"
+                '{"narrative": "<2-4 paragraph prose brief>", '
+                '"at_a_glance": "<10 words or fewer: current status>"}\n\n'
+                "at_a_glance examples:\n"
+                '- "Follow-up meeting scheduled for March 24"\n'
+                '- "Waiting on response to our March 3 email"\n'
+                '- "No response to last 3 outreach attempts"\n'
+                '- "Paige scheduling intro call with their portfolio team"\n'
+                '- "Gone unresponsive since February IC meeting"\n'
+                '- "Verbal commit; sub docs outstanding"\n'
+                '- "In legal; targeting Q2 close"\n'
+                "Use specific dates and names. 10 words MAX."
+            )
+            message = client.messages.create(
+                model='claude-sonnet-4-6',
+                max_tokens=1600,
+                system=glance_system,
+                messages=[{
+                    'role': 'user',
+                    'content': (
+                        f"Generate a relationship brief for {org} regarding {offering}.\n\n"
+                        f"{context_block}"
+                    )
+                }]
+            )
+            raw_response = message.content[0].text
+            try:
+                clean = raw_response.strip()
+                # Strip markdown code fences if Claude wrapped in ```json
+                clean = re.sub(r'^```[a-z]*\n?', '', clean)
+                clean = re.sub(r'\n?```\s*$', '', clean).strip()
+                parsed = json.loads(clean)
+                narrative = parsed.get('narrative', raw_response)
+                at_a_glance = (parsed.get('at_a_glance', '') or '').strip()
+            except (json.JSONDecodeError, AttributeError):
+                # Fallback: treat full response as narrative
+                narrative = raw_response
+                at_a_glance = ''
+        else:
+            # Standard auto-synthesis path — narrative only, preserve existing at_a_glance
+            message = client.messages.create(
+                model='claude-sonnet-4-6',
+                max_tokens=1500,
+                system=BRIEF_SYSTEM_PROMPT,
+                messages=[{
+                    'role': 'user',
+                    'content': (
+                        f"Generate a relationship brief for {org} regarding {offering}.\n\n"
+                        f"{context_block}"
+                    )
+                }]
+            )
+            narrative = message.content[0].text
+
+    except Exception:
+        narrative = build_fallback_summary(raw_data)
+        at_a_glance = ''
+
+    # Persist server-side so the brief survives page reloads / new sessions.
+    # at_a_glance='' on auto path → save_brief preserves whatever is already stored.
+    brief_key = f"{org}::{offering}"
+    save_brief('prospect', brief_key, narrative, content_hash, at_a_glance=at_a_glance)
 
     return jsonify({
         'narrative': narrative,
         'content_hash': content_hash,
+        'at_a_glance': at_a_glance,
     })
 
 
@@ -930,6 +1079,22 @@ def api_prospect_email_scan(offering, org):
     })
 
 
+# --- Prospect Notes Log ---
+
+@crm_bp.route('/api/prospect/<offering>/<path:org>/add-note', methods=['POST'])
+def api_add_prospect_note(offering, org):
+    """Append a freeform note to a prospect's notes log (phone calls, team observations, etc.)."""
+    data = request.get_json(force=True)
+    author = (data.get('author') or '').strip()
+    text = (data.get('text') or '').strip()
+
+    if not author or not text:
+        return jsonify({'error': 'author and text are required'}), 400
+
+    entry = save_prospect_note(org, offering, author, text)
+    return jsonify({'ok': True, 'entry': entry})
+
+
 # --- Person API ---
 
 @crm_bp.route('/api/person-data')
@@ -943,7 +1108,8 @@ def api_person_data():
     content_hash = hashlib.md5(
         json.dumps(data, sort_keys=True, default=str).encode()
     ).hexdigest()[:12]
-    return jsonify({**data, 'content_hash': content_hash})
+    saved = load_saved_brief('person', name)
+    return jsonify({**data, 'content_hash': content_hash, 'saved_brief': saved})
 
 
 @crm_bp.route('/api/synthesize-person-brief', methods=['POST'])
@@ -977,6 +1143,9 @@ def api_synthesize_person_brief():
         narrative = message.content[0].text
     except Exception:
         narrative = build_person_fallback_summary(raw_data)
+
+    # Persist server-side
+    save_brief('person', person_name, narrative, content_hash)
 
     return jsonify({
         'narrative': narrative,
@@ -1148,6 +1317,14 @@ def api_prospects():
         p['prospect_tasks'] = new_tasks
         p['open_task_count'] = sum(1 for t in new_tasks if t['status'] == 'open')
 
+    # Enrich with at_a_glance from briefs.json (only populated after a Refresh)
+    all_briefs = load_all_briefs()
+    prospect_briefs = all_briefs.get('prospect', {})
+    for p in prospects:
+        brief_key = f"{p.get('org', '')}::{p.get('offering', '')}"
+        brief = prospect_briefs.get(brief_key, {})
+        p['at_a_glance'] = brief.get('at_a_glance', '')
+
     return jsonify(prospects)
 
 
@@ -1250,10 +1427,12 @@ def api_org_get(name):
         org = {'name': name, 'Type': '', 'Notes': ''}
     contacts = get_contacts_for_org(name)
     prospects = get_prospects_for_org(name)
+    saved = load_saved_brief('org', name)
     return jsonify({
         'org': org,
         'contacts': contacts,
         'prospects': prospects,
+        'saved_brief': saved,
     })
 
 
@@ -1280,6 +1459,95 @@ def api_org_patch(name):
 
     write_organization(name, merged)
     return jsonify(get_organization(name) or merged)
+
+
+@crm_bp.route('/api/synthesize-org-brief', methods=['POST'])
+def api_synthesize_org_brief():
+    """Synthesize an AI relationship brief for an organization."""
+    data = request.get_json(force=True)
+    org_name = data.get('org', '').strip()
+    if not org_name:
+        return jsonify({'error': 'org required'}), 400
+
+    # Build context from available org data
+    org = get_organization(org_name) or {'name': org_name}
+    contacts = get_contacts_for_org(org_name)
+    prospects = get_prospects_for_org(org_name)
+    interactions = load_interactions(org=org_name, limit=10)
+    emails = get_emails_for_org(org_name)[:10]
+
+    context_lines = [f"Organization: {org_name}"]
+    if org.get('Type'):
+        context_lines.append(f"Type: {org['Type']}")
+    if org.get('Domain'):
+        context_lines.append(f"Domain: {org['Domain']}")
+    if org.get('Notes'):
+        context_lines.append(f"Notes: {org['Notes']}")
+    if contacts:
+        context_lines.append(f"\nContacts ({len(contacts)}):")
+        for c in contacts:
+            context_lines.append(f"  - {c.get('name', '')} ({c.get('role', '')})")
+    if prospects:
+        context_lines.append(f"\nProspects ({len(prospects)}):")
+        for p in prospects:
+            context_lines.append(
+                f"  - {p.get('offering', '')} | Stage: {p.get('stage', '')} | "
+                f"Target: {p.get('target', '')}"
+            )
+    if interactions:
+        context_lines.append(f"\nRecent Interactions ({len(interactions)}):")
+        for i in interactions[:5]:
+            context_lines.append(f"  - [{i.get('date', '')}] {i.get('summary', '')}")
+    if emails:
+        context_lines.append(f"\nRecent Emails ({len(emails)}):")
+        for e in emails[:5]:
+            context_lines.append(
+                f"  - [{e.get('date', '')}] {e.get('subject', '')} — {e.get('summary', '')}"
+            )
+
+    context_block = "\n".join(context_lines)
+    content_hash = hashlib.md5(context_block.encode()).hexdigest()[:12]
+
+    ORG_BRIEF_SYSTEM = (
+        "You are a senior relationship intelligence analyst for Avila Real Estate Capital (AREC), "
+        "a private real estate credit fund manager. Write a concise 2-3 paragraph organizational "
+        "brief summarizing: who this organization is, their relationship with AREC, current status, "
+        "key contacts, and any open opportunities or risks. Be specific and actionable. "
+        "Write in plain prose — no headers, no bullets."
+    )
+
+    try:
+        client = anthropic.Anthropic()
+        message = client.messages.create(
+            model='claude-sonnet-4-6',
+            max_tokens=800,
+            system=ORG_BRIEF_SYSTEM,
+            messages=[{
+                'role': 'user',
+                'content': f"Generate an organizational brief for {org_name}.\n\n{context_block}"
+            }]
+        )
+        narrative = message.content[0].text
+    except Exception:
+        parts = [f"**{org_name}** is a {org.get('Type', 'organization')} in AREC's network."]
+        if prospects:
+            p = prospects[0]
+            parts.append(
+                f"They are a prospect for {p.get('offering', 'Fund II')} "
+                f"(Stage: {p.get('stage', 'Unknown')})."
+            )
+        if contacts:
+            names = ', '.join(c.get('name', '') for c in contacts[:3])
+            parts.append(f"Key contacts: {names}.")
+        narrative = ' '.join(parts)
+
+    # Persist server-side
+    save_brief('org', org_name, narrative, content_hash)
+
+    return jsonify({
+        'narrative': narrative,
+        'content_hash': content_hash,
+    })
 
 
 # --- Contact API ---
@@ -1755,6 +2023,28 @@ def api_org_meeting_add(name):
         notion_url=data.get('notion_url', ''),
     )
     return jsonify({'ok': True})
+
+
+@crm_bp.route('/api/followup', methods=['POST'])
+def api_followup_create():
+    """Create task in TASKS.md under Fundraising - Me from context menu."""
+    data = request.get_json(force=True)
+    org = data.get('org', '').strip()
+    description = data.get('description', '').strip()
+    priority = data.get('priority', 'Med').strip()
+
+    if not org or not description:
+        return jsonify({'error': 'org and description required'}), 400
+
+    from sources.memory_reader import append_task_to_section
+
+    task_line = f'- [ ] **[{priority}]** {description} ({org})'
+    success = append_task_to_section('Fundraising - Me', task_line)
+
+    if not success:
+        return jsonify({'error': 'Failed to write task'}), 500
+
+    return jsonify({'ok': True}), 201
 
 
 app.register_blueprint(crm_bp)

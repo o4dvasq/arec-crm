@@ -154,6 +154,36 @@
             border-radius: 10px;
         }
 
+        /* AT A GLANCE */
+        .glance-card {
+            background: linear-gradient(135deg, #1e2d4a 0%, #172032 100%);
+            border: 1px solid #2563eb40;
+            border-left: 3px solid #2563eb;
+        }
+        .glance-inner {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .glance-icon {
+            font-size: 16px;
+            flex-shrink: 0;
+        }
+        .glance-text {
+            font-size: 14px;
+            font-weight: 600;
+            color: #e2e8f0;
+            flex: 1;
+        }
+        .glance-label {
+            font-size: 10px;
+            font-weight: 600;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: #60a5fa;
+            white-space: nowrap;
+        }
+
         /* RELATIONSHIP BRIEF */
         .brief-header {
             display: flex;
@@ -198,6 +228,19 @@
             transition: var(--transition);
         }
         .btn-refresh:hover { border-color: var(--accent); color: var(--accent); }
+        .brief-ts {
+            font-size: 11px;
+            color: var(--muted);
+            font-weight: 400;
+            margin-left: 6px;
+            opacity: 0.7;
+        }
+        .brief-refreshed-ts {
+            font-size: 11px;
+            color: var(--muted);
+            margin-top: 0.75rem;
+            opacity: 0.75;
+        }
 
         /* ACTIVE TASKS */
         .task-list { list-style: none; }
@@ -353,6 +396,96 @@
         .email-view-link { color: var(--accent); font-size: 12px; text-decoration: none; }
         .email-view-link:hover { color: var(--accent-hover); }
 
+        /* NOTES LOG */
+        .note-entry {
+            padding: 0.6rem 0;
+            border-bottom: 1px solid #1e293b;
+        }
+        .note-entry:last-child { border-bottom: none; }
+        .note-meta {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 4px;
+        }
+        .note-author {
+            font-size: 12px;
+            font-weight: 600;
+            color: #60a5fa;
+        }
+        .note-date {
+            font-size: 11px;
+            color: var(--muted);
+            font-variant-numeric: tabular-nums;
+        }
+        .note-text {
+            font-size: 13px;
+            color: #cbd5e1;
+            line-height: 1.5;
+        }
+        .notes-add-form {
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px solid #334155;
+        }
+        .notes-form-row {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .notes-input-author {
+            background: #0f172a;
+            border: 1px solid #334155;
+            border-radius: 4px;
+            color: var(--text);
+            font-size: 13px;
+            padding: 6px 10px;
+            width: 200px;
+            outline: none;
+        }
+        .notes-input-author:focus { border-color: var(--accent); }
+        .notes-input-text {
+            background: #0f172a;
+            border: 1px solid #334155;
+            border-radius: 4px;
+            color: var(--text);
+            font-size: 13px;
+            padding: 8px 10px;
+            width: 100%;
+            resize: vertical;
+            min-height: 60px;
+            outline: none;
+            font-family: inherit;
+        }
+        .notes-input-text:focus { border-color: var(--accent); }
+        .btn-add-note {
+            background: var(--accent);
+            border: none;
+            border-radius: 4px;
+            color: white;
+            font-size: 13px;
+            font-weight: 600;
+            padding: 7px 18px;
+            cursor: pointer;
+            align-self: flex-end;
+            transition: background 0.15s;
+        }
+        .btn-add-note:hover { background: var(--accent-hover); }
+        .btn-add-note:disabled { opacity: 0.5; cursor: default; }
+        .note-save-status {
+            font-size: 12px;
+            padding: 3px 0;
+            align-self: flex-end;
+        }
+        .note-save-status.ok { color: #22c55e; }
+        .note-save-status.err { color: #ef4444; }
+        .notes-empty {
+            font-size: 13px;
+            color: var(--muted);
+            font-style: italic;
+            padding: 0.25rem 0;
+        }
+
         /* UTILITY */
         .hidden { display: none !important; }
         @media (max-width: 640px) {
@@ -448,6 +581,15 @@
             </div>
         </div>
 
+        <!-- At a Glance (populated on Refresh only, hidden until first Refresh) -->
+        <div class="card glance-card hidden" id="glance-card">
+            <div class="glance-inner">
+                <span class="glance-icon">⚡</span>
+                <span class="glance-text" id="glance-text"></span>
+                <span class="glance-label">At a Glance</span>
+            </div>
+        </div>
+
         <!-- Relationship Brief (AI-synthesized, with caching) -->
         <div class="card" id="brief-card">
             <div id="relationship-brief">
@@ -502,6 +644,32 @@
             <div class="collapsible-body" id="meetings-body"></div>
         </div>
 
+        <!-- Notes Log (freeform team notes: calls, observations, etc.) -->
+        <div class="card" id="notes-card">
+            <div class="section-header">
+                <div class="section-title">Notes Log</div>
+                <span class="section-count" id="notes-count"></span>
+            </div>
+            <div id="notes-body">
+                <div class="notes-empty">No notes yet.</div>
+            </div>
+            <!-- Add note form -->
+            <div class="notes-add-form">
+                <div class="notes-form-row">
+                    <input type="text" id="note-author" class="notes-input-author"
+                           placeholder="Your name" maxlength="60"
+                           value="{{ config.team[0].name if config.team else '' }}">
+                    <textarea id="note-text" class="notes-input-text"
+                              placeholder="Add a note… e.g. &quot;Spoke with Julia — busy next 2 weeks, call after IC on the 24th&quot;"
+                              rows="2"></textarea>
+                    <div style="display:flex;gap:10px;align-items:center;align-self:flex-end">
+                        <span class="note-save-status hidden" id="note-status"></span>
+                        <button class="btn-add-note" id="btn-add-note" onclick="submitNote()">Add Note</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Email History (collapsible, starts collapsed) -->
         <div class="card hidden" id="emails-card">
             <div class="collapsible-header" onclick="toggleSection('emails')">
@@ -527,7 +695,7 @@
     // ============================================
     const ORG = {{ org | tojson }};
     const OFFERING = {{ offering | tojson }};
-    const BRIEF_CACHE_PREFIX = 'arec_brief_v1_';
+    // BRIEF_CACHE_PREFIX kept for legacy cleanup only (no longer used for caching)
     const enc = encodeURIComponent;
 
     const TYPE_BADGE = {
@@ -565,9 +733,15 @@
             renderInteractions(data.interactions);
             renderMeetings(data.meeting_summaries);
             renderEmails(data.email_history);
+            renderNotesLog(data.notes_log || []);
 
-            // Load / synthesize the AI brief
-            await loadBrief(data);
+            // Render At a Glance if available from saved brief
+            if (data.saved_brief && data.saved_brief.at_a_glance) {
+                showGlance(data.saved_brief.at_a_glance);
+            }
+
+            // Display persisted brief or placeholder (no AI call on page load)
+            loadBrief(data);
 
         } catch (err) {
             console.error('Page data load failed:', err);
@@ -576,86 +750,79 @@
     }
 
     // ============================================
-    // BRIEF: LOAD WITH CACHE
+    // BRIEF: PERSISTED TO PROSPECTS.MD
     // ============================================
-    async function loadBrief(rawData) {
-        const contentHash = rawData.content_hash;
-        const cacheKey = `${BRIEF_CACHE_PREFIX}${ORG}_${OFFERING}`;
+    function loadBrief(data) {
+        const brief = data.relationship_brief;
+        const refreshed = data.brief_refreshed;
 
-        // Check cache
-        try {
-            const cached = localStorage.getItem(cacheKey);
-            if (cached) {
-                const parsed = JSON.parse(cached);
-                if (parsed.content_hash === contentHash) {
-                    renderNarrative(parsed.narrative);
-                    return;
-                }
-            }
-        } catch (_) { /* ignore localStorage errors */ }
-
-        // Cache miss — call synthesis endpoint
-        showBriefLoading();
-        try {
-            const resp = await fetch('/crm/api/synthesize-brief', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ org: ORG, offering: OFFERING }),
-            });
-            if (!resp.ok) throw new Error('Synthesis failed');
-            const synth = await resp.json();
-
-            try {
-                localStorage.setItem(cacheKey, JSON.stringify({
-                    narrative: synth.narrative,
-                    content_hash: synth.content_hash,
-                    generated_at: new Date().toISOString(),
-                }));
-            } catch (_) { /* ignore storage quota errors */ }
-
-            renderNarrative(synth.narrative);
-        } catch (err) {
-            console.error('Synthesis error:', err);
-            showBriefError();
+        if (brief && brief.trim()) {
+            renderNarrative(brief, refreshed);
+        } else {
+            showBriefPlaceholder();
         }
     }
 
     async function refreshBrief() {
-        const cacheKey = `${BRIEF_CACHE_PREFIX}${ORG}_${OFFERING}`;
-        try { localStorage.removeItem(cacheKey); } catch (_) {}
         showBriefLoading();
-
         try {
-            const resp = await fetch('/crm/api/synthesize-brief', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ org: ORG, offering: OFFERING }),
-            });
-            if (!resp.ok) throw new Error('Synthesis failed');
+            const resp = await fetch(
+                `/crm/api/prospect/${enc(OFFERING)}/${enc(ORG)}/brief`,
+                { method: 'POST' }
+            );
+            if (!resp.ok) throw new Error('Refresh failed');
             const synth = await resp.json();
-
-            try {
-                localStorage.setItem(cacheKey, JSON.stringify({
-                    narrative: synth.narrative,
-                    content_hash: synth.content_hash,
-                    generated_at: new Date().toISOString(),
-                }));
-            } catch (_) {}
-
-            renderNarrative(synth.narrative);
+            renderNarrative(synth.narrative, synth.brief_refreshed);
+            if (synth.at_a_glance) {
+                showGlance(synth.at_a_glance);
+            }
         } catch (err) {
+            console.error('Brief refresh error:', err);
             showBriefError();
         }
     }
 
-    function renderNarrative(narrative) {
+    function showGlance(text) {
+        const card = document.getElementById('glance-card');
+        const el = document.getElementById('glance-text');
+        if (!text || !text.trim()) { card.classList.add('hidden'); return; }
+        el.textContent = text;
+        card.classList.remove('hidden');
+    }
+
+    function renderNarrative(narrative, refreshDate) {
+        const refreshHtml = refreshDate
+            ? `<div class="brief-refreshed-ts">Last refreshed: ${esc(formatBriefDate(refreshDate))}</div>`
+            : '';
         document.getElementById('relationship-brief').innerHTML = `
             <div class="brief-header">
                 <div class="section-title">Relationship Brief</div>
-                <button class="btn-refresh" onclick="refreshBrief()">Refresh</button>
+                <button class="btn-refresh" onclick="refreshBrief()">⟳ Refresh</button>
             </div>
             <div class="brief-narrative">${esc(narrative)}</div>
+            ${refreshHtml}
         `;
+    }
+
+    function showBriefPlaceholder() {
+        document.getElementById('relationship-brief').innerHTML = `
+            <div class="brief-header">
+                <div class="section-title">Relationship Brief</div>
+                <button class="btn-refresh" onclick="refreshBrief()">⟳ Generate Brief</button>
+            </div>
+            <div style="color:var(--muted);font-size:13px;padding:0.75rem 0;font-style:italic;">
+                No relationship brief yet. Click refresh to generate one.
+            </div>
+        `;
+    }
+
+    function formatBriefDate(dateStr) {
+        if (!dateStr) return '';
+        try {
+            // Handle both YYYY-MM-DD and ISO datetime strings
+            const d = new Date(dateStr.length === 10 ? dateStr + 'T00:00:00' : dateStr);
+            return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+        } catch (_) { return dateStr.slice(0, 10); }
     }
 
     function showBriefLoading() {
@@ -961,6 +1128,95 @@
         return t
             .replace(/\*\*([^*\n]+)\*\*/g, '<strong>$1</strong>')
             .replace(/\*([^*\n]+)\*/g, '<em>$1</em>');
+    }
+
+    // ============================================
+    // NOTES LOG
+    // ============================================
+    function renderNotesLog(notes) {
+        const body = document.getElementById('notes-body');
+        const countEl = document.getElementById('notes-count');
+
+        if (!notes || notes.length === 0) {
+            body.innerHTML = '<div class="notes-empty">No notes yet. Add one below.</div>';
+            countEl.textContent = '';
+            return;
+        }
+
+        // Display newest first
+        const sorted = [...notes].reverse();
+        body.innerHTML = sorted.map(n => {
+            const dateStr = formatNoteDate(n.date || '');
+            return `<div class="note-entry">
+                <div class="note-meta">
+                    <span class="note-author">${esc(n.author || 'Unknown')}</span>
+                    <span class="note-date">${esc(dateStr)}</span>
+                </div>
+                <div class="note-text">${esc(n.text || '')}</div>
+            </div>`;
+        }).join('');
+        countEl.textContent = notes.length;
+    }
+
+    function formatNoteDate(isoStr) {
+        if (!isoStr) return '';
+        try {
+            const d = new Date(isoStr);
+            return d.toLocaleDateString('en-US', {
+                month: 'short', day: 'numeric', year: 'numeric',
+                hour: 'numeric', minute: '2-digit',
+            });
+        } catch (_) { return isoStr.slice(0, 10); }
+    }
+
+    async function submitNote() {
+        const authorEl = document.getElementById('note-author');
+        const textEl = document.getElementById('note-text');
+        const statusEl = document.getElementById('note-status');
+        const btn = document.getElementById('btn-add-note');
+
+        const author = (authorEl.value || '').trim();
+        const text = (textEl.value || '').trim();
+
+        if (!author) { authorEl.focus(); return; }
+        if (!text) { textEl.focus(); return; }
+
+        btn.disabled = true;
+        statusEl.className = 'note-save-status';
+        statusEl.textContent = 'Saving…';
+        statusEl.classList.remove('hidden');
+
+        try {
+            const resp = await fetch(
+                `/crm/api/prospect/${enc(OFFERING)}/${enc(ORG)}/add-note`,
+                {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ author, text }),
+                }
+            );
+            if (!resp.ok) throw new Error('Save failed');
+            const result = await resp.json();
+
+            // Reload notes from server to get full updated list
+            const briefResp = await fetch(
+                `/crm/api/prospect/${enc(OFFERING)}/${enc(ORG)}/brief`
+            );
+            if (briefResp.ok) {
+                const data = await briefResp.json();
+                renderNotesLog(data.notes_log || []);
+            }
+
+            textEl.value = '';
+            statusEl.className = 'note-save-status ok';
+            statusEl.textContent = 'Saved';
+            setTimeout(() => statusEl.classList.add('hidden'), 2500);
+        } catch (err) {
+            statusEl.className = 'note-save-status err';
+            statusEl.textContent = 'Error — try again';
+        } finally {
+            btn.disabled = false;
+        }
     }
 
     // ============================================

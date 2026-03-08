@@ -3,6 +3,6 @@
 ## Overview
 - **Organization:** Phillips & Co, Portland
 - **Role:** 
-- **Email:** 
+- **Email:** tphillips@phillipsandco.com
 - **Phone:** 
 - **Type:** investor

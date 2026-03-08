@@ -59,7 +59,8 @@
 | Sahil | Sahil Jethi | Sr. Manager, Portfolio Management at AREC — sahil@avilacapllc.com (corrected from "Jehti") |
 | Kevin V | Kevin Van Gorder | CCO (Chief Compliance Officer) at AREC — kevin@avilacapllc.com; Irvine office; 949.519.6176 |
 | Jane | Jane Lumley | Head of HR at AREC — jane@avilacapllc.com |
-| Alex B | Alexandra Baldwin | AREC team, marketing/brand |
+| Alex B | Alexandra Baldwin | AREC team, marketing/brand — alex@avilacapllc.com; Amy Baldwin's daughter |
+| Amy | Amy Baldwin | AREC Office Manager — amy@avilacapllc.com; Alex B's mother; handles travel, expenses, notarization |
 | Jake | Jake Weintraub | AREC team — jake@avilacapllc.com |
 | Nate | Nate Cichon | Director, Homebuilder Finance at AREC — nate@avilacapllc.com; 773.368.3644 (m) / 415.561.0600 (o) |
 | Glen | Glen Martin | MD, Asset Management at AREC — glen@avilacapllc.com; 925-382-2408 |
@@ -118,6 +119,9 @@
 | David Hardy | David Hardy | AREC team — leading Future Fund (March 17) content/presentation |
 | Sho Homma | Sho Homma | Open House Group (Japan) — LP prospect contact; legal counsel review in progress; Truman managing |
 | Susannah Friar | Susannah Friar | Merseyside Pension Fund — LP contact; on Encore Fund III investor response thread |
+| Tim Avila | Tim Avila | AREC team — tim@avilacapllc.com; Tony Avila's son (family); attends deal/strategy calls |
+| James Walton | James Walton | South40 Capital — james@south40capital.com; deal support at South40 (Ian Morgan's firm) |
+| Partha | Partha Manchiraju | MidAmerican Energy (BRK sub) — partha.manchiraju@midamerican.com; Lutheran Hospital loan investor contact |
 
 ## Project Codenames / Internal References
 | Name | Description |
@@ -147,7 +151,7 @@
 |------|------|--------|-------|
 | Hillwood | LP | Committed | $100M anchor, Ross Perot Jr., largest TX developer |
 | Canarelli family | LP | Committed | $100M, largest NV developer, major CO developer |
-| DR Horton | LP | Committed | $50M, largest public builder in the US |
+| DR Horton | LP | Committed | $50M, largest public builder in the US; 2nd Close sub docs executed Mar 6 |
 | Mass Mutual | LP | Current → Re-up | Current LP, pursuing re-up in Fund II |
 | Northern Trust | LP | Prospect | John / Lewis / Kevin / Jim H — in diligence |
 | UTIMCO | LP | Prospect | University of Texas Investment Mgmt Co |
@@ -156,7 +160,12 @@
 | InterAm / Stoneweg | LP | Hot Prospect | Same company, two names; Switzerland-based; Leon is the contact |
 | 1900 Wealth | LP | Prospect | Met Feb 13 |
 | Nordwand Capital | LP | Prospect | Ted Brooks |
-| RXR | JV | Prospect | Real estate JV partner |
+| RXR | JV | Active Negotiation | Evergreen vertical construction JV / cap call facility — Patrick leading; Clifford Chance outside counsel; David Kelly, Josh Rabinow, Steven Fields, Kyle Conniff are RXR contacts; Brian Lichter (Davis Polk) is RXR's outside counsel; open issue: investment period/termination mechanics + exclusivity; next step: Zach setting up call with David Kelly |
+| Steel Family Investments | LP | Committed | Fund II 2nd Close executed Mar 6; Kenny/Ken/Ray/Bob Steel; steelfamilyinv.com |
+| Toll Brothers | LP | Committed | Fund II 2nd Close executed Mar 6; Ryan McKenna primary contact; national luxury homebuilder |
+| Bikaner Advisors | LP | Prospect | Montreal; Sunil Gupta + Avinash Sarwal; $1M–$10M tickets; via Max Angeloni; intro call Mar 6 |
+| MidAmerican Energy (BRK) | Deal Contact | Active | Partha Manchiraju — Lutheran Hospital loan investor; new IM joining; Oscar lunch planned May 2026 |
+| Nomura | JV | Passed | Oscar went pencils down on Nomura — too lawyerly, structural concerns; decision Mar 6, 2026 |
 | Nomura | JV | Prospect | Financing framework / JV |
 | PSERS | LP | Prospect | Pennsylvania State Employees' Retirement System; James Del Gaudio is contact |
 | Merseyside | LP | High Priority Prospect | UK pension fund, Liverpool; previous LP, high-priority Fund II prospect |
@@ -188,6 +197,7 @@
 | Rahn+Bodmer Co. | LP | Interested | Oldest private bank in Zürich (est. 1750); Pascal Hartmann (SVP) + Martin H. Bidermann (Partner); $2M; HNWI/FO; assigned Max Angeloni; met Geneva 3/4/26 |
 | Texas PSF | LP | Prospect | Texas Permanent School Fund — large public pension; Viktor Makaroff, Kevin Godin, Reid Spears; intro call 3/5/26 via Zach |
 | Berkshire Hathaway | LP | Prospect | Chuck is contact; Tony to call |
+| Verus Investments | LP | New Prospect | mfoppiano@verusinvestments.com (Matt Foppiano); intro via Frank Sullivan (JTP LLC) on 3/7/26 — track record deck sent; Oscar replied offering to meet ("spoke a couple years ago") |
 
 ## Competitive Landscape / Market Foils
 

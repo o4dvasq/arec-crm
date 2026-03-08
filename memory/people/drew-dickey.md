@@ -2,6 +2,6 @@
 
 - **Organization:** Mass Mutual Life Insurance Co.
 - **Type:** investor
-- **Email:** 
+- **Email:** ddickey@massmutual.com
 - **Phone:** 
 - **Role:** 

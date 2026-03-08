@@ -2,6 +2,6 @@
 
 - **Organization:** Stonehill Capital
 - **Type:** investor
-- **Email:** 
+- **Email:** mstern@stonehillcap.com
 - **Phone:** 
 - **Role:** 

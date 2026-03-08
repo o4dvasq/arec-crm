@@ -9,16 +9,18 @@
 ## Key Contacts
 | Name | Role | Email |
 |------|------|-------|
-| TBD | TBD | TBD |
+| Sunil Gupta | Principal / Partner | sunil@bikaneradvisors.com |
+| Avinash Sarwal | Co-Principal | avinash@bikaneradvisors.com |
 
 ## Interaction History
-- **2026-03-06:** Teams call with Max Angeloni (Angeloni & Co) and Avila Real Estate Capital
+- **2026-03-06:** Intro Teams call with Max Angeloni (Angeloni & Co), Oscar, and Tony. Ticket size: $1M–$10M. Oscar flagged as a Max Angeloni-sourced prospect to stay on top of.
 
 ## Next Steps
-- Identify primary contact name and role
-- Understand channel relationship with Max Angeloni — LP introduction or advisory mandate?
-- Determine firm mandate and fit
+- Understand investment mandate and decision timeline
+- Follow up through Max Angeloni (owns relationship)
 
 ## Notes
 - Montreal, QC, Canada confirmed by Oscar (Mar 2026)
 - Introduced through Max Angeloni (Angeloni & Co placement agent)
+- Ticket size: **$1M–$10M** (confirmed Mar 6)
+- Tony had poor connection on the call

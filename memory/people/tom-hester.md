@@ -2,6 +2,6 @@
 
 - **Organization:** StepStone
 - **Type:** investor
-- **Email:** 
+- **Email:** Thomas.Hester@stepstonegroup.com
 - **Phone:** 
 - **Role:** 

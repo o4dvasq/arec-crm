@@ -213,6 +213,13 @@
             font-size: 14px;
             white-space: pre-wrap;
         }
+        .brief-ts {
+            font-size: 11px;
+            color: var(--muted);
+            font-weight: 400;
+            margin-left: 6px;
+            opacity: 0.7;
+        }
         .brief-loading {
             display: flex;
             align-items: center;
@@ -733,52 +740,29 @@ function renderPersonCard(data) {
 }
 
 // ============================================
-// BRIEF: LOAD WITH CACHE
+// BRIEF: SERVER-PERSISTED CACHE
 // ============================================
 async function loadBrief(rawData) {
     const contentHash = rawData.content_hash;
-    const cacheKey = `${BRIEF_CACHE_PREFIX}${PERSON_NAME}`;
+    const saved = rawData.saved_brief;
 
-    try {
-        const cached = localStorage.getItem(cacheKey);
-        if (cached) {
-            const parsed = JSON.parse(cached);
-            if (parsed.content_hash === contentHash) {
-                renderPersonBrief(parsed.narrative);
-                return;
-            }
-        }
-    } catch (_) {}
-
-    showBriefLoading();
-    try {
-        const resp = await fetch('/crm/api/synthesize-person-brief', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name: PERSON_NAME }),
-        });
-        if (!resp.ok) throw new Error('Synthesis failed');
-        const synth = await resp.json();
-
-        try {
-            localStorage.setItem(cacheKey, JSON.stringify({
-                narrative: synth.narrative,
-                content_hash: synth.content_hash,
-                generated_at: new Date().toISOString(),
-            }));
-        } catch (_) {}
-
-        renderPersonBrief(synth.narrative);
-    } catch (err) {
-        showBriefError();
+    // Use server-persisted brief if hash matches current data
+    if (saved && saved.content_hash === contentHash) {
+        renderPersonBrief(saved.narrative, saved.generated_at);
+        return;
     }
+
+    // No saved brief or stale — auto-synthesize
+    showBriefLoading();
+    await _synthesizePersonBrief();
 }
 
 async function refreshBrief() {
-    const cacheKey = `${BRIEF_CACHE_PREFIX}${PERSON_NAME}`;
-    try { localStorage.removeItem(cacheKey); } catch (_) {}
     showBriefLoading();
+    await _synthesizePersonBrief();
+}
 
+async function _synthesizePersonBrief() {
     try {
         const resp = await fetch('/crm/api/synthesize-person-brief', {
             method: 'POST',
@@ -787,28 +771,24 @@ async function refreshBrief() {
         });
         if (!resp.ok) throw new Error('Synthesis failed');
         const synth = await resp.json();
-
-        try {
-            localStorage.setItem(cacheKey, JSON.stringify({
-                narrative: synth.narrative,
-                content_hash: synth.content_hash,
-                generated_at: new Date().toISOString(),
-            }));
-        } catch (_) {}
-
         renderPersonBrief(synth.narrative);
     } catch (err) {
         showBriefError();
     }
 }
 
-function renderPersonBrief(narrative) {
+function renderPersonBrief(narrative, generatedAt) {
+    const tsHtml = generatedAt
+        ? `<span class="brief-ts" title="Generated ${generatedAt}">
+             ${new Date(generatedAt).toLocaleDateString('en-US', {month:'short', day:'numeric'})}
+           </span>`
+        : '';
     document.getElementById('person-brief').innerHTML = `
         <div class="brief-header">
-            <div class="section-title">Person Brief</div>
+            <div class="section-title">Person Brief ${tsHtml}</div>
             <div class="brief-actions">
                 <button class="btn-sm" onclick="showUpdateInput()">Update</button>
-                <button class="btn-sm" onclick="refreshBrief()">Refresh</button>
+                <button class="btn-sm" onclick="refreshBrief()">⟳ Refresh</button>
             </div>
         </div>
         <div class="brief-narrative">${esc(narrative)}</div>
@@ -877,9 +857,7 @@ async function submitPersonUpdate() {
         const successCount = (result.actions || []).filter(a => a.status === 'success').length;
         status.textContent = `Saved (${successCount} update${successCount !== 1 ? 's' : ''})`;
 
-        // Invalidate brief cache and refresh
-        try { localStorage.removeItem(`${BRIEF_CACHE_PREFIX}${PERSON_NAME}`); } catch (_) {}
-
+        // Brief will auto-refresh on next loadPersonDetail (server hash will differ)
         setTimeout(() => {
             cancelUpdate();
             loadPersonDetail();

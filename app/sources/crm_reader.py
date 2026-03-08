@@ -14,12 +14,21 @@ CRM_ROOT = os.path.join(PROJECT_ROOT, "crm")
 MEMORY_ROOT = os.path.join(PROJECT_ROOT, "memory")
 PEOPLE_ROOT = os.path.join(MEMORY_ROOT, "people")
 TASKS_MD_PATH = os.path.join(PROJECT_ROOT, "TASKS.md")
+BRIEFS_PATH = os.path.join(CRM_ROOT, "briefs.json")
+PROSPECT_NOTES_PATH = os.path.join(CRM_ROOT, "prospect_notes.json")
 
 # Field write order for prospects
 PROSPECT_FIELD_ORDER = [
     "Stage", "Target", "Primary Contact",
     "Closing", "Urgent", "Assigned To", "Notes", "Last Touch"
 ]
+
+# Brief fields — appended after standard fields only when non-empty
+BRIEF_FIELDS = ['Relationship Brief', 'Brief Refreshed']
+BRIEF_FIELD_MAP = {
+    'relationship brief': 'Relationship Brief',
+    'brief refreshed': 'Brief Refreshed',
+}
 
 EDITABLE_FIELDS = {
     'stage', 'urgent', 'target', 'assigned_to',
@@ -716,6 +725,12 @@ def write_prospect(org: str, offering: str, data: dict) -> None:
             if key.lower() == 'assigned to' and ';' in str(val):
                 val = str(val).split(';')[0].strip()
             block.append(f"- **{key}:** {val}")
+        # Append brief fields only when non-empty (optional, no blank lines added)
+        for key in BRIEF_FIELDS:
+            matched = next((k for k in fields if k.lower() == key.lower()), None)
+            val = (fields[matched] if matched else '').strip()
+            if val:
+                block.append(f"- **{key}:** {val}")
         return block
 
     while i < len(lines):
@@ -834,11 +849,12 @@ def update_prospect_field(org: str, offering: str, field: str, value: str) -> No
         value = str(value).split(';')[0].strip()
     field_title = next(
         (k for k in PROSPECT_FIELD_ORDER if k.lower() == field_normalized),
-        field
+        BRIEF_FIELD_MAP.get(field_normalized, field)
     )
     prospect[field_title] = value
-    # Auto-update last touch
-    prospect['Last Touch'] = date.today().isoformat()
+    # Auto-update last touch (skip for brief fields — they're not relationship touches)
+    if field_normalized not in BRIEF_FIELD_MAP:
+        prospect['Last Touch'] = date.today().isoformat()
     write_prospect(org, offering, prospect)
 
 
@@ -1510,3 +1526,104 @@ def get_org_by_domain(domain: str) -> str | None:
         if org_domain == domain:
             return org_name
     return None
+
+
+# ---------------------------------------------------------------------------
+# Brief persistence (server-side AI brief cache)
+# ---------------------------------------------------------------------------
+
+def _load_briefs() -> dict:
+    """Load briefs.json. Returns {'prospect': {...}, 'person': {...}, 'org': {...}}."""
+    if not os.path.exists(BRIEFS_PATH):
+        return {'prospect': {}, 'person': {}, 'org': {}}
+    with open(BRIEFS_PATH, 'r', encoding='utf-8') as f:
+        return json.load(f)
+
+
+def _save_briefs(data: dict) -> None:
+    """Atomically write briefs.json."""
+    os.makedirs(os.path.dirname(BRIEFS_PATH), exist_ok=True)
+    with open(BRIEFS_PATH, 'w', encoding='utf-8') as f:
+        json.dump(data, f, indent=2, ensure_ascii=False)
+
+
+def save_brief(brief_type: str, key: str, narrative: str, content_hash: str,
+               at_a_glance: str = '') -> None:
+    """Persist an AI-generated brief.
+
+    Args:
+        brief_type: 'prospect', 'person', or 'org'
+        key: unique identifier — for prospect use '{org}::{offering}',
+             for person use slug or name, for org use org name.
+        narrative: the AI-generated markdown text
+        content_hash: hash of the source data at generation time
+        at_a_glance: optional 10-word-max status line (prospect briefs only)
+    """
+    data = _load_briefs()
+    bucket = data.setdefault(brief_type, {})
+    existing = bucket.get(key, {})
+    bucket[key] = {
+        'narrative': narrative,
+        'content_hash': content_hash,
+        'generated_at': datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ'),
+        # Preserve existing at_a_glance if no new one provided (auto-synthesis path)
+        'at_a_glance': at_a_glance if at_a_glance else existing.get('at_a_glance', ''),
+    }
+    _save_briefs(data)
+
+
+def load_saved_brief(brief_type: str, key: str) -> dict | None:
+    """Return saved brief dict {'narrative', 'content_hash', 'generated_at', 'at_a_glance'} or None."""
+    data = _load_briefs()
+    return data.get(brief_type, {}).get(key)
+
+
+def load_all_briefs() -> dict:
+    """Return the full briefs.json dict (all types). Used by pipeline API."""
+    return _load_briefs()
+
+
+# ---------------------------------------------------------------------------
+# Prospect Notes Log
+# ---------------------------------------------------------------------------
+
+def load_prospect_notes(org: str, offering: str) -> list:
+    """Load the freeform notes log for a prospect.
+    Returns list of {'date': ISO str, 'author': str, 'text': str}, oldest first."""
+    key = f"{org}::{offering}"
+    if not os.path.exists(PROSPECT_NOTES_PATH):
+        return []
+    try:
+        with open(PROSPECT_NOTES_PATH, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+        return data.get(key, [])
+    except (json.JSONDecodeError, OSError):
+        return []
+
+
+def save_prospect_note(org: str, offering: str, author: str, text: str) -> dict:
+    """Append a timestamped note entry to a prospect's notes log.
+    Returns the new entry dict {'date', 'author', 'text'}."""
+    key = f"{org}::{offering}"
+    now = datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ')
+    entry = {
+        'date': now,
+        'author': author.strip(),
+        'text': text.strip(),
+    }
+
+    data: dict = {}
+    if os.path.exists(PROSPECT_NOTES_PATH):
+        try:
+            with open(PROSPECT_NOTES_PATH, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+        except (json.JSONDecodeError, OSError):
+            data = {}
+
+    data.setdefault(key, []).append(entry)
+
+    os.makedirs(os.path.dirname(PROSPECT_NOTES_PATH), exist_ok=True)
+    with open(PROSPECT_NOTES_PATH, 'w', encoding='utf-8') as f:
+        json.dump(data, f, indent=2, ensure_ascii=False)
+
+    return entry

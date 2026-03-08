@@ -27,7 +27,7 @@
 - [x] **[Hi]** [STATUS:complete] Add fees and floor rate to page 7 of the presentation — assigned:Oscar
 - [ ] **[Med]** Add fund cash flow pages to Pitch Book - AA assembling — assigned:Truman
 - [ ] **[Med]** Prepare for DD Call on 3/25, 3/26 (Merseyside Pension Fund) — assigned:Oscar Vasquez
-- [ ] **[Med]** Create Cayman Term Sheet
+- [ ] **[Med]** **[→]** Create Cayman Term Sheet
 - [ ] **[Hi]** Swiss estate tax / US-Swiss treaty structuring analysis + white paper [STATUS:in_progress] — key blocker for Rahn + Bodmer and other Swiss prospects — assigned:Oscar
 - [x] **[Med]** Add Experience in closing out & construction in the white papers — assigned:Oscar — completed 2026-03-06
 - [ ] **[Low]** Follow up with Tim Phillips — he may send investor referral names — assigned:Oscar
@@ -54,6 +54,7 @@
 - [ ] **[Med]** Follow up with Martin Ash (Plurimi, martin.ash@plurimi.com) — no-show at 5H dinner, re-engage — assigned:Max Angeloni
 - [ ] **[Med]** Send Cayman structuring + Swiss tax write-up to Marcuard (Wilhelm von Stotzingen) once complete (Marcaud) — assigned:Oscar
 - [ ] **[Med]** Work with Majid (Synergy Management) to structure promote-sharing deal for investor breakfast intros — alternative to their standard $10K hosting fee — assigned:Max Angeloni
+- [ ] **[Hi]** Set up follow-up meeting with Bikaner Advisors (Sunil Gupta + Avinash Sarwal) ~week of March 21 — Oscar attended intro call Mar 6 (Tony had poor connection); $1-10M tickets — assigned:Max Angeloni
 - [ ] **[Hi]** Austin visit March 18 or 20 for in-person with Texas PSF (Viktor Makaroff) — Tony proposed, awaiting Viktor's confirmation — assigned:Tony
 - [ ] **[Hi]** Schedule follow-up call with Reid Spears — assigned:Zach
 - [ ] **[Med]** Schedule call/Zoom with Alon Idan — assigned:Tony
@@ -70,23 +71,21 @@
 - [ ] **[Med]** FINMA Switzerland registration research for Swiss investor structure — assigned:Max Angeloni
 
 ## Other Work
-- [ ] **[Med]** **[→]** Wrap up lending intelligence platform and hand over to Adrian and Jake
+- [ ] **[Hi]** Set up call with David Kelly (RXR) re Evergreen term sheet — key open issues to resolve on investment period/termination mechanics — assigned:Zach
+- [x] **[Med]** **[→]** Wrap up lending intelligence platform and hand over to Adrian and Jake — completed 2026-03-06
 - [x] **[Med]** Add email ingestion into ARM assistant knowledge base — completed 2026-03-06
 - [x] **[Low]** Check out Bill.com training demos — completed 2026-03-06
 - [x] **[Low]** Add "missing meeting notes" check to productivity update — compare today's calendar events against Notion meeting notes; prompt debrief for unmatched meetings — completed 2026-03-06
 - [x] **[Low]** Create keyboard shortcut workflow for adding tasks quickly from desktop — completed 2026-03-06
-- [ ] **[Hi]** Send email to Clifford Chance requesting evaluation of class action impact on Contender regulatory risk — assigned:Mike R
 - [x] **[Hi]** Team to decide whether to proceed with Contender Cross Anchor loan — completed 2026-03-06
-- [ ] **[Med]** Determine mechanics of cross-collateralizing Contender deals across Fund 1 and Fund 2 — assigned:Glenn + Mike R
-- [ ] **[Med]** Legal team to clarify whether lien could be vacated in fraudulent conveyance scenario (Contender) — assigned:Mike R
-- [ ] **[Med]** Run IRR models for Pressboro Homes deal — assigned:Nate
-- [ ] **[Med]** Build out borrowing base for Pressboro Homes — assigned:Nate
-- [ ] **[Med]** Investigate 35 infill completed spec units in Charlotte (Pressboro) — assigned:Nate
-- [ ] **[Med]** Send expansion footprint map to the group (Pressboro) — assigned:Nate
-- [ ] **[Med]** Build out monthly supply numbers and completed spec metrics for Chris Brown Homes — assigned:Nate
-- [ ] **[Med]** Team to continue underwriting and mitigating risk factors for Pressboro + Chris Brown
-- [ ] **[Low]** Team to consider recalibrating 4:1 ratio during renewal/facility increase (Chris Brown Homes) — assigned:Nate
-- [ ] **[Med]** Investigate Preqin + Juniper Square integration — assigned:Truman
+- [x] **[Med]** Determine mechanics of cross-collateralizing Contender deals across Fund 1 and Fund 2 — assigned:Glenn + Mike R — completed 2026-03-06
+- [x] **[Med]** Legal team to clarify whether lien could be vacated in fraudulent conveyance scenario (Contender) — assigned:Mike R — completed 2026-03-06
+- [x] **[Med]** Build out borrowing base for Pressboro Homes — assigned:Nate — completed 2026-03-06
+- [x] **[Med]** Investigate 35 infill completed spec units in Charlotte (Pressboro) — assigned:Nate
+- [x] **[Med]** Build out monthly supply numbers and completed spec metrics for Chris Brown Homes — assigned:Nate
+- [x] **[Med]** Team to continue underwriting and mitigating risk factors for Pressboro + Chris Brown — completed 2026-03-06
+- [x] **[Low]** Team to consider recalibrating 4:1 ratio during renewal/facility increase (Chris Brown Homes) — assigned:Nate — completed 2026-03-06
+- [x] **[Med]** Investigate Preqin + Juniper Square integration — assigned:Truman — completed 2026-03-06
 - [x] **[Med]** [STATUS:complete] ~~Share email contacts for the 2 unidentified attendees from Mar 3 Arts Club breakfast — assigned:Max Angeloni~~ (3/6) Francesco Galdiero (Vobis Members) + Christopher Henry (Manning Family SFO) added to CRM
 - [ ] **[Med]** AGM A-list personalized outreach — only 4 RSVPs so far (awaiting Tony's approval on list) — assigned:Paige
 

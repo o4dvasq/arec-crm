@@ -345,11 +345,13 @@
 - **Stage:** 5. Interested
 - **Target:** $100,000,000
 - **Primary Contact:** Matt Saverin
-- **Closing:**
+- **Closing:** 
 - **Urgent:** Yes
 - **Assigned To:** Tony Avila
 - **Notes:** UTIMCO real estate division.
 - **Last Touch:** 2026-03-05
+- **Relationship Brief:** UTIMCO's real estate division is an active, high-priority prospect at the Interested stage with a $100M target. The primary relationship is with Jared Brimberry, who took a 30-minute intro meeting with Tony around February 23. Following that meeting, Tony assembled and delivered a tailored materials package — quarterly returns without fair value marks and correlation analysis PDFs — with the final format shaped by Matt Saverin's internal guidance. As of March 5, materials have been delivered and the team is awaiting Brimberry's feedback. No second meeting is scheduled yet, and securing that follow-up is the immediate priority. Oscar has flagged UTIMCO as a top initiative alongside FutureFund, Japanese firms, and RXR.  Matt Saverin is the key inside dynamic here. Currently at UTIMCO, he has been actively advocating for AREC and directly influenced how materials were positioned for Brimberry. He is also being recruited by Texas Teacher Retirement System (TRS), which creates a dual-track opportunity — maintaining his advocacy at UTIMCO now while positioning him as a potential inside champion at TRS if and when he moves. Tony has already flagged to Simon at Priya that connecting with Matt at TRS could allow Priya to leverage UTIMCO's due diligence work, indicating the relationship is being actively networked across prospects.  The near-term focus is securing a second meeting with Brimberry to advance the conversation beyond the intro stage. Both Jared and Matt are AGM invite candidates for April 14 at the Fairmont in Austin, and that event represents a natural forcing function to deepen engagement. A pending introduction between Simon (Priya) and Matt Saverin — surfaced during the February 26 call — also remains an open item that could strengthen the broader Texas institutional network around Fund II.
+- **Brief Refreshed:** 2026-03-07
 
 ### Travelers Insurance
 - **Stage:** 5. Interested
@@ -1011,6 +1013,8 @@
 - **Assigned To:** Oscar Vasquez
 - **Notes:** Australia sovereign wealth fund. Tony wants strategy-focused pitch (not Fund II sales). Team presentation: Glen (ops), David Hardy (construction/dev), Kevin (deals). Per Greg Kostka/Hillwood advice.
 - **Last Touch:** 2026-03-05
+- **Relationship Brief:** Future Fund is an active, high-priority prospect at the Interested stage, with a $200M target allocation and an in-person meeting scheduled for March 17 in Irvine. The last touch was March 5, when Tony's Pacific Palisades meeting distribution included AREC team members in preparation for this engagement. Momentum is building toward the March 17 meeting, which is the critical near-term event for this relationship.  Julia McArdle is the primary contact at Future Fund, though her specific title and decision-making authority remain unconfirmed. On the AREC side, the March 17 meeting is a team effort: David Hardy is leading content and presentation, Glen is on distribution for agenda prep, and Kevin is included in the invite. Oscar owns the relationship and is assigned lead. Notably, the March 17 meeting is scheduled the same day as the Hanwha/Su Man Ahn meeting in Irvine, making it a high-density institutional LP day.  The immediate priority is finalizing the agenda and presentation ahead of March 17. Per guidance from Greg Kostka at Hillwood, Tony has directed that this meeting be strategy-focused rather than a direct Fund II sales pitch — an important framing distinction that should be reflected in all prep materials. Oscar is assigned to deliver the completed agenda and deck.  Future Fund is an Australian sovereign wealth fund — a flagship institutional prospect at a scale ($200M target) that would represent one of the largest single LP commitments in Fund II. The Hillwood advisory connection suggests AREC has credible third-party validation supporting this outreach. Given the sovereign wealth fund profile, the decision-making process is likely multi-stage and committee-driven, making the March 17 meeting an early but consequential step.
+- **Brief Refreshed:** 2026-03-07
 
 ### Penn State
 - **Stage:** 0. Declined
@@ -1384,22 +1388,22 @@
 ### Stonehill Capital
 - **Stage:** 4. Engaged
 - **Target:** 
-- **Primary Contact:** 
+- **Primary Contact:** Michael Stern; April Chang
 - **Closing:** 
 - **Urgent:** 
-- **Assigned To:** 
-- **Notes:** 
-- **Last Touch:** 
+- **Assigned To:** Zach Reisner
+- **Notes:** Materials sent 2/13: MH Presentation + Data Room. Potential anchor (~$100M). Follow-up call 3/4 w/ full team.
+- **Last Touch:** 2026-03-04
 
-### Hamilton Lane
-- **Stage:** 3. Outreach
-- **Target:** 
-- **Primary Contact:** 
+### Hamilton Lane Advisors
+- **Stage:** 5. Interested
+- **Target:** $22,500,000
+- **Primary Contact:** Elizabeth Bell; Jackie Dash; Wanli (+ Scott Davies)
 - **Closing:** 
 - **Urgent:** 
-- **Assigned To:** 
-- **Notes:** 
-- **Last Touch:** 
+- **Assigned To:** Anthony Albuquerque
+- **Notes:** Materials sent 2/15: MH Co-Investment Memo + Data Room. Underwriting for ~$20-25M. Middle Eastern client wants high-IRR co-invests. Jackie on paternity leave soon.
+- **Last Touch:** 2026-02-15
 
 ### Ghost Tree
 - **Stage:** 3. Outreach
@@ -1411,25 +1415,25 @@
 - **Notes:** 
 - **Last Touch:** 
 
-### Meritz
-- **Stage:** 3. Outreach
+### Meritz Securities (Korea)
+- **Stage:** 4. Engaged
 - **Target:** 
-- **Primary Contact:** 
+- **Primary Contact:** Jinho Lee (이진호)
 - **Closing:** 
 - **Urgent:** 
-- **Assigned To:** 
-- **Notes:** 
-- **Last Touch:** 
+- **Assigned To:** Zach Reisner
+- **Notes:** Materials sent 2/13: MH Investment Overview + Data Room. Follow-up with updated materials sent 3/3. Existing co-invest relationship (The Ridge).
+- **Last Touch:** 2026-03-03
 
 ### MetLife Insurance Company
-- **Stage:** 3. Outreach
+- **Stage:** 4. Engaged
 - **Target:** 
-- **Primary Contact:** 
+- **Primary Contact:** Christopher Aiken
 - **Closing:** 
 - **Urgent:** 
-- **Assigned To:** 
-- **Notes:** 
-- **Last Touch:** 
+- **Assigned To:** Zach Reisner
+- **Notes:** Materials sent 3/4: MH Overview + Fund II Deck + Lutheran Hospital + Data Room. Follow-up from Tony meeting. In-person visit 1/15.
+- **Last Touch:** 2026-03-04
 
 ### AEW
 - **Stage:** 3. Outreach
@@ -1472,14 +1476,14 @@
 - **Last Touch:** 
 
 ### NPS (Korea SWF)
-- **Stage:** 3. Outreach
-- **Target:** 
-- **Primary Contact:** 
+- **Stage:** 4. Engaged
+- **Target:** $350,000,000
+- **Primary Contact:** John S. Kim; David Kim
 - **Closing:** 
 - **Urgent:** 
-- **Assigned To:** 
-- **Notes:** 
-- **Last Touch:** 
+- **Assigned To:** Zach Reisner
+- **Notes:** Materials sent 3/2: MH Co-Investment Overview. Call 3/3. Described as $350M co-invest, 20% LTV, 14% net IRR. Active Fund II prospect.
+- **Last Touch:** 2026-03-03
 
 ### Teachers Retirement System of Texas (Texas Teachers)
 - **Stage:** 3. Outreach
@@ -1487,9 +1491,9 @@
 - **Primary Contact:** 
 - **Closing:** 
 - **Urgent:** 
-- **Assigned To:** 
-- **Notes:** 
-- **Last Touch:** 
+- **Assigned To:** Tony Avila; Zach Reisner
+- **Notes:** Materials sent ~1/19: Fund II (MH discussed). CRM note shows MH questions asked. Active Fund II prospect. Priority Texas LP.
+- **Last Touch:** 2026-01-19
 
 ### Future Fund
 - **Stage:** 3. Outreach
@@ -1570,3 +1574,42 @@
 - **Assigned To:** 
 - **Notes:** 
 - **Last Touch:** 
+### Jordan Park
+- **Stage:** 3. Outreach
+- **Target:** 
+- **Primary Contact:** Alex Etzkowitz; Alek Yoder
+- **Closing:** 
+- **Urgent:** 
+- **Assigned To:** Zach Reisner
+- **Notes:** Materials sent 2/17: MH Memo + Data Room. Referred by Peter Brosens (VP, Jordan Park). Alex going on paternity leave. Existing OZ equity relationship.
+- **Last Touch:** 2026-02-17
+
+### Texas Permanent School Fund
+- **Stage:** 4. Engaged
+- **Target:** 
+- **Primary Contact:** Viktor Makaroff; Reid Spears
+- **Closing:** 
+- **Urgent:** 
+- **Assigned To:** Zach Reisner
+- **Notes:** Materials sent 3/5: MH Presentation + Data Room + Fund II Deck + Call Recording. Intro call 3/5. Tony planning Austin visit 3/18 or 3/20. High priority Texas LP.
+- **Last Touch:** 2026-03-05
+
+### J.P. Morgan Asset Management
+- **Stage:** 4. Engaged
+- **Target:** 
+- **Primary Contact:** Brendan Cameron; Brian McCann; Matthew Cummings
+- **Closing:** 
+- **Urgent:** 
+- **Assigned To:** Anthony Albuquerque
+- **Notes:** In-person NYC meeting 2/4. MH refinance discussed in Fund II context. Deep DD relationship — JPM doing onsite visits. Fund II Update sent (MH discussed in meeting).
+- **Last Touch:** 2026-02-04
+
+### Liberty Mutual
+- **Stage:** 2. Qualified
+- **Target:** 
+- **Primary Contact:** 
+- **Closing:** 
+- **Urgent:** 
+- **Assigned To:** Tony Avila; Zach Reisner
+- **Notes:** Under consideration ~1/26. CRM notes: "send Mountain House?" Capital charge/risk issue noted.
+- **Last Touch:** 2026-01-26

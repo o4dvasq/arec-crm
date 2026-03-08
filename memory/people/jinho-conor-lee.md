@@ -2,6 +2,6 @@
 
 - **Organization:** Meritz
 - **Type:** investor
-- **Email:** 
+- **Email:** jin-ho.lee@meritz.co.kr
 - **Phone:** 
 - **Role:** 
