@@ -592,13 +592,15 @@
 
 ### United Nations Joint Staff Pension Fund
 - **Stage:** 4. Engaged
-- **Target:** $25,000,000
+- **Target:** $100,000,000
 - **Primary Contact:** Moojae Kim
 - **Closing:** 
 - **Urgent:** False
 - **Assigned To:** Tony Avila
 - **Notes:** 
-- **Last Touch:** 2026-03-05
+- **Last Touch:** 2026-03-11
+- **Relationship Brief:** UNJSPF is currently at the Engaged stage with a $100M target for Fund II, and the relationship was last touched today, March 11. However, the intelligence on file is thin — no meeting summaries, no email history, and no detail on how engagement has progressed or what momentum looks like at this stage.
+- **Brief Refreshed:** 2026-03-11
 
 ### Perennial Capital Advisors
 - **Stage:** 4. Engaged
@@ -629,6 +631,8 @@
 - **Assigned To:** Tony Avila
 - **Notes:** Sent Credit and Index Comparisons on 2/25; 3/3: Tony to call Ishii-san; schedule through David Viger
 - **Last Touch:** 2026-03-05
+- **Relationship Brief:** Sekisui House is at the Engaged stage with a $100M target allocation to Fund II. Tony sent credit and index comparisons on February 25, and the last touch was March 5. Momentum appears measured — the relationship is active but pending a direct call with the senior contact to advance the conversation.
+- **Brief Refreshed:** 2026-03-11
 
 ### NEPC
 - **Stage:** 0. Declined
@@ -774,6 +778,8 @@
 - **Assigned To:** Tony Avila
 - **Notes:** Gone silent.  Sent Credit and Index Comparisons on 2/25, asked for meeting; 3/3: Meeting needs to be rescheduled
 - **Last Touch:** 2026-03-05
+- **Relationship Brief:** Samsung Fire & Marine is at the Engaged stage with a $100M target, but momentum has stalled. Tony sent Credit and Index Comparisons on 2/25 and requested a meeting, but the prospect has gone quiet since — a scheduled meeting needed to be rescheduled as of 3/3, and the last touch was 3/5 with no substantive response since.
+- **Brief Refreshed:** 2026-03-11
 
 ### Fred Rothman
 - **Stage:** 4. Engaged
@@ -911,15 +917,17 @@
 - **Notes:** Sent Credit and Index Comparisons on 2/25
 - **Last Touch:** 2026-02-28
 
-### ArchBridge (David Payne)
+### ArchBridge
 - **Stage:** 4. Engaged
 - **Target:** $20,000,000
 - **Primary Contact:** Jeffrey Meyers, Jr.
 - **Closing:** 
-- **Urgency:** High
+- **Urgent:** False
 - **Assigned To:** Tony Avila
 - **Notes:** Sent Credit and Index Comparisons on 2/25
 - **Last Touch:** 2026-02-28
+- **Relationship Brief:** ArchBridge is at the Engaged stage with a $20M target allocation to Fund II. The most recent touch was February 28, and Tony sent credit and index comparisons on February 25 — suggesting active diligence-level dialogue is underway. Momentum appears positive, though the relationship is relatively early and data remains thin.
+- **Brief Refreshed:** 2026-03-11
 
 ### MetLife Insurance Company
 - **Stage:** 5. Interested
@@ -1024,13 +1032,13 @@
 
 ### Blackstone Multi-Asset Investing
 - **Stage:** 5. Interested
-- **Target:** $30,000,000
+- **Target:** $100,000,000
 - **Primary Contact:** Amit Rind
 - **Closing:** 
 - **Urgent:** False
 - **Assigned To:** Tony Avila
 - **Notes:** Also Mountain House co-invest prospect. Truman sent MH co-invest + Fund II data room links 2/27. Amit Rind = MD, Blackstone Multi-Asset Investing. Kaitlin Campbell = scheduling assistant.
-- **Last Touch:** 2026-03-05
+- **Last Touch:** 2026-03-11
 
 ### Future Fund
 - **Stage:** 5. Interested

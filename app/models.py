@@ -7,7 +7,7 @@ Corresponds to the schema defined in SPEC_phase-I1-database-auth-webapp.md § 4.
 from datetime import datetime
 from sqlalchemy import (
     Column, Integer, String, Text, Boolean, BigInteger, Date, TIMESTAMP,
-    ForeignKey, Enum, ARRAY, UniqueConstraint, Index
+    ForeignKey, Enum, UniqueConstraint, Index, JSON
 )
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
@@ -195,7 +195,7 @@ class Interaction(Base):
     summary = Column(Text, default='')
     source = Column(Enum(InteractionSource), default=InteractionSource.manual)
     source_ref = Column(String(500), default='')
-    team_members = Column(ARRAY(Integer), default=[])
+    team_members = Column(JSON, default=list)
     created_at = Column(TIMESTAMP, default=datetime.now)
     created_by = Column(Integer, ForeignKey('users.id'), nullable=True)
 

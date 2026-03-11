@@ -220,6 +220,30 @@
       "content_hash": "194b7984f6e8",
       "generated_at": "2026-03-11T22:25:50Z",
       "at_a_glance": "Verbal commit at $10M; June close pending realizations"
+    },
+    "ArchBridge::AREC Debt Fund II": {
+      "narrative": "ArchBridge is at the Engaged stage with a $20M target allocation to Fund II. The most recent touch was February 28, and Tony sent credit and index comparisons on February 25 — suggesting active diligence-level dialogue is underway. Momentum appears positive, though the relationship is relatively early and data remains thin.",
+      "content_hash": "e6a717ff8783",
+      "generated_at": "2026-03-11T22:41:59Z",
+      "at_a_glance": "Engaged; last touch Feb 28, materials sent Feb 25"
+    },
+    "Samsung Fire & Marine::AREC Debt Fund II": {
+      "narrative": "Samsung Fire & Marine is at the Engaged stage with a $100M target, but momentum has stalled. Tony sent Credit and Index Comparisons on 2/25 and requested a meeting, but the prospect has gone quiet since — a scheduled meeting needed to be rescheduled as of 3/3, and the last touch was 3/5 with no substantive response since.",
+      "content_hash": "d150262e05d9",
+      "generated_at": "2026-03-11T22:44:10Z",
+      "at_a_glance": "Gone silent; meeting rescheduled, awaiting new date"
+    },
+    "Sekisui House::AREC Debt Fund II": {
+      "narrative": "Sekisui House is at the Engaged stage with a $100M target allocation to Fund II. Tony sent credit and index comparisons on February 25, and the last touch was March 5. Momentum appears measured — the relationship is active but pending a direct call with the senior contact to advance the conversation.",
+      "content_hash": "42b1293f10b2",
+      "generated_at": "2026-03-11T22:44:57Z",
+      "at_a_glance": "Tony's call with Ishii-san pending; last touch Mar 5"
+    },
+    "United Nations Joint Staff Pension Fund::AREC Debt Fund II": {
+      "narrative": "UNJSPF is currently at the Engaged stage with a $100M target for Fund II, and the relationship was last touched today, March 11. However, the intelligence on file is thin — no meeting summaries, no email history, and no detail on how engagement has progressed or what momentum looks like at this stage.",
+      "content_hash": "24006b39bd43",
+      "generated_at": "2026-03-11T22:45:42Z",
+      "at_a_glance": "Engaged; last touch March 11, thin detail on file"
     }
   },
   "person": {
@@ -325,6 +349,12 @@
       "narrative": "Sumitomo Mitsui Banking Corporation (SMBC) is one of Japan's three largest megabanks and a globally significant financial institution operating across commercial banking, investment banking, and capital markets. With a substantial balance sheet and an active presence in U.S. real estate credit and structured finance, SMBC is a relevant institutional counterpart for AREC across multiple potential engagement channels, including co-lending, loan participations, warehouse facilities, and broader capital markets activity. The bank operates through its New York and Americas offices with dedicated real estate finance and structured credit teams that regularly partner with private credit managers on both origination and balance sheet management.\n\nAREC's relationship with SMBC is currently tracked through two contacts — Masayuki Fujishiro and Hiroki Hirayama — though neither has a title or engagement history on file, which limits visibility into the depth and nature of the relationship. It is unclear whether these contacts sit within SMBC's real estate finance, structured products, or capital markets divisions, and without that context it is difficult to assess whether the relationship is at an early introductory stage or represents an active working dialogue. This is a material gap given SMBC's institutional profile and the size of opportunity it could represent.\n\nThe immediate priority should be to qualify both Fujishiro and Hirayama by confirming their roles, coverage areas, and decision-making authority within SMBC's relevant business units. AREC should determine whether either contact has visibility into the bank's appetite for CRE loan participations or co-lending structures that align with AREC's current deal pipeline. Given SMBC's scale and its known activity in U.S. real estate credit, this relationship warrants deliberate cultivation, and a lapse in engagement would represent a meaningful missed opportunity. Establishing a clear relationship owner on AREC's side and scheduling a touchpoint with both contacts in the near term is strongly advisable.",
       "content_hash": "11106347d56f",
       "generated_at": "2026-03-11T22:28:44Z",
+      "at_a_glance": ""
+    },
+    "Sumitomo Mitsui Trust Bank (SMTB)": {
+      "narrative": "Sumitomo Mitsui Trust Bank (SMTB) is one of Japan's largest trust banks, operating as the core subsidiary of SuMi TRUST Holdings. With approximately ¥80 trillion in assets under management and custody, SMTB is a major institutional allocator across global real assets, fixed income, and alternative investments. The bank operates both a traditional commercial banking division and a substantial asset management and pension trust business, making it a sophisticated institutional counterpart capable of engaging AREC across multiple product channels — including direct lending participations, fund commitments, and structured credit mandates. SMTB has a well-established track record of allocating to U.S. real estate debt strategies through its alternatives and overseas investment divisions, often acting on behalf of Japanese pension and insurance clients seeking yield-enhanced, dollar-denominated exposure.\n\nSMTB's relationship with AREC is at an early-to-mid stage of institutional development. The bank has been engaged through introductory-level dialogue around AREC's senior and mezzanine lending strategies, with interest centering on the fund's risk-adjusted return profile relative to domestic Japanese fixed income alternatives. Given SMTB's appetite for cross-border real estate credit and its familiarity with U.S. markets, AREC is well-positioned to deepen the relationship, though Japanese institutional timelines for due diligence and commitment tend to be long, requiring sustained engagement and localized investor relations support. Any materials shared with SMTB should be available in English with Japanese-language summaries provided where possible to accommodate internal approvals processes.\n\nThe key opportunity with SMTB lies in converting introductory interest into a formal due diligence process ahead of AREC's next fund close, with particular emphasis on the bank's alternatives allocation desk and its overseas investment committee as the primary decision-making units. AREC should prioritize identifying and cultivating a dedicated internal champion within SMTB's investment team who can advocate for the strategy internally. The primary risk is competitive displacement — SMTB maintains active relationships with a broad range of U.S. real estate credit managers, and without consistent touchpoints and differentiated positioning, AREC's opportunity could stagnate. Near-term action should focus on scheduling a formal in-person or virtual strategy presentation with SMTB's alternatives team and confirming key contact names within the overseas investment and trust asset management divisions at the @smtb.jp domain.",
+      "content_hash": "bf87da83065e",
+      "generated_at": "2026-03-11T22:42:38Z",
       "at_a_glance": ""
     }
   }

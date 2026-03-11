@@ -36,14 +36,18 @@ def init_db(database_url=None, echo=False):
                 'postgresql://user:pass@host:5432/dbname?sslmode=require'
             )
 
-    # Create engine
-    engine = create_engine(
-        database_url,
-        echo=echo,
-        pool_size=5,
-        max_overflow=10,
-        pool_pre_ping=True,  # Verify connections before using
-    )
+    # Create engine with conditional pooling parameters
+    # SQLite doesn't support pool_size/max_overflow, only use for Postgres
+    engine_kwargs = {'echo': echo}
+
+    if database_url.startswith('postgresql'):
+        engine_kwargs.update({
+            'pool_size': 5,
+            'max_overflow': 10,
+            'pool_pre_ping': True,  # Verify connections before using
+        })
+
+    engine = create_engine(database_url, **engine_kwargs)
 
     # Create session factory
     SessionLocal = scoped_session(sessionmaker(

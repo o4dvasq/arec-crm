@@ -753,3 +753,15 @@ Cheers,
 ## Teachers Retirement System of Texas
 - **Type:** Public Pension
 - **Notes:** 
+
+## Blackstone Multi-Asset Investing
+- **Type:** Asset Manager
+- **Notes:** 
+
+## Khazanah
+- **Type:** Sovereign Wealth Fund
+- **Notes:** 
+
+## ArchBridge
+- **Type:** Family Office
+- **Notes:** 
