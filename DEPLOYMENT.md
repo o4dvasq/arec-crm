@@ -172,7 +172,7 @@ zip -r deploy.zip app/ scripts/ startup.sh requirements.txt -x "*.pyc" -x "**/__
 # Deploy via Azure CLI
 az webapp deployment source config-zip \
   --resource-group rg-arec-crm \
-  --name arec-crm \
+  --name arec-crm-app \
   --src deploy.zip
 ```
 
@@ -183,13 +183,13 @@ Set via Azure Portal or CLI:
 ```bash
 az webapp config appsettings set \
   --resource-group rg-arec-crm \
-  --name arec-crm \
+  --name arec-crm-app \
   --settings \
     DATABASE_URL="@Microsoft.KeyVault(VaultName=kv-arec-crm;SecretName=DATABASE-URL)" \
     ANTHROPIC_API_KEY="@Microsoft.KeyVault(VaultName=kv-arec-crm;SecretName=ANTHROPIC-API-KEY)" \
     AZURE_CLIENT_ID="<from_entra_id>" \
     AZURE_CLIENT_SECRET="@Microsoft.KeyVault(VaultName=kv-arec-crm;SecretName=AZURE-CLIENT-SECRET)" \
-    AZURE_TENANT_ID="064d6342-5dc5-424e-802f-53ff17bc02be" \
+    AZURE_TENANT_ID="ebd42ab2-7f1c-4d40-8b44-f5ecc51d2659" \
     FLASK_SECRET_KEY="<generate_random_key>" \
     FLASK_DEBUG="false" \
     SCM_DO_BUILD_DURING_DEPLOYMENT="true"
@@ -208,19 +208,19 @@ Or via CLI:
 ```bash
 az webapp config set \
   --resource-group rg-arec-crm \
-  --name arec-crm \
+  --name arec-crm-app \
   --startup-file /home/site/wwwroot/startup.sh
 ```
 
 ### 4. Restart app
 
 ```bash
-az webapp restart --resource-group rg-arec-crm --name arec-crm
+az webapp restart --resource-group rg-arec-crm --name arec-crm-app
 ```
 
 ### 5. Test deployment
 
-Visit: https://arec-crm.azurewebsites.net/crm
+Visit: https://arec-crm-app.azurewebsites.net/crm
 
 Test:
 - SSO login (should redirect to Microsoft login)
@@ -236,13 +236,13 @@ Test:
 **View logs:**
 
 ```bash
-az webapp log tail --resource-group rg-arec-crm --name arec-crm
+az webapp log tail --resource-group rg-arec-crm --name arec-crm-app
 ```
 
 **Check app health:**
 
 ```bash
-az webapp show --resource-group rg-arec-crm --name arec-crm --query state
+az webapp show --resource-group rg-arec-crm --name arec-crm-app --query state
 ```
 
 ---

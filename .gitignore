@@ -1,10 +1,15 @@
 # Environment & secrets
 .env
-.env*
+.env.local
+.env.production
 .env-transfer
 app/.env
 token_cache.bin
 *.token
+
+# BUT allow .env templates
+!app/.env.azure
+!app/.env.example
 
 # Python
 __pycache__/
@@ -44,3 +49,12 @@ Thumbs.db
 
 # Dropbox conflict copies
 *conflicted copy*
+
+# Deployment artifacts
+deploy.zip
+*.zip
+
+# Test databases
+*.db
+*.sqlite
+test_*.db
