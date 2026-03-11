@@ -1,0 +1,850 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Overwatch — AREC</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/crm.css">
+  <link rel="stylesheet" href="/static/task-edit-modal.css">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0f172a;
+      --bg-card: #1e293b;
+      --bg-muted: #334155;
+      --text: #e2e8f0;
+      --text-sec: #cbd5e1;
+      --text-muted: #94a3b8;
+      --accent: #D97757;
+      --accent-hover: #c4684a;
+      --border: #334155;
+      --radius: 10px;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      line-height: 1.5;
+    }
+
+    .refreshed { font-size: 12px; color: var(--text-muted); padding: 8px 28px 0; }
+
+    /* ===== LAYOUT ===== */
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr 0.8fr;
+      gap: 1.5rem;
+      padding: 20px 28px 28px;
+      min-height: calc(100vh - 80px);
+      align-items: start;
+    }
+
+    @media (max-width: 1200px) {
+      .grid {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+
+    @media (max-width: 768px) {
+      .grid {
+        grid-template-columns: 1fr;
+      }
+      .col-meetings {
+        order: -1; /* Meetings first on mobile */
+      }
+    }
+
+    .panel {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+
+    .panel-header {
+      padding: 16px 18px;
+      font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em;
+      color: var(--text-sec);
+      border-bottom: 1px solid var(--border);
+      display: flex; justify-content: space-between; align-items: center;
+    }
+
+    .btn-refresh {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 5px 10px;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      background: none;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text-sec);
+      cursor: pointer;
+      transition: all 0.15s ease;
+      font-family: inherit;
+    }
+
+    .btn-refresh:hover {
+      background: var(--bg-muted);
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    .btn-refresh:active {
+      transform: scale(0.95);
+    }
+
+    .btn-refresh:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .btn-refresh i {
+      transition: transform 0.3s ease;
+    }
+
+    .btn-refresh:hover i {
+      transform: rotate(180deg);
+    }
+
+    @keyframes spin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+
+    .panel-body { padding: 0; max-height: calc(100vh - 200px); overflow-y: auto; }
+
+    /* ===== TASKS ===== */
+    .task-add-form {
+      display: flex; gap: 6px; padding: 12px 14px; border-bottom: 1px solid var(--border);
+      background: var(--bg-muted);
+    }
+    .task-add-form input[type=text] {
+      flex: 1; padding: 7px 10px; border: 1px solid var(--border); border-radius: 6px;
+      font-size: 13px; font-family: inherit; background: var(--bg-card); outline: none;
+    }
+    .task-add-form input[type=text]:focus { border-color: var(--accent); }
+    .task-add-form select {
+      padding: 7px 6px; border: 1px solid var(--border); border-radius: 6px;
+      font-size: 12px; font-family: inherit; background: var(--bg-card); color: var(--text-sec);
+    }
+    .btn {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 7px 14px; border-radius: 6px; font-size: 12px; font-weight: 600;
+      font-family: inherit; cursor: pointer; text-decoration: none; border: 1px solid var(--border);
+      background: var(--bg-card); color: var(--text); transition: all 0.12s;
+    }
+    .btn:hover { background: var(--bg-muted); border-color: var(--text-muted); }
+    .btn-primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+    .btn-primary:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
+
+    .priority-section-label {
+      font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em;
+      color: var(--text-muted); padding: 10px 18px 4px; background: var(--bg);
+      display: flex; align-items: center; gap: 6px;
+    }
+    .pri-dot {
+      width: 8px; height: 8px; border-radius: 50%; display: inline-block;
+    }
+    .pri-dot-hi { background: #ef4444; }
+    .pri-dot-med { background: #f59e0b; }
+    .pri-dot-low { background: #94a3b8; }
+
+    .task-item {
+      display: flex; align-items: flex-start; gap: 10px;
+      padding: 8px 18px; border-bottom: 1px solid var(--border);
+      transition: background 0.1s;
+    }
+    .task-item:hover { background: var(--bg-muted); }
+    .task-item.done { opacity: 0.45; }
+    .task-item.done .task-text { text-decoration: line-through; }
+
+    .task-item input[type=checkbox] {
+      margin-top: 3px; cursor: pointer; accent-color: var(--accent);
+      width: 16px; height: 16px; flex-shrink: 0;
+    }
+
+    .task-text { font-size: 13px; line-height: 1.5; flex: 1; }
+
+    .priority-badge {
+      display: inline-block; font-size: 10px; font-weight: 700; padding: 2px 7px;
+      border-radius: 4px; flex-shrink: 0; margin-top: 2px;
+    }
+    .priority-hi { background: rgba(220,38,38,.15); color: #ff7675; }
+    .priority-med { background: rgba(217,119,6,.15); color: #ffa940; }
+    .priority-low { background: rgba(79,70,229,.15); color: #85a5ff; }
+
+    /* Status Pills */
+    .status-pill {
+      display: inline-block;
+      font-size: 10px;
+      font-weight: 600;
+      padding: 3px 8px;
+      border-radius: 4px;
+      margin-left: 6px;
+      cursor: pointer;
+      user-select: none;
+      transition: opacity 0.1s;
+    }
+    .status-pill:hover { opacity: 0.8; }
+    .status-in-progress { background: rgba(59,130,246,.15); color: #60a5fa; }
+    .status-complete { background: rgba(34,197,94,.15); color: #52c41a; }
+
+    /* Status Dropdown */
+    .status-dropdown {
+      position: absolute;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      z-index: 1000;
+      min-width: 140px;
+      margin-top: 2px;
+    }
+    .status-option {
+      padding: 8px 12px;
+      font-size: 12px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      border-bottom: 1px solid var(--border);
+    }
+    .status-option:last-child { border-bottom: none; }
+    .status-option:hover { background: var(--bg-muted); }
+    .status-option.selected { background: var(--bg-muted); font-weight: 600; }
+
+    .org-link {
+      display: inline-block;
+      font-size: 10px; font-weight: 600;
+      color: #3b82f6; background: rgba(59,130,246,.1);
+      padding: 1px 6px; border-radius: 3px;
+      text-decoration: none; margin-left: 4px;
+      white-space: nowrap;
+    }
+    .org-link:hover { background: rgba(59,130,246,.2); color: #60a5fa; }
+
+    /* ===== CALENDAR ===== */
+    .cal-item {
+      display: flex; gap: 14px; padding: 12px 18px;
+      border-bottom: 1px solid var(--border);
+    }
+    .cal-item:last-child { border-bottom: none; }
+    .cal-time {
+      font-size: 12px; font-weight: 600; color: var(--text-sec);
+      min-width: 120px; white-space: nowrap; padding-top: 1px;
+    }
+    .cal-details { flex: 1; }
+    .cal-title { font-size: 13px; font-weight: 600; color: var(--text); line-height: 1.4; }
+    .cal-meta { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+    .cal-empty { padding: 24px 18px; color: var(--text-muted); font-size: 13px; text-align: center; }
+
+    /* ===== MEETINGS ===== */
+    .meeting-date-group {
+      padding: 12px 18px 4px;
+      font-size: 11px; font-weight: 700; color: var(--text-muted);
+      letter-spacing: 0.03em; background: var(--bg);
+    }
+    .meeting-item {
+      display: flex; justify-content: space-between; align-items: flex-start;
+      padding: 10px 18px; border-bottom: 1px solid var(--border);
+      cursor: default;
+    }
+    .meeting-item:hover { background: var(--bg-muted); }
+    .meeting-title { font-size: 13px; font-weight: 600; color: var(--text); }
+    .meeting-attendees { font-size: 12px; color: var(--text-muted); margin-top: 2px; max-width: 280px; }
+    .meeting-arrow { color: var(--text-muted); font-size: 14px; margin-left: 8px; margin-top: 2px; }
+    .meeting-empty { padding: 24px 18px; color: var(--text-muted); font-size: 13px; text-align: center; }
+    /* Past meeting style */
+    .meeting-item.past .cal-time,
+    .meeting-item.past .cal-title { color: #64748b; }
+
+    .edit-btn {
+      background: none; border: none; cursor: pointer; color: var(--text-muted);
+      padding: 2px; flex-shrink: 0; margin-top: 1px; opacity: 0;
+      transition: opacity 0.12s;
+    }
+    .task-item:hover .edit-btn { opacity: 1; }
+    .edit-btn:hover { color: var(--accent); }
+
+    /* Scrollbar */
+    .panel-body::-webkit-scrollbar { width: 6px; }
+    .panel-body::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+    .panel-body::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+  </style>
+</head>
+<body>
+
+{% set active_tab = 'dashboard' %}
+{% include '_nav.html' %}
+<div class="refreshed">Refreshed: {{ now.strftime('%-I:%M %p') }}</div>
+
+<div class="grid">
+
+  <!-- ===== COLUMN 1: FUNDRAISING (A) ===== -->
+  <div class="col-fundraising-a" style="display:flex;flex-direction:column;gap:24px;">
+    <!-- Fundraising (A) panel - populated by JS -->
+    <div class="panel" id="fundraising-a-panel">
+      <div class="panel-header">
+        <span>FUNDRAISING</span>
+        <a href="/tasks" style="font-size:11px;color:var(--text-muted);text-decoration:none;font-weight:500;">All Tasks &rarr;</a>
+      </div>
+      <form class="task-add-form" onsubmit="return addTask(event)">
+        <input type="text" id="newTaskText" placeholder="New task..." autocomplete="off">
+        <select id="newTaskPriority">
+          <option value="Med">Med</option>
+          <option value="Hi">Hi</option>
+          <option value="Low">Low</option>
+        </select>
+        <button type="submit" class="btn btn-primary">Add</button>
+      </form>
+      <div class="panel-body" id="fundraising-a-body">
+        <!-- Tasks inserted by JS -->
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== COLUMN 2: FUNDRAISING (B) ===== -->
+  <div class="col-fundraising-b" style="display:flex;flex-direction:column;gap:24px;">
+    <div class="panel" id="fundraising-b-panel">
+      <div class="panel-header">
+        <span>FUNDRAISING (CONT'D)</span>
+      </div>
+      <div class="panel-body" id="fundraising-b-body">
+        <!-- Tasks inserted by JS -->
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== COLUMN 3: OTHER WORK + PERSONAL ===== -->
+  <div class="col-other" style="display:flex;flex-direction:column;gap:24px;">
+    <!-- Other Work section -->
+    <div class="panel" id="other-work-panel">
+      <div class="panel-header">OTHER WORK</div>
+      <div class="panel-body" id="other-work-body">
+        <!-- Tasks inserted by JS -->
+      </div>
+    </div>
+
+    <!-- Personal section -->
+    <div class="panel" id="personal-panel">
+      <div class="panel-header">PERSONAL</div>
+      <div class="panel-body" id="personal-body">
+        <!-- Tasks inserted by JS -->
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== COLUMN 4: TODAY'S MEETINGS ===== -->
+  <div class="col-meetings" style="display:flex;flex-direction:column;gap:24px;">
+    <div class="panel">
+      <div class="panel-header">
+        TODAY'S MEETINGS
+        <button id="cal-refresh-btn" onclick="refreshCalendar()" class="btn-refresh" title="Refresh calendar from Outlook">
+          <i data-lucide="rotate-cw" style="width:14px;height:14px;"></i>
+          Refresh
+        </button>
+      </div>
+      <div class="panel-body" id="cal-body">
+        {% if calendar %}
+        {% set tomorrow_shown = [false] %}
+        {% for evt in calendar %}
+        {% if evt.day == 'tomorrow' and not tomorrow_shown[0] %}
+        {% if tomorrow_shown.append(true) %}{% endif %}
+        <div class="cal-divider" style="display:flex;align-items:center;gap:8px;margin:12px 0 8px;font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;">
+          <span style="flex:1;height:1px;background:var(--border-color);"></span>
+          Tomorrow
+          <span style="flex:1;height:1px;background:var(--border-color);"></span>
+        </div>
+        {% endif %}
+        <div class="cal-item meeting-item" data-end-time="{{ evt.end_time }}" data-day="{{ evt.day | default('today') }}">
+          <div class="cal-time">{{ evt.time }}</div>
+          <div class="cal-details">
+            <div class="cal-title">{{ evt.title | replace(' (Past)', '') | replace(' (Future)', '') }}</div>
+          </div>
+        </div>
+        {% endfor %}
+        {% else %}
+        <div class="cal-empty" id="cal-stale-msg">
+          {% if calendar_stale %}
+          Calendar data is from {{ calendar_stale }}.
+          <a href="#" onclick="refreshCalendar();return false;" style="color:var(--accent);text-decoration:none;">Refresh now →</a>
+          {% else %}
+          No calendar events today.
+          {% endif %}
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Hidden data for JS to process -->
+<script id="tasks-data" type="application/json">
+{{ tasks_by_section | tojson }}
+</script>
+
+<script>
+// --- Distribute tasks across 4-column layout ---
+document.addEventListener('DOMContentLoaded', function() {
+  const tasksDataEl = document.getElementById('tasks-data');
+  if (!tasksDataEl) return;
+
+  const allSections = JSON.parse(tasksDataEl.textContent);
+
+  // Separate sections by type
+  const fundraisingSections = [];
+  const otherWorkSections = [];
+  const personalSections = [];
+
+  allSections.forEach(sec => {
+    const nameLower = sec.name.toLowerCase();
+    if (nameLower.includes('fundraising') || nameLower.includes('ir')) {
+      fundraisingSections.push(sec);
+    } else if (nameLower.includes('personal')) {
+      personalSections.push(sec);
+    } else {
+      otherWorkSections.push(sec);
+    }
+  });
+
+  // Collect all fundraising tasks and sort by priority
+  const allFundraisingTasks = [];
+  fundraisingSections.forEach(sec => {
+    sec.tasks.forEach(task => {
+      if (!task.done && (!task.assigned_to || task.assigned_to === 'Oscar' || task.assigned_to === 'Oscar Vasquez')) {
+        allFundraisingTasks.push({...task, section: sec.name});
+      }
+    });
+  });
+
+  // Sort by priority: Hi -> Med -> Low
+  const priOrder = {'Hi': 0, 'Med': 1, 'Low': 2, 'Lo': 2};
+  allFundraisingTasks.sort((a, b) => {
+    const aPri = priOrder[a.priority] ?? 3;
+    const bPri = priOrder[b.priority] ?? 3;
+    return aPri - bPri;
+  });
+
+  // Height-balance split fundraising tasks into columns A and B
+  const fundraisingA = [];
+  const fundraisingB = [];
+  let heightA = 0;
+  let heightB = 0;
+
+  allFundraisingTasks.forEach((task, i) => {
+    // Estimate task height: base 48px + 20px per 60 chars beyond first 60
+    const textLen = (task.text || '').length;
+    const extraHeight = Math.max(0, Math.floor((textLen - 60) / 60)) * 20;
+    const taskHeight = 48 + extraHeight;
+
+    // First task always goes to A
+    if (i === 0) {
+      fundraisingA.push(task);
+      heightA += taskHeight;
+    } else {
+      // Assign to column with lesser height
+      if (heightA <= heightB) {
+        fundraisingA.push(task);
+        heightA += taskHeight;
+      } else {
+        fundraisingB.push(task);
+        heightB += taskHeight;
+      }
+    }
+  });
+
+  // Render fundraising tasks
+  renderTaskList(fundraisingA, 'fundraising-a-body');
+  renderTaskList(fundraisingB, 'fundraising-b-body');
+
+  // Collect and render Other Work tasks
+  const otherWorkTasks = [];
+  otherWorkSections.forEach(sec => {
+    sec.tasks.forEach(task => {
+      if (!task.done && (!task.assigned_to || task.assigned_to === 'Oscar' || task.assigned_to === 'Oscar Vasquez')) {
+        otherWorkTasks.push({...task, section: sec.name});
+      }
+    });
+  });
+  otherWorkTasks.sort((a, b) => (priOrder[a.priority] ?? 3) - (priOrder[b.priority] ?? 3));
+  renderTaskList(otherWorkTasks, 'other-work-body');
+
+  // Collect and render Personal tasks
+  const personalTasks = [];
+  personalSections.forEach(sec => {
+    sec.tasks.forEach(task => {
+      if (!task.done && (!task.assigned_to || task.assigned_to === 'Oscar' || task.assigned_to === 'Oscar Vasquez')) {
+        personalTasks.push({...task, section: sec.name});
+      }
+    });
+  });
+  personalTasks.sort((a, b) => (priOrder[a.priority] ?? 3) - (priOrder[b.priority] ?? 3));
+  renderTaskList(personalTasks, 'personal-body');
+});
+
+function renderTaskList(tasks, containerId) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+
+  if (tasks.length === 0) {
+    container.innerHTML = '<div class="meeting-empty">No tasks</div>';
+    return;
+  }
+
+  let html = '';
+  let lastPri = '';
+
+  tasks.forEach(task => {
+    // Priority section label
+    if (task.priority !== lastPri) {
+      const priClass = (task.priority || 'Med').toLowerCase();
+      html += `
+        <div class="priority-section-label">
+          <span class="pri-dot pri-dot-${priClass}"></span>
+          ${task.priority || 'Med'}
+        </div>
+      `;
+      lastPri = task.priority;
+    }
+
+    // Task item
+    const statusPill = task.status === 'In Progress'
+      ? '<span class="status-pill status-in-progress" onclick="toggleStatusDropdown(this, event)">→ In Progress</span>'
+      : '';
+
+    const orgBadge = task.org
+      ? `<a href="/crm/org/${encodeURIComponent(task.org)}" class="org-link">${esc(task.org)}</a>`
+      : '';
+
+    html += `
+      <div class="task-item"
+           data-raw="${esc(task.raw)}"
+           data-section="${esc(task.section)}"
+           data-index="${task.index}"
+           data-text="${esc(task.text)}"
+           data-priority="${esc(task.priority)}"
+           data-assigned="${esc(task.assigned_to || '')}"
+           data-org="${esc(task.org || '')}"
+           data-status="${esc(task.status)}">
+        <input type="checkbox" onchange="completeTask(this, '${esc(task.raw).replace(/'/g, "\\'")}')">
+        <span class="task-text" onclick="handleTaskTextClick(event, this)">
+          ${esc(task.text)}
+          ${statusPill}
+          ${orgBadge}
+        </span>
+        <button class="edit-btn" onclick="openEditModal(this.closest('.task-item'))" title="Edit">
+          <i data-lucide="pencil" style="width:14px;height:14px;"></i>
+        </button>
+      </div>
+    `;
+  });
+
+  container.innerHTML = html;
+}
+
+// --- Shared task edit modal setup ---
+window.TASK_MODAL_TEAM = {{ config.team | map(attribute='name') | list | tojson }};
+window.TASK_MODAL_TEAM_MAP = {{ config.team_map | tojson }};
+window.TASK_MODAL_SECTIONS = ['Fundraising - Me', 'Work', 'Personal'];
+window.taskModalOnSave = function() { location.reload(); };
+window.taskModalOnDelete = function() { location.reload(); };
+fetch('/crm/api/orgs')
+  .then(r => r.json())
+  .then(orgs => { window.TASK_MODAL_PROSPECT_ORGS = orgs; });
+
+function openEditModal(taskItem) {
+  openTaskEditModal({
+    title: 'Edit Task',
+    text: taskItem.dataset.text || '',
+    priority: taskItem.dataset.priority || 'Med',
+    assigned_to: taskItem.dataset.assigned || 'Oscar',
+    section: taskItem.dataset.section || 'Fundraising - Me',
+    index: parseInt(taskItem.dataset.index, 10) || 0,
+    org: taskItem.dataset.org || '',
+    showDelete: true,
+  });
+}
+
+async function completeTask(el, raw) {
+  const item = el.closest('.task-item');
+  const section = item.dataset.section;
+  const taskText = item.dataset.text;
+  const isChecked = el.checked;
+
+  // Update status based on checkbox
+  const newStatus = isChecked ? 'Complete' : 'New';
+  await updateTaskStatus(item, section, taskText, newStatus);
+}
+
+async function refreshCalendar() {
+  const btn = document.getElementById('cal-refresh-btn');
+  const body = document.getElementById('cal-body');
+
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = `
+      <i data-lucide="loader" style="width:14px;height:14px;animation:spin 1s linear infinite;"></i>
+      Refreshing...
+    `;
+    feather.replace();
+  }
+
+  body.innerHTML = '<div class="cal-empty" style="color:var(--text-muted);">Fetching calendar from Outlook...</div>';
+
+  try {
+    const resp = await fetch('/api/calendar/refresh', { method: 'POST' });
+    const data = await resp.json();
+    if (!resp.ok || !data.ok) throw new Error(data.error || 'Refresh failed');
+
+    // Re-render calendar panel
+    if (data.events && data.events.length > 0) {
+      let tomorrowShown = false;
+      body.innerHTML = data.events.map(evt => {
+        const title = (evt.title || '').replace(/\s*\((Past|Future)\)\s*$/, '').trim();
+        const day = evt.day || 'today';
+        let divider = '';
+        if (day === 'tomorrow' && !tomorrowShown) {
+          tomorrowShown = true;
+          divider = `<div class="cal-divider" style="display:flex;align-items:center;gap:8px;margin:12px 0 8px;font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;">
+            <span style="flex:1;height:1px;background:var(--border-color);"></span>
+            Tomorrow
+            <span style="flex:1;height:1px;background:var(--border-color);"></span>
+          </div>`;
+        }
+        return divider + `
+        <div class="cal-item meeting-item" data-end-time="${esc(evt.end_time || '')}" data-day="${esc(day)}">
+          <div class="cal-time">${esc(evt.time)}</div>
+          <div class="cal-details">
+            <div class="cal-title">${esc(title)}</div>
+          </div>
+        </div>`;
+      }).join('');
+      applyPastMeetingStyles();
+    } else {
+      body.innerHTML = '<div class="cal-empty">No calendar events today.</div>';
+    }
+  } catch (err) {
+    body.innerHTML = `<div class="cal-empty" style="color:#dc2626;">Could not refresh: ${esc(err.message)}</div>`;
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = `
+        <i data-lucide="rotate-cw" style="width:14px;height:14px;"></i>
+        Refresh
+      `;
+      feather.replace();
+    }
+  }
+}
+
+function applyPastMeetingStyles() {
+  const nowPacific = new Date().toLocaleString("en-US", { timeZone: "America/Los_Angeles" });
+  const nowPT = new Date(nowPacific);
+
+  document.querySelectorAll('.meeting-item[data-end-time]').forEach(item => {
+    // Tomorrow's meetings are never marked as past
+    if (item.dataset.day === 'tomorrow') {
+      item.classList.remove('past');
+      return;
+    }
+
+    const endTimeStr = item.dataset.endTime;
+    if (!endTimeStr) return;
+
+    const endTime = new Date(endTimeStr);
+
+    if (endTime < nowPT) {
+      item.classList.add('past');
+    } else {
+      item.classList.remove('past');
+    }
+  });
+}
+
+function esc(t) {
+  if (t == null) return '';
+  return String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// Auto-refresh calendar if stale
+{% if calendar_stale %}
+document.addEventListener('DOMContentLoaded', () => refreshCalendar());
+{% else %}
+// Apply past meeting styles on page load
+document.addEventListener('DOMContentLoaded', () => applyPastMeetingStyles());
+{% endif %}
+
+async function addTask(e) {
+  e.preventDefault();
+  const text = document.getElementById('newTaskText').value.trim();
+  const priority = document.getElementById('newTaskPriority').value;
+  if (!text) return;
+  const res = await fetch('/tasks/api/task', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({text, priority, section: 'Fundraising - Me'})
+  });
+  if (res.ok) location.reload();
+}
+
+// Status dropdown management
+let activeDropdown = null;
+
+function handleTaskTextClick(event, taskTextEl) {
+  // Don't open status dropdown if clicking on org link
+  if (event.target.classList.contains('org-link')) {
+    return;
+  }
+
+  // Don't open if clicking on existing status pill (it has its own handler)
+  if (event.target.classList.contains('status-pill')) {
+    return;
+  }
+
+  event.stopPropagation();
+
+  const taskItem = taskTextEl.closest('.task-item');
+  const status = taskItem.dataset.status;
+
+  // Only open dropdown if task is in New or In Progress status
+  if (status === 'New' || status === 'In Progress') {
+    const existingPill = taskTextEl.querySelector('.status-pill');
+    const targetElement = existingPill || taskTextEl;
+    toggleStatusDropdown(targetElement, event);
+  }
+}
+
+function toggleStatusDropdown(pill, event) {
+  event.stopPropagation();
+
+  // Close existing dropdown if any
+  if (activeDropdown) {
+    activeDropdown.remove();
+    activeDropdown = null;
+  }
+
+  const taskItem = pill.closest('.task-item');
+  const currentStatus = taskItem.dataset.status;
+  const section = taskItem.dataset.section;
+  const taskText = taskItem.dataset.text;
+
+  // Create dropdown
+  const dropdown = document.createElement('div');
+  dropdown.className = 'status-dropdown';
+  dropdown.innerHTML = `
+    <div class="status-option ${currentStatus === 'New' ? 'selected' : ''}" data-status="New">
+      <i data-lucide="circle" style="width:14px;height:14px;opacity:0.5;"></i> New
+    </div>
+    <div class="status-option ${currentStatus === 'In Progress' ? 'selected' : ''}" data-status="In Progress">
+      <i data-lucide="arrow-right" style="width:14px;height:14px;color:#1d4ed8;"></i> In Progress
+    </div>
+    <div class="status-option ${currentStatus === 'Complete' ? 'selected' : ''}" data-status="Complete">
+      <i data-lucide="check" style="width:14px;height:14px;color:#16a34a;"></i> Complete
+    </div>
+  `;
+  feather.replace();
+
+  // Position dropdown below pill
+  const rect = pill.getBoundingClientRect();
+  dropdown.style.position = 'fixed';
+  dropdown.style.left = rect.left + 'px';
+  dropdown.style.top = (rect.bottom + 2) + 'px';
+
+  // Add click handlers
+  dropdown.querySelectorAll('.status-option').forEach(opt => {
+    opt.addEventListener('click', () => {
+      const newStatus = opt.dataset.status;
+      updateTaskStatus(taskItem, section, taskText, newStatus);
+      dropdown.remove();
+      activeDropdown = null;
+    });
+  });
+
+  document.body.appendChild(dropdown);
+  activeDropdown = dropdown;
+}
+
+// Close dropdown when clicking outside
+document.addEventListener('click', (e) => {
+  if (activeDropdown && !e.target.closest('.status-dropdown') && !e.target.closest('.status-pill')) {
+    activeDropdown.remove();
+    activeDropdown = null;
+  }
+});
+
+async function updateTaskStatus(taskItem, section, taskText, newStatus) {
+  // Optimistic update
+  const oldStatus = taskItem.dataset.status;
+  const oldHtml = taskItem.innerHTML;
+  taskItem.dataset.status = newStatus;
+
+  // Update UI
+  const taskTextEl = taskItem.querySelector('.task-text');
+  const existingPill = taskTextEl.querySelector('.status-pill');
+
+  if (newStatus === 'In Progress') {
+    if (!existingPill) {
+      const orgLink = taskTextEl.querySelector('.org-link');
+      const pill = document.createElement('span');
+      pill.className = 'status-pill status-in-progress';
+      pill.textContent = '→ In Progress';
+      pill.onclick = (e) => toggleStatusDropdown(pill, e);
+      if (orgLink) {
+        taskTextEl.insertBefore(pill, orgLink);
+      } else {
+        taskTextEl.appendChild(pill);
+      }
+    }
+    taskItem.querySelector('input[type=checkbox]').checked = false;
+  } else if (newStatus === 'Complete') {
+    if (existingPill) existingPill.remove();
+    taskItem.querySelector('input[type=checkbox]').checked = true;
+    taskItem.classList.add('done');
+  } else { // New
+    if (existingPill) existingPill.remove();
+    taskItem.querySelector('input[type=checkbox]').checked = false;
+    taskItem.classList.remove('done');
+  }
+
+  // Send to server
+  try {
+    const index = parseInt(taskItem.dataset.index, 10);
+    const res = await fetch(`/tasks/api/task/${encodeURIComponent(section)}/${index}/status`, {
+      method: 'PATCH',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        status: newStatus
+      })
+    });
+
+    const data = await res.json();
+
+    if (!res.ok || !data.ok) {
+      // Revert on error
+      taskItem.dataset.status = oldStatus;
+      taskItem.innerHTML = oldHtml;
+      alert('Failed to update status: ' + (data.error || 'Unknown error'));
+    }
+  } catch (err) {
+    // Revert on error
+    taskItem.dataset.status = oldStatus;
+    taskItem.innerHTML = oldHtml;
+    alert('Failed to update status: ' + err.message);
+  }
+}
+</script>
+<script src="/static/task-edit-modal.js"></script>
+
+</body>
+</html>

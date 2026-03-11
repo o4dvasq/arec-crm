@@ -1,0 +1,60 @@
+<!-- Row 1: Brand Bar -->
+<header class="brand-bar">
+    <div class="brand-bar-inner">
+        <div>
+            <svg class="brand-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"/>
+                <circle cx="12" cy="12" r="3"/>
+                <line x1="12" y1="2" x2="12" y2="6"/>
+                <line x1="12" y1="18" x2="12" y2="22"/>
+                <line x1="2" y1="12" x2="6" y2="12"/>
+                <line x1="18" y1="12" x2="22" y2="12"/>
+            </svg>
+            <span class="brand-text">Overwatch</span>
+        </div>
+        {% if g.user %}
+        <div style="display: flex; align-items: center; gap: 12px; font-size: 13px; color: #64748b;">
+            <span>{{ g.user.display_name }}</span>
+            <a href="/.auth/logout" style="color: #94a3b8; text-decoration: none; hover: color: #475569;">Logout</a>
+        </div>
+        {% endif %}
+    </div>
+</header>
+
+<!-- Row 2: Nav Tabs -->
+<nav class="nav-tabs">
+    <div class="nav-tabs-inner">
+        <a href="/" class="nav-tab {% if active_tab == 'dashboard' %}nav-tab--active{% endif %}">Dashboard</a>
+        <a href="/tasks" class="nav-tab {% if active_tab == 'tasks' %}nav-tab--active{% endif %}">Tasks</a>
+        <a href="/crm" class="nav-tab {% if active_tab == 'pipeline' %}nav-tab--active{% endif %}">Pipeline</a>
+        <a href="/crm/people" class="nav-tab {% if active_tab == 'people' %}nav-tab--active{% endif %}">People</a>
+        <a href="/crm/orgs" class="nav-tab {% if active_tab == 'orgs' %}nav-tab--active{% endif %}">Orgs</a>
+
+        <!-- Global Search -->
+        <div class="global-search" id="global-search">
+            <span class="global-search-icon">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                </svg>
+            </span>
+            <input
+                type="text"
+                id="global-search-input"
+                class="global-search-input"
+                placeholder="Search..."
+                autocomplete="off"
+                spellcheck="false"
+            >
+            <div class="global-search-dropdown" id="global-search-dropdown" style="display:none;"></div>
+        </div>
+    </div>
+</nav>
+
+<!-- Lucide Icons CDN -->
+<script src="https://unpkg.com/lucide@latest"></script>
+<!-- Global Icon Registry -->
+<script src="/static/icons.js"></script>
+<!-- Search index data -->
+<script>window.SEARCH_INDEX = {{ search_index_json | default('[]') | safe }};</script>
+<!-- Global CRM JS -->
+<script src="/static/crm.js"></script>

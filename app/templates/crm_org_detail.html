@@ -1,0 +1,1092 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Org Detail — Overwatch</title>
+  <link rel="stylesheet" href="/static/crm.css">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0f172a; color: #e2e8f0; min-height: 100vh; }
+
+    /* Page layout */
+    .page { padding: 24px; max-width: 1100px; margin: 0 auto; }
+
+    /* Cards */
+    .card { background: #1e293b; border: 1px solid #334155; border-radius: 8px; margin-bottom: 20px; overflow: visible; }
+    .card-header { padding: 14px 20px; border-bottom: 1px solid #334155; display: flex; justify-content: space-between; align-items: center; }
+    .card-title { font-size: 15px; font-weight: 600; color: #e2e8f0; }
+    .card-body { padding: 20px; }
+
+    /* Org heading */
+    .org-heading { font-size: 24px; font-weight: 700; color: #f1f5f9; margin-bottom: 4px; }
+    .org-subheading { font-size: 13px; color: #94a3b8; }
+
+    /* Field rows */
+    .field-row { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 12px; }
+    .field-label { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: #94a3b8; width: 100px; flex-shrink: 0; padding-top: 6px; }
+    .field-value { flex: 1; font-size: 14px; color: #e2e8f0; }
+    .field-value.editable { cursor: pointer; padding: 4px 8px; border-radius: 4px; min-height: 28px; }
+    .field-value.editable:hover { background: #334155; }
+    .field-edit input, .field-edit select, .field-edit textarea {
+      width: 100%; padding: 6px 8px; border: 1px solid #3b82f6; border-radius: 4px;
+      font-size: 14px; font-family: inherit; outline: none; background: #0f172a; color: #e2e8f0;
+    }
+    .field-edit textarea { resize: vertical; min-height: 60px; }
+    .save-row { display: flex; gap: 8px; margin-top: 6px; }
+    .btn { padding: 6px 14px; font-size: 13px; border-radius: 5px; border: none; cursor: pointer; font-weight: 500; }
+    .btn-primary { background: #3b82f6; color: #fff; }
+    .btn-primary:hover { background: #2563eb; }
+    .btn-ghost { background: #334155; color: #cbd5e1; border: 1px solid #475569; }
+    .btn-ghost:hover { background: #475569; }
+    .btn-sm { padding: 4px 10px; font-size: 12px; }
+
+    /* Contacts */
+    .contact-list { display: flex; flex-direction: column; gap: 12px; }
+    .contact-card { border: 1px solid #334155; border-radius: 6px; padding: 14px 16px; background: #334155; }
+    .contact-name { font-weight: 600; font-size: 14px; color: #e2e8f0; margin-bottom: 6px; }
+    .contact-fields { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 8px; }
+    .contact-field { font-size: 13px; }
+    .contact-field .lbl { color: #94a3b8; font-size: 11px; text-transform: uppercase; font-weight: 600; }
+    .contact-field .val { color: #cbd5e1; margin-top: 1px; }
+    .contact-field .val.editable { cursor: pointer; padding: 2px 4px; border-radius: 3px; }
+    .contact-field .val.editable:hover { background: #475569; }
+    .contact-field input { width: 100%; padding: 4px 6px; border: 1px solid #3b82f6; border-radius: 4px; font-size: 13px; font-family: inherit; outline: none; background: #0f172a; color: #e2e8f0; }
+
+    /* Add contact form */
+    .add-form { border: 1px dashed #475569; border-radius: 6px; padding: 16px; margin-top: 12px; }
+    .add-form-title { font-size: 13px; font-weight: 600; color: #cbd5e1; margin-bottom: 12px; }
+    .form-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 10px; margin-bottom: 12px; }
+    .form-group { display: flex; flex-direction: column; gap: 4px; }
+    .form-group label { font-size: 11px; font-weight: 600; text-transform: uppercase; color: #94a3b8; }
+    .form-group input, .form-group select { padding: 6px 8px; border: 1px solid #334155; border-radius: 4px; font-size: 13px; font-family: inherit; outline: none; background: #0f172a; color: #e2e8f0; }
+    .form-group input:focus, .form-group select:focus { border-color: #3b82f6; }
+
+    /* Prospect cards */
+    .prospect-list { display: flex; flex-direction: column; gap: 12px; }
+    .prospect-card { border: 1px solid #334155; border-radius: 6px; overflow: hidden; }
+    .prospect-card-header { padding: 10px 16px; background: #334155; border-bottom: 1px solid #334155; display: flex; justify-content: space-between; align-items: center; }
+    .prospect-offering { font-size: 13px; font-weight: 600; color: #cbd5e1; }
+    .prospect-fields { padding: 14px 16px; display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; }
+    .p-field { font-size: 13px; }
+    .p-field .lbl { color: #94a3b8; font-size: 11px; text-transform: uppercase; font-weight: 600; }
+    .p-field .val { color: #cbd5e1; margin-top: 2px; cursor: pointer; padding: 2px 6px; border-radius: 3px; }
+    .p-field .val:hover { background: #475569; }
+    .p-field .val.readonly { cursor: default; }
+    .p-field .val.readonly:hover { background: none; }
+    .p-field input, .p-field select { width: 100%; padding: 4px 6px; border: 1px solid #3b82f6; border-radius: 4px; font-size: 13px; font-family: inherit; outline: none; background: #0f172a; color: #e2e8f0; }
+
+    /* Badges */
+    .badge { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 600; }
+    .urgency-High { background: rgba(220,38,38,.15); color: #ff7675; }
+    .urgency-Med { background: rgba(217,119,6,.15); color: #ffa940; }
+    .urgency-Low { background: rgba(107,114,128,.15); color: #cbd5e1; }
+    .stage-7, .stage-8 { background: rgba(34,197,94,.15); color: #52c41a; }
+    .stage-5, .stage-6 { background: rgba(59,130,246,.15); color: #60a5fa; }
+    .stage-3, .stage-4 { background: rgba(148,163,184,.15); color: #cbd5e1; }
+    .stage-1, .stage-2 { background: rgba(148,163,184,.1); color: #94a3b8; }
+
+    /* Add offering form */
+    .add-offering-form { display: flex; gap: 10px; align-items: flex-end; margin-top: 12px; flex-wrap: wrap; }
+    .add-offering-form select { padding: 7px 10px; border: 1px solid #334155; border-radius: 5px; font-size: 13px; font-family: inherit; outline: none; background: #0f172a; color: #e2e8f0; }
+    .add-offering-form select:focus { border-color: #3b82f6; }
+
+    /* Feedback */
+    @keyframes flash-green { 0%,100% { background: inherit; } 50% { background: #d1fae5; } }
+    @keyframes flash-red { 0%,100% { background: inherit; } 50% { background: #fee2e2; } }
+    .flash-ok { animation: flash-green 0.5s ease; }
+    .flash-err { animation: flash-red 0.5s ease; }
+
+    /* Error / empty */
+    .muted { color: #94a3b8; font-size: 13px; }
+    .error-msg { color: #ff7675; font-size: 13px; margin-top: 6px; }
+
+    /* ===== Org Summary Card (matches Prospect detail format) ===== */
+    .org-page-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 1rem;
+      margin-bottom: 1.25rem;
+    }
+    .org-page-title { font-size: 1.75rem; font-weight: 700; color: #f1f5f9; margin-bottom: 0.15rem; }
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1.25rem;
+    }
+.s-label {
+      font-size: 0.75rem;
+      color: #94a3b8;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      font-weight: 500;
+      margin-bottom: 0.3rem;
+    }
+    .s-value { font-size: 0.95rem; font-weight: 600; color: #e2e8f0; }
+    .s-value.editable { cursor: pointer; border-radius: 6px; padding: 4px 6px; margin: -4px -6px; transition: background 0.15s; }
+    .s-value.editable:hover { background: rgba(59,130,246,0.08); }
+    .s-value .muted { font-weight: 400; }
+    @media (max-width: 640px) { .summary-grid { grid-template-columns: repeat(2, 1fr); } }
+
+    /* ===== Org Brief ===== */
+    .brief-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+    .brief-title { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: #cbd5e1; }
+    .brief-ts { font-size: 11px; color: #94a3b8; font-weight: 400; margin-left: 6px; opacity: 0.7; }
+    .brief-narrative { color: #cbd5e1; line-height: 1.7; font-size: 14px; }
+    .brief-narrative p { margin-bottom: 0.85rem; }
+    .brief-narrative p:last-child { margin-bottom: 0; }
+    .brief-loading { display: flex; align-items: center; gap: 10px; color: #94a3b8; padding: 1.5rem 0; }
+    @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
+    .loading-pulse { width: 8px; height: 8px; border-radius: 50%; background: #3b82f6; animation: pulse 1.2s ease infinite; }
+    .btn-brief-refresh {
+        background: none; border: 1px solid #475569; color: #94a3b8;
+        font-size: 12px; padding: 3px 10px; border-radius: 4px; cursor: pointer;
+        transition: border-color 0.15s, color 0.15s;
+    }
+    .btn-brief-refresh:hover { border-color: #3b82f6; color: #60a5fa; }
+
+    /* ===== Add Contact Panel ===== */
+    .add-contact-panel {
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 6px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+      margin-bottom: 16px;
+      overflow: hidden;
+    }
+    .acp-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 16px;
+      background: #334155;
+      border-bottom: 1px solid #334155;
+    }
+    .acp-title { font-size: 14px; font-weight: 600; color: #cbd5e1; }
+    .acp-close { background: none; border: none; font-size: 16px; color: #94a3b8; cursor: pointer; padding: 2px 6px; line-height: 1; }
+    .acp-close:hover { color: #cbd5e1; }
+    .acp-search-bar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 16px;
+      border-bottom: 1px solid #334155;
+    }
+    .acp-search-bar input {
+      flex: 1;
+      border: 1px solid #334155;
+      border-radius: 4px;
+      padding: 6px 10px;
+      font-size: 13px;
+      font-family: inherit;
+      outline: none;
+      background: #0f172a;
+      color: #e2e8f0;
+    }
+    .acp-search-bar input:focus { border-color: #3b82f6; }
+    .acp-count { padding: 6px 16px; font-size: 11px; color: #94a3b8; border-bottom: 1px solid #334155; }
+    .acp-people-list { max-height: 280px; overflow-y: auto; }
+    .person-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 9px 16px;
+      cursor: pointer;
+      border-bottom: 1px solid #334155;
+      transition: background 0.1s;
+    }
+    .person-row:hover { background: #334155; }
+    .person-row.selected { background: rgba(59,130,246,.1); border-left: 3px solid #3b82f6; padding-left: 13px; }
+    .person-name { font-size: 13px; font-weight: 500; color: #cbd5e1; }
+    .person-org-tag { font-size: 12px; color: #94a3b8; }
+    .acp-footer { padding: 10px 16px; border-top: 1px solid #334155; }
+    .acp-confirm-bar { padding: 10px 16px; background: rgba(59,130,246,.1); border-top: 1px solid #334155; display: flex; align-items: center; gap: 10px; }
+    .acp-back { padding: 8px 16px; border-bottom: 1px solid #334155; }
+    .link-btn { background: none; border: none; color: #60a5fa; font-size: 13px; cursor: pointer; padding: 0; font-family: inherit; }
+    .link-btn:hover { color: #93c5fd; text-decoration: underline; }
+    #acp-new-step { padding: 14px 16px; }
+    #acp-new-step .form-group { display: flex; flex-direction: column; gap: 4px; margin-bottom: 10px; }
+    #acp-new-step .form-group label { font-size: 12px; font-weight: 600; color: #cbd5e1; text-transform: uppercase; letter-spacing: 0.04em; }
+    #acp-new-step .form-group input,
+    #acp-new-step .form-group textarea {
+      border: 1px solid #334155; border-radius: 4px; padding: 6px 10px;
+      font-size: 13px; font-family: inherit; outline: none; background: #0f172a; color: #e2e8f0;
+    }
+    #acp-new-step .form-group input:focus,
+    #acp-new-step .form-group textarea:focus { border-color: #3b82f6; }
+    .acp-form-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 12px; }
+  </style>
+</head>
+<body>
+
+{% set active_tab = 'orgs' %}
+{% include '_nav.html' %}
+
+<div class="page">
+  <a href="/crm/orgs" class="breadcrumb-back">← Orgs</a>
+
+  <div id="loading" class="muted">Loading...</div>
+  <div id="main-content" style="display:none">
+
+    <!-- Page heading -->
+    <div class="org-page-header">
+      <h1 class="org-page-title" id="org-name-heading"></h1>
+    </div>
+
+    <!-- Section 1: Org Summary Card -->
+    <div class="card" id="org-card">
+      <div class="card-body">
+        <div class="summary-grid">
+          <div>
+            <div class="s-label">Type</div>
+            <div class="s-value editable" id="type-display"></div>
+          </div>
+          <div>
+            <div class="s-label">Domain</div>
+            <div class="s-value editable" id="domain-display"></div>
+          </div>
+          <div>
+            <div class="s-label">&nbsp;</div>
+            <div class="s-value" id="extra-display"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Section 2: Org Brief -->
+    <div class="card" id="org-brief-card">
+      <div class="card-body" id="org-brief">
+        <div class="brief-loading">
+          <div class="loading-pulse"></div>
+          <span>Loading brief...</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Section 3: Contacts -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">Contacts</span>
+        <button class="btn btn-primary btn-sm" onclick="openAddContactPanel()">+ Add Contact</button>
+      </div>
+      <div class="card-body">
+
+        <!-- Add Contact Panel (two-step, hidden by default) -->
+        <div id="add-contact-panel" class="add-contact-panel" style="display:none">
+          <div class="acp-header">
+            <span class="acp-title" id="acp-title">Add Contact</span>
+            <button class="acp-close" onclick="closeAddContactPanel()" title="Close">✕</button>
+          </div>
+
+          <!-- Step 1: Search existing KB people -->
+          <div id="acp-search-step">
+            <div class="acp-search-bar">
+              <span>🔍</span>
+              <input type="text" id="acp-search-input" placeholder="Search people..."
+                     oninput="filterKbPeople(this.value)" autocomplete="off">
+            </div>
+            <div class="acp-count" id="acp-count">Loading...</div>
+            <div class="acp-people-list" id="acp-people-list"></div>
+            <div class="acp-footer">
+              <button class="link-btn" onclick="showNewContactStep()">+ Create new contact instead</button>
+            </div>
+            <div id="acp-confirm-bar" class="acp-confirm-bar" style="display:none">
+              <button class="btn btn-primary btn-sm" onclick="confirmAddExistingContact()">
+                Add <span id="acp-selected-name"></span> to this org
+              </button>
+              <span class="muted" id="acp-confirm-hint"></span>
+            </div>
+          </div>
+
+          <!-- Step 2b: New contact form -->
+          <div id="acp-new-step" style="display:none">
+            <div class="acp-back">
+              <button class="link-btn" onclick="showSearchStep()">← Back to search</button>
+            </div>
+            <div class="form-group">
+              <label>Name *</label>
+              <input type="text" id="acp-new-name" placeholder="Full name">
+            </div>
+            <div class="form-group">
+              <label>Title / Role</label>
+              <input type="text" id="acp-new-role" placeholder="e.g. Portfolio Manager">
+            </div>
+            <div class="form-group">
+              <label>Email</label>
+              <input type="email" id="acp-new-email" placeholder="email@example.com">
+            </div>
+            <div class="form-group">
+              <label>Phone</label>
+              <input type="text" id="acp-new-phone" placeholder="+1 415 000 0000">
+            </div>
+            <div class="acp-form-actions">
+              <button class="btn btn-ghost btn-sm" onclick="closeAddContactPanel()">Cancel</button>
+              <button class="btn btn-primary btn-sm" onclick="submitNewContact()">Add Contact</button>
+            </div>
+            <span class="error-msg" id="acp-new-error" style="display:none"></span>
+          </div>
+        </div>
+
+        <div class="contact-list" id="contact-list"></div>
+      </div>
+    </div>
+
+    <!-- Section 2.5: Meeting History -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">Meeting History</span>
+        <button class="btn btn-primary btn-sm" onclick="openAddMeetingForm()">+ Add Meeting</button>
+      </div>
+      <div class="card-body">
+        <div id="meeting-list"></div>
+        <div id="add-meeting-form" class="add-form" style="display:none">
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Date</label>
+              <input type="date" id="mtg-date">
+            </div>
+            <div class="form-group">
+              <label>Title</label>
+              <input type="text" id="mtg-title" placeholder="Meeting title">
+            </div>
+            <div class="form-group">
+              <label>Attendees</label>
+              <input type="text" id="mtg-attendees" placeholder="Oscar, Tony, ...">
+            </div>
+          </div>
+          <div style="display:flex;gap:8px;margin-top:8px;">
+            <button class="btn btn-primary btn-sm" onclick="submitMeeting()">Add</button>
+            <button class="btn btn-ghost btn-sm" onclick="closeAddMeetingForm()">Cancel</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Section 3: Prospects -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">Prospects</span>
+      </div>
+      <div class="card-body">
+        <div class="prospect-list" id="prospect-list"></div>
+
+        <!-- Add to Offering form -->
+        <div class="add-offering-form" id="add-offering-form">
+          <div class="form-group">
+            <label style="font-size:11px;font-weight:600;text-transform:uppercase;color:#94a3b8">Add to Offering</label>
+            <select id="offering-select">
+              <option value="">Select offering...</option>
+            </select>
+          </div>
+          <button class="btn btn-primary btn-sm" onclick="addToOffering()">Add</button>
+          <span class="error-msg" id="offering-error" style="display:none"></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Section 4: Notes -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">Notes</span>
+        <button class="btn btn-primary btn-sm" onclick="openAddNoteForm()">+ Add Note</button>
+      </div>
+      <div class="card-body">
+        <div id="notes-content"></div>
+        <div id="add-note-form" class="add-form" style="display:none">
+          <textarea id="new-note-text" rows="4" placeholder="Enter note..."
+            style="width:100%;padding:8px;border:1px solid #334155;border-radius:4px;font-size:13px;font-family:inherit;outline:none;background:#0f172a;color:#e2e8f0;resize:vertical;"></textarea>
+          <div style="display:flex;gap:8px;margin-top:8px;">
+            <button class="btn btn-primary btn-sm" onclick="submitNote()">Save</button>
+            <button class="btn btn-ghost btn-sm" onclick="closeAddNoteForm()">Cancel</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+const ORG_NAME = {{ org_name | tojson }};
+const CONFIG = {
+  stages: {{ config.stages | tojson }},
+  urgency_levels: {{ config.urgency_levels | tojson }},
+  team: {{ config.team | tojson }},
+  closing_options: {{ config.closing_options | tojson }},
+  org_types: {{ config.org_types | tojson }},
+};
+const ALL_OFFERINGS = {{ offerings | tojson }};
+
+let orgData = {};
+let contacts = [];
+let prospects = [];
+let meetings = [];
+
+const EDITABLE_PROSPECT_FIELDS = ['stage', 'urgency', 'target', 'assigned_to', 'notes', 'closing'];
+const PROSPECT_DISPLAY_FIELDS = [
+  { key: 'Stage', editable: true },
+  { key: 'Urgency', editable: true },
+  { key: 'Target', editable: true },
+  { key: 'Primary Contact', editable: false },
+  { key: 'Closing', editable: true },
+  { key: 'Assigned To', editable: true },
+  { key: 'Notes', editable: true },
+  { key: 'Last Touch', editable: false },
+];
+const PROSPECT_DROPDOWNS = {
+  'Stage': CONFIG.stages,
+  'Urgency': [...CONFIG.urgency_levels, ''],
+  'Assigned To': [...CONFIG.team.map(m => m.name), ''],
+  'Closing': [...CONFIG.closing_options, ''],
+};
+
+// ---------------------------------------------------------------------------
+// Init
+// ---------------------------------------------------------------------------
+
+async function init() {
+  const resp = await fetch(`/crm/api/org/${encodeURIComponent(ORG_NAME)}`);
+  const data = await resp.json();
+  orgData = data.org;
+  contacts = data.contacts;
+  prospects = data.prospects;
+
+  document.getElementById('loading').style.display = 'none';
+  document.getElementById('main-content').style.display = '';
+
+  renderOrgProfile();
+  renderContacts();
+  renderProspects();
+  renderOfferingDropdown();
+  renderNotes();
+  loadMeetings();
+  loadOrgBrief(data.saved_brief);
+}
+
+// ---------------------------------------------------------------------------
+// Org Brief
+// ---------------------------------------------------------------------------
+
+async function loadOrgBrief(savedBrief) {
+  // Use server-persisted brief if present
+  if (savedBrief && savedBrief.narrative) {
+    renderOrgBrief(savedBrief.narrative, savedBrief.generated_at);
+    return;
+  }
+  // No saved brief — auto-synthesize on first visit
+  showBriefLoading();
+  await _synthesizeOrgBrief();
+}
+
+async function refreshOrgBrief() {
+  showBriefLoading();
+  await _synthesizeOrgBrief();
+}
+
+async function _synthesizeOrgBrief() {
+  try {
+    const resp = await fetch('/crm/api/synthesize-org-brief', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ org: ORG_NAME }),
+    });
+    if (!resp.ok) throw new Error('Synthesis failed');
+    const synth = await resp.json();
+    renderOrgBrief(synth.narrative);
+  } catch (err) {
+    renderOrgBriefError();
+  }
+}
+
+function narrativeToHtml(text) {
+  if (!text) return '';
+  return text.trim()
+    .split(/\n\n+/)
+    .filter(p => p.trim())
+    .map(p => `<p>${escHtml(p.trim().replace(/\n/g, ' '))}</p>`)
+    .join('');
+}
+
+function renderOrgBrief(narrative, generatedAt) {
+  const tsHtml = generatedAt
+    ? `<span class="brief-ts" title="Generated ${generatedAt}">
+         ${new Date(generatedAt).toLocaleDateString('en-US', {month:'short', day:'numeric'})}
+       </span>`
+    : '';
+  document.getElementById('org-brief').innerHTML = `
+    <div class="brief-header">
+      <span class="brief-title">Relationship Brief ${tsHtml}</span>
+      <button class="btn-brief-refresh" onclick="refreshOrgBrief()">⟳ Refresh</button>
+    </div>
+    <div class="brief-narrative">${narrativeToHtml(narrative)}</div>
+  `;
+}
+
+function showBriefLoading() {
+  document.getElementById('org-brief').innerHTML = `
+    <div class="brief-header"><span class="brief-title">Relationship Brief</span></div>
+    <div class="brief-loading">
+      <div class="loading-pulse"></div>
+      <span>Synthesizing intelligence...</span>
+    </div>
+  `;
+}
+
+function renderOrgBriefError() {
+  document.getElementById('org-brief').innerHTML = `
+    <div class="brief-header">
+      <span class="brief-title">Relationship Brief</span>
+      <button class="btn-brief-refresh" onclick="refreshOrgBrief()">Retry</button>
+    </div>
+    <div class="muted" style="padding:0.5rem 0">Brief generation unavailable.</div>
+  `;
+}
+
+function escHtml(str) {
+  return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ---------------------------------------------------------------------------
+// Section 1: Org Profile
+// ---------------------------------------------------------------------------
+
+function renderOrgProfile() {
+  document.getElementById('org-name-heading').textContent = ORG_NAME;
+  document.title = ORG_NAME + ' — CRM';
+
+  const typeVal   = orgData['Type']   || '';
+  const domainVal = orgData['Domain'] || '';
+  const dash = '<span class="muted">—</span>';
+
+  const typeEl   = document.getElementById('type-display');
+  const domainEl = document.getElementById('domain-display');
+
+  typeEl.innerHTML   = escHtml(typeVal)   || dash;
+  domainEl.innerHTML = escHtml(domainVal) || dash;
+
+  typeEl.onclick   = () => startOrgEdit('type',   typeEl);
+  domainEl.onclick = () => startOrgEdit('domain', domainEl);
+}
+
+function renderNotes() {
+  const el = document.getElementById('notes-content');
+  const notesVal = orgData['Notes'] || '';
+  if (!notesVal) {
+    el.innerHTML = '<p class="muted">No notes yet.</p>';
+    return;
+  }
+  el.innerHTML = notesVal
+    .split('\n')
+    .map(line => line.trim()
+      ? `<p style="font-size:14px;color:#cbd5e1;line-height:1.6;margin-bottom:6px;">${escHtml(line)}</p>`
+      : '<div style="height:6px;"></div>'
+    )
+    .join('');
+}
+
+function openAddNoteForm() {
+  document.getElementById('add-note-form').style.display = 'block';
+  document.getElementById('new-note-text').value = '';
+  document.getElementById('new-note-text').focus();
+}
+
+function closeAddNoteForm() {
+  document.getElementById('add-note-form').style.display = 'none';
+}
+
+async function submitNote() {
+  const text = document.getElementById('new-note-text').value.trim();
+  if (!text) return;
+
+  const today = new Date().toISOString().slice(0, 10);
+  const newEntry = `[${today}] ${text}`;
+  const existing = orgData['Notes'] || '';
+  const combined = existing ? `${existing}\n\n${newEntry}` : newEntry;
+
+  const resp = await fetch(`/crm/api/org/${encodeURIComponent(ORG_NAME)}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ notes: combined }),
+  });
+  if (resp.ok) {
+    orgData['Notes'] = combined;
+    renderNotes();
+    closeAddNoteForm();
+  }
+}
+
+function startOrgEdit(field, el) {
+  const fieldMap = { type: 'Type', domain: 'Domain' };
+  const current = orgData[fieldMap[field]] || '';
+  let input;
+  if (field === 'type') {
+    input = document.createElement('select');
+    ['', ...CONFIG.org_types].forEach(opt => {
+      const o = document.createElement('option');
+      o.value = opt;
+      o.textContent = opt || '(none)';
+      if (opt === current) o.selected = true;
+      input.appendChild(o);
+    });
+  } else {
+    input = document.createElement('input');
+    input.type = 'text';
+    input.value = current;
+    input.placeholder = 'e.g. example.com';
+  }
+  input.style.cssText = 'width:100%;padding:6px 8px;border:1px solid #2563eb;border-radius:4px;font-size:0.95rem;font-family:inherit;outline:none;background:#0f172a;color:#e2e8f0;';
+  input.addEventListener('click', e => e.stopPropagation());
+
+  const saveBtn = document.createElement('button');
+  saveBtn.textContent = 'Save';
+  saveBtn.className = 'btn btn-primary btn-sm';
+  saveBtn.style.marginTop = '6px';
+
+  const cancelBtn = document.createElement('button');
+  cancelBtn.textContent = 'Cancel';
+  cancelBtn.className = 'btn btn-ghost btn-sm';
+  cancelBtn.style.cssText = 'margin-left:6px;margin-top:6px;';
+
+  // el is the .s-value div — replace its content directly
+  el.onclick = null;
+  el.innerHTML = '';
+  el.appendChild(input);
+  el.appendChild(document.createElement('br'));
+  el.appendChild(saveBtn);
+  el.appendChild(cancelBtn);
+  input.focus();
+  if (input.tagName === 'INPUT') input.select();
+
+  saveBtn.onclick = (e) => { e.stopPropagation(); saveOrgField(field, input.value, el); };
+  cancelBtn.onclick = (e) => { e.stopPropagation(); renderOrgProfile(); };
+}
+
+async function saveOrgField(field, value, el) {
+  const body = {};
+  body[field] = value;
+  const resp = await fetch(`/crm/api/org/${encodeURIComponent(ORG_NAME)}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  if (resp.ok) {
+    const updated = await resp.json();
+    if (updated['Type'] !== undefined) orgData['Type'] = updated['Type'];
+    if (updated['Domain'] !== undefined) orgData['Domain'] = updated['Domain'];
+    renderOrgProfile();
+  } else {
+    const err = document.createElement('div');
+    err.className = 'error-msg';
+    err.textContent = 'Save failed';
+    el.appendChild(err);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Section 2: Contacts
+// ---------------------------------------------------------------------------
+
+function renderContacts() {
+  const list = document.getElementById('contact-list');
+  if (!contacts.length) {
+    list.innerHTML = '<p class="muted">No contacts linked yet.</p>';
+    return;
+  }
+  list.innerHTML = contacts.map((c, idx) => `
+    <div class="contact-card">
+      <div class="contact-name">
+        ${c.slug
+          ? `<a href="/crm/people/${encodeURIComponent(c.slug)}" class="contact-name-link">${escHtml(c.name)}</a>`
+          : escHtml(c.name)
+        }
+      </div>
+      <div class="contact-fields">
+        ${renderContactField(idx, 'role', 'Role', c.role)}
+        ${renderContactField(idx, 'email', 'Email', c.email)}
+        ${renderContactField(idx, 'phone', 'Phone', c.phone)}
+      </div>
+    </div>
+  `).join('');
+}
+
+function renderContactField(idx, field, label, value) {
+  return `
+    <div class="contact-field">
+      <div class="lbl">${label}</div>
+      <div class="val editable" id="cf-${idx}-${field}" onclick="startContactEdit(${idx}, '${field}', this)">
+        ${value || '<span class="muted">—</span>'}
+      </div>
+    </div>
+  `;
+}
+
+function startContactEdit(idx, field, el) {
+  const contact = contacts[idx];
+  const current = contact[field] || '';
+  const input = document.createElement('input');
+  input.type = field === 'email' ? 'email' : 'text';
+  input.value = current;
+
+  el.innerHTML = '';
+  el.appendChild(input);
+  input.focus();
+  input.select();
+  input.addEventListener('click', e => e.stopPropagation());
+
+  async function save() {
+    const val = input.value.trim();
+    if (val === current) { renderContacts(); return; }
+    const resp = await fetch(`/crm/api/contact/${encodeURIComponent(ORG_NAME)}/${encodeURIComponent(contact.name)}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ [field]: val }),
+    });
+    if (resp.ok) {
+      contacts[idx][field] = val;
+      renderContacts();
+      const card = document.querySelector('.contact-card');
+      if (card) { card.classList.add('flash-ok'); setTimeout(() => card.classList.remove('flash-ok'), 600); }
+    } else {
+      renderContacts();
+    }
+  }
+
+  input.addEventListener('blur', save);
+  input.addEventListener('keydown', e => {
+    if (e.key === 'Enter') { e.preventDefault(); save(); }
+    if (e.key === 'Escape') { renderContacts(); }
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Add Contact Panel
+// ---------------------------------------------------------------------------
+
+let allKbPeople = [];
+let currentFilteredPeople = [];
+let selectedPerson = null;
+
+function openAddContactPanel() {
+  document.getElementById('acp-title').textContent = `Add Contact to ${ORG_NAME}`;
+  document.getElementById('add-contact-panel').style.display = 'block';
+  showSearchStep();
+  document.getElementById('acp-search-input').value = '';
+  document.getElementById('acp-confirm-bar').style.display = 'none';
+  selectedPerson = null;
+  loadKbPeople();
+}
+
+function closeAddContactPanel() {
+  document.getElementById('add-contact-panel').style.display = 'none';
+}
+
+function showSearchStep() {
+  document.getElementById('acp-search-step').style.display = 'block';
+  document.getElementById('acp-new-step').style.display = 'none';
+}
+
+function showNewContactStep() {
+  document.getElementById('acp-search-step').style.display = 'none';
+  document.getElementById('acp-new-step').style.display = 'block';
+  document.getElementById('acp-new-name').focus();
+}
+
+async function loadKbPeople() {
+  document.getElementById('acp-count').textContent = 'Loading...';
+  const res = await fetch('/crm/api/kb-people');
+  allKbPeople = await res.json();
+  renderPeopleList(allKbPeople);
+}
+
+function filterKbPeople(q) {
+  const filtered = q
+    ? allKbPeople.filter(p => p.name.toLowerCase().includes(q.toLowerCase()))
+    : allKbPeople;
+  renderPeopleList(filtered);
+}
+
+function renderPeopleList(people) {
+  currentFilteredPeople = people;
+  document.getElementById('acp-count').textContent =
+    `Showing ${people.length} people from knowledge base`;
+  const list = document.getElementById('acp-people-list');
+  if (!people.length) {
+    list.innerHTML = '<div style="padding:12px 16px;color:#9ca3af;font-size:13px">No matches</div>';
+    return;
+  }
+  list.innerHTML = people.map((p, i) => `
+    <div class="person-row ${selectedPerson && selectedPerson.name === p.name ? 'selected' : ''}"
+         data-idx="${i}">
+      <span class="person-name">${escHtml(p.name)}</span>
+      <span class="person-org-tag">${escHtml(p.org)}</span>
+    </div>
+  `).join('');
+  list.querySelectorAll('.person-row').forEach(row => {
+    row.addEventListener('click', () => {
+      const idx = parseInt(row.dataset.idx, 10);
+      selectKbPerson(currentFilteredPeople[idx]);
+    });
+  });
+}
+
+function selectKbPerson(person) {
+  selectedPerson = person;
+  const q = document.getElementById('acp-search-input').value;
+  filterKbPeople(q);
+  document.getElementById('acp-selected-name').textContent = person.name;
+  const hint = person.email ? person.email : '';
+  document.getElementById('acp-confirm-hint').textContent = hint;
+  document.getElementById('acp-confirm-bar').style.display = 'flex';
+}
+
+async function confirmAddExistingContact() {
+  if (!selectedPerson) return;
+  const resp = await fetch('/crm/api/contact', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      name:  selectedPerson.name,
+      org:   ORG_NAME,
+      role:  selectedPerson.title || '',
+      email: selectedPerson.email || '',
+      type:  'investor',
+    }),
+  });
+  if (resp.ok) {
+    const person = await resp.json();
+    contacts.push(person);
+    renderContacts();
+    closeAddContactPanel();
+  } else {
+    alert('Error adding contact. Please try again.');
+  }
+}
+
+async function submitNewContact() {
+  const name  = document.getElementById('acp-new-name').value.trim();
+  const role  = document.getElementById('acp-new-role').value.trim();
+  const email = document.getElementById('acp-new-email').value.trim();
+  const errEl = document.getElementById('acp-new-error');
+  errEl.style.display = 'none';
+  if (!name) {
+    errEl.textContent = 'Name is required.';
+    errEl.style.display = '';
+    return;
+  }
+  const resp = await fetch('/crm/api/contact', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name, org: ORG_NAME, email, role, type: 'investor' }),
+  });
+  if (resp.ok) {
+    const person = await resp.json();
+    contacts.push(person);
+    renderContacts();
+    closeAddContactPanel();
+  } else {
+    const err = await resp.json().catch(() => ({}));
+    errEl.textContent = err.error || 'Failed to add contact.';
+    errEl.style.display = '';
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Section 3: Prospects
+// ---------------------------------------------------------------------------
+
+function renderProspects() {
+  const list = document.getElementById('prospect-list');
+  if (!prospects.length) {
+    list.innerHTML = '<p class="muted" style="margin-bottom:12px">No prospect records yet.</p>';
+    return;
+  }
+  list.innerHTML = prospects.map((p, idx) => {
+    const stageNum = parseInt(p.Stage) || 0;
+    const stageClass = stageNum >= 7 ? 'stage-7' : stageNum >= 5 ? 'stage-5' : stageNum >= 3 ? 'stage-3' : 'stage-1';
+    const fields = PROSPECT_DISPLAY_FIELDS.map(f => {
+      const val = p[f.key] || '';
+      let displayVal;
+      if (f.key === 'Urgency' && val) {
+        displayVal = `<span class="badge urgency-${val}">${val}</span>`;
+      } else if (f.key === 'Stage' && val) {
+        displayVal = `<span class="badge ${stageClass}">${val}</span>`;
+      } else {
+        displayVal = escHtml(val) || '<span class="muted">—</span>';
+      }
+      const editableClass = f.editable ? 'editable' : 'readonly';
+      const onclick = f.editable ? `onclick="startProspectEdit(${idx}, '${f.key}', this)"` : '';
+      return `
+        <div class="p-field">
+          <div class="lbl">${f.key}</div>
+          <div class="val ${editableClass}" id="pf-${idx}-${f.key.replace(/ /g,'-')}" ${onclick}>${displayVal}</div>
+        </div>
+      `;
+    }).join('');
+    return `
+      <div class="prospect-card">
+        <div class="prospect-card-header">
+          <span class="prospect-offering">${escHtml(p.offering)}</span>
+          <span class="muted" style="font-size:12px">Last touch: ${escHtml(p['Last Touch'] || '—')}</span>
+        </div>
+        <div class="prospect-fields">${fields}</div>
+      </div>
+    `;
+  }).join('');
+}
+
+function startProspectEdit(idx, field, el) {
+  const p = prospects[idx];
+  const current = p[field] || '';
+  let input;
+
+  if (PROSPECT_DROPDOWNS[field]) {
+    input = document.createElement('select');
+    PROSPECT_DROPDOWNS[field].forEach(opt => {
+      const o = document.createElement('option');
+      o.value = opt;
+      o.textContent = opt || '(none)';
+      if (opt === current) o.selected = true;
+      input.appendChild(o);
+    });
+  } else {
+    input = document.createElement('input');
+    input.type = 'text';
+    input.value = current;
+  }
+
+  el.innerHTML = '';
+  el.appendChild(input);
+  input.focus();
+  if (input.tagName === 'INPUT') input.select();
+  input.addEventListener('click', e => e.stopPropagation());
+
+  async function save() {
+    const val = input.value;
+    if (val === current) { renderProspects(); return; }
+    const resp = await fetch('/crm/api/prospect/field', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        org: ORG_NAME,
+        offering: p.offering,
+        field: field.toLowerCase().replace(/ /g, '_'),
+        value: val,
+      }),
+    });
+    if (resp.ok) {
+      const updated = await resp.json();
+      Object.assign(prospects[idx], updated);
+      renderProspects();
+    } else {
+      renderProspects();
+    }
+  }
+
+  input.addEventListener('blur', save);
+  input.addEventListener('keydown', e => {
+    if (e.key === 'Enter') { e.preventDefault(); save(); }
+    if (e.key === 'Escape') { renderProspects(); }
+  });
+}
+
+function renderOfferingDropdown() {
+  const existingOfferings = new Set(prospects.map(p => p.offering.toLowerCase()));
+  const available = ALL_OFFERINGS.filter(o => !existingOfferings.has(o.name.toLowerCase()));
+  const sel = document.getElementById('offering-select');
+  sel.innerHTML = '<option value="">Select offering...</option>';
+  available.forEach(o => {
+    const opt = document.createElement('option');
+    opt.value = o.name;
+    opt.textContent = o.name;
+    sel.appendChild(opt);
+  });
+  const formEl = document.getElementById('add-offering-form');
+  if (!available.length) {
+    formEl.style.display = 'none';
+  }
+}
+
+async function addToOffering() {
+  const offering = document.getElementById('offering-select').value;
+  const errEl = document.getElementById('offering-error');
+  errEl.style.display = 'none';
+  if (!offering) {
+    errEl.textContent = 'Select an offering.';
+    errEl.style.display = '';
+    return;
+  }
+  const resp = await fetch('/crm/api/prospect', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ org: ORG_NAME, offering, stage: '1. Prospect', target: '$0' }),
+  });
+  if (resp.ok) {
+    const created = await resp.json();
+    prospects.push(created);
+    renderProspects();
+    renderOfferingDropdown();
+  } else {
+    const err = await resp.json();
+    errEl.textContent = err.error || 'Failed to add.';
+    errEl.style.display = '';
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Section 2.5: Meeting History
+// ---------------------------------------------------------------------------
+
+async function loadMeetings() {
+  const resp = await fetch(`/crm/api/org/${encodeURIComponent(ORG_NAME)}/meetings`);
+  meetings = await resp.json();
+  renderMeetings();
+}
+
+function renderMeetings() {
+  const list = document.getElementById('meeting-list');
+  if (!meetings.length) {
+    list.innerHTML = '<p class="muted">No meetings recorded yet.</p>';
+    return;
+  }
+  meetings.sort((a, b) => b.date.localeCompare(a.date));
+  list.innerHTML = meetings.map(m => `
+    <div style="display:flex;gap:12px;padding:8px 0;border-bottom:1px solid #334155;font-size:13px;align-items:baseline;">
+      <span style="color:#64748b;min-width:90px;flex-shrink:0;">${escHtml(m.date)}</span>
+      <span style="font-weight:500;color:#1e293b;flex:1;">${escHtml(m.title)}</span>
+      <span style="color:#94a3b8;">${escHtml(m.attendees)}</span>
+      ${m.notion_url ? `<a href="${escHtml(m.notion_url)}" target="_blank" style="color:#2563eb;font-size:12px;white-space:nowrap;">Notion ↗</a>` : ''}
+    </div>
+  `).join('');
+}
+
+function openAddMeetingForm() {
+  document.getElementById('add-meeting-form').style.display = 'block';
+  document.getElementById('mtg-date').value = new Date().toISOString().slice(0, 10);
+  document.getElementById('mtg-title').focus();
+}
+
+function closeAddMeetingForm() {
+  document.getElementById('add-meeting-form').style.display = 'none';
+}
+
+async function submitMeeting() {
+  const date = document.getElementById('mtg-date').value;
+  const title = document.getElementById('mtg-title').value.trim();
+  const attendees = document.getElementById('mtg-attendees').value.trim();
+  if (!date || !title) return;
+  const resp = await fetch(`/crm/api/org/${encodeURIComponent(ORG_NAME)}/meetings`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ date, title, attendees, source: 'manual' }),
+  });
+  if (resp.ok) {
+    closeAddMeetingForm();
+    loadMeetings();
+  }
+}
+
+init();
+</script>
+</body>
+</html>

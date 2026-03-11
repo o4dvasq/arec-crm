@@ -1,0 +1,132 @@
+# Contacts Index
+
+- Berkshire Hathaway: partha-manchiraju, chuck-chang, calvin-haack
+- Brightside Capital Partners: ashton-newhall, patrick-aslanian
+- Crestline Investors: john-cochran, rahul-vaid, brenda-diaz, michael-benard, thomas-aniol, jonathan-morgan, james-delaune
+- Hillwood Communities: danny-ellis
+- J.P. Morgan Asset Management: brendan-cameron, brian-mccann, matthew-cummings
+- LGI: charles-merdian, eric-lipar
+- Mass Mutual Life Insurance Co.: drew-dickey, jessica-li, rob-little
+- Meritz Securities (Korea): haijoung-kim, jinho-lee
+- Merseyside Pension Fund: susannah-friar, dragos-serbanica, zyan-nuafal, saneeza-asrar
+- StepStone: tom-hester, aayaan-mehta, andrew-mitro
+- BC Partners: sam-hillier
+- Future Fund: julia-mcardle, tbd
+- Manning Family SFO: christopher-henry
+- Merseyside Pension Fund: susannah-friar, dragos-serbanica, zyan-nuafal, saneeza-asrar
+- Steyn Group: matthew-sopp, ivan-karsten, matt-sopp
+- Stonehill Capital: michael-stern, april-chang
+- Sumitomo Mitsui Banking Corporation (SMBC): masayuki-fujishiro, hiroki-hirayama
+- Texas Permanent School Fund: viktor-makaroff, reid-spears, kevin-godin, nick-tramontana
+- UTIMCO - Hedge Fund: jared-brimberry
+- UTIMCO - Real Estate: matt-saverin
+- Vobis Members: francesco-galdiero
+- Ontario Power Generation Pension Fund: joseph-lyn, terrence-chin, vlad-agache, atif-ali, wentao-shi, atif-ali-wentao-shi
+- San Joaquin County Employees' Retirement Association: trent-kaeslin
+- Hamilton Lane Advisors: elizabeth-bell, jackie-dash, wanli, scott-davies
+- Jordan Park: alex-etzkowitz, alek-yoder
+- MetLife Insurance Company: chris-aiken, yuko-hara, christopher-aiken
+- NPS (Korea SWF): john-s-kim, david-kim
+- Aflac: tomoko-yano
+- Bikaner Advisors: sunil-gupta (see bikaner-advisors.md), sunil-gupta, avinash-sarwal
+- Makarora: makarora, tbd
+- MUFG: shinya-obata
+- Mubadala Investment Company: fabrizio-bocciardi
+- Nomura Japan: yayoi-sagae
+- Nomura Securities International: morgan-griff
+- Oikos Family Office: marcio-zarzur
+
+- Robert Young: robert-young
+- Toll Brothers: marty-connor, ben-jogodnik, ryan-mckenna
+- Judson Stringfellow: judson-stringfellow
+- Steel Family Investments — Investment 1: kenneth-steel-iii
+- Steel Family Investments — Investment 2: kenneth-steel-iii
+- Scott Sanders: scott-sanders
+- Hayden Watson Family Office: jeff-lundin, tim-phillips
+- DR Horton: mike-murray, derrick-joseph-hoffman
+- Century Communities: dale-francescon, dave-messenger
+- Frank Ballif: frank-ballif
+- Kamehameha Schools: kapua-aiu-yasuhara
+- Boston Foundation: george-wilson
+- Baylor College of Medicine Endowment: michael-bennett
+- University of Kentucky Endowment: nancy-rohde
+- University of Georgia Foundation: zackary-mcguire
+- Boston Children's Hospital: kenneth-cohen
+- Dartmouth College Endowment: katherine-fearey
+- James Irvine Foundation: melissa-lopez
+- Dana-Farber Cancer Institute: laurie-glimcher
+- Mother Cabrini Health Foundation: colin-ambrose
+- Klarman Family Foundation: steven-moore
+- Belgravia Management: michael-wigrizer
+- Open House Group: zach-brodsky, sho-homma, toshiki-shimomura
+- Cornerstone Capital: marc-laird, adam-laird
+- 1900 Wealth: bobby-jones
+- Patrick Zalupski: patrick-zalupski
+- HC Asset Management: akane-hashimoto, taiki
+- Jeff Canarelli: jeff-canarelli
+- Gary Basrai: gary-basrai
+- Travelers Insurance: bob-oleary
+- Sumitomo Mitsui Banking Corporation: satoshi-nakamura, masayuki-fujishiro, hiroki-hirayama
+- Sumitomo Forestry America, Inc.: atsushi-iwasaki
+- St. Thomas University Endowment: jj-kirby
+- Todd Platt: todd-platt
+- NPS: john-suneung-kim, john-s-kim, david-kim
+- John Ryan: john-ryan
+- World Bank: faye-zhao
+- JRT Partners: tuck-meng-yee
+- Flatrock Wealth Partners: kevin-winters
+- Wilshire Associates: nathaniel-demeo
+- Utah State Retirement Systems: rich-matheson
+- University of Minnesota Foundation Investment Advisors: riley-erkenbrack
+- United Nations Joint Staff Pension Fund: moojae-kim
+- Perennial Capital Advisors: leslie-greis
+- Twin Focus Capital Partners: john-pantekidis
+- Sekisui House: toru-ishii, david-viger
+- NEPC: matt-treveloni
+- Greater London Authority: richard-tomlinson
+- Tishman Capital Partners: gabe-tishman
+- ORG Portfolio Management: lucas-tiberi, edward-schwartz
+- Frank McGuyer: frank-mcguyer
+- Drees Homes: tim-terrell
+- Teachers Retirement System of Texas: lucas-mcnulty
+- Aozora Bank: yurika-shino
+- Sumitomo Mitsui Trust Bank: sumitomo-private-debt-team
+- ELC Capital: david-humphries, seth-stroback
+- Samsung Fire & Marine: eugene-hong
+- Fred Rothman: fred-rothman
+- Scott Richland: scott-richland
+- RCLCO: taylor-mammen
+- Kiri Capital: matt-cantor
+- Pennsylvania Public School Employees' Retirement System: james-del-gaudio, melissa-quackenbush
+- Michael Røhling Pedersen: michael-rhling-pedersen
+- Johnson & Johnson Pension Fund: kyle-cyr
+- Our Country Homes: dustin-austin
+- Nordwand Capital: ted-brooks
+- Creative Financial Group: fran-naselli
+- Khazanah: ryan-mulligan
+- Employees' Retirement System of Texas: simon-mok
+- ArchBridge: jeffrey-meyers-jr
+- Aimee Martin: aimee-martin
+- LB Forsikring: klaus-jensen
+- Greg Kotska: greg-kotska
+- Barbnet: steve-heiszek
+- Emirates NBD: nigel-burton
+- Olivier Combastet: olivier-combastet
+- Heritage Holdings: stephen-okane
+- Justin Roberts: justin-roberts
+- Luigi Bellini: luigi-bellini
+- Blackstone Multi-Asset Investing: amit-rind
+- Franklin Park: michael-bacine
+- Penn State: jim-steinbugl
+- Tricon / Blackstone: cameron
+- Don Klein: don-klein
+- Pennsylvania State Employees' Retirement System: richard-vague
+- Arizona State University Endowment: edward-schwartz
+- Lee Wingate: lee-wingate
+- NY Life: jac-mclean
+- Sutton Capital Group: darren-sutton-dsuttonsuttoncapitalgroupcom
+- Mubadala: fabrizio-bocciardi
+- Nomura: morgan-griff
+- BC Partners / Sam Hillier Family Office: sam-hillier
+- Starwood Property Trust: vernice-briggs, michael-nelson, anthony-murphy
+- Meritz Securities: jinho-lee

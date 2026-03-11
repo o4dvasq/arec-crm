@@ -1,0 +1,2249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ org }} — {{ offering }} | Overwatch</title>
+    <link rel="stylesheet" href="/static/crm.css">
+    <link rel="stylesheet" href="/static/task-edit-modal.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --bg-primary: #0f172a;
+            --bg-secondary: #1e293b;
+            --bg-tertiary: #172032;
+            --border: #334155;
+            --text: #e2e8f0;
+            --muted: #94a3b8;
+            --accent: #2563eb;
+            --accent-hover: #1d4ed8;
+            --radius: 0.5rem;
+            --transition: all 0.2s ease-in-out;
+        }
+
+        html, body {
+            background: var(--bg-primary);
+            color: var(--text);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        /* LAYOUT */
+        .container { max-width: 900px; margin: 0 auto; padding: 2rem; }
+
+        /* HEADER */
+        .page-header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 2rem;
+            margin-bottom: 1.5rem;
+        }
+.page-title { font-size: 1.75rem; font-weight: 700; margin-bottom: 0.25rem; }
+        .page-subtitle { color: var(--muted); font-size: 0.95rem; }
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            padding: 0.5rem 1rem;
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            font-size: 0.85rem;
+            font-weight: 500;
+            cursor: pointer;
+            text-decoration: none;
+            transition: var(--transition);
+            white-space: nowrap;
+        }
+        .btn-primary { background: var(--accent); color: white; border-color: var(--accent); }
+        .btn-primary:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
+        .btn-secondary { background: var(--bg-secondary); color: var(--text-primary); }
+        .btn-secondary:hover { background: var(--border); }
+
+        /* CARDS */
+        .card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 1.25rem 1.5rem;
+            margin-bottom: 1rem;
+        }
+
+        /* PROSPECT CARD */
+        .prospect-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1.25rem;
+        }
+        .field-label {
+            font-size: 0.75rem;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            font-weight: 500;
+            margin-bottom: 0.3rem;
+        }
+        .field-value { font-size: 0.95rem; font-weight: 600; }
+
+        /* Editable fields */
+        .field-editable { cursor: pointer; border-radius: 6px; padding: 4px 6px; margin: -4px -6px; transition: background 0.15s; }
+        .field-editable:hover { background: rgba(59,130,246,0.08); }
+        .field-editable .field-value { position: relative; }
+        .field-edit-select, .field-edit-input {
+            font-size: 0.95rem; font-weight: 600; font-family: inherit;
+            background: #0f172a; color: #e2e8f0; border: 1px solid #3b82f6;
+            border-radius: 4px; padding: 2px 6px; outline: none; width: 100%;
+        }
+        .field-edit-select option { background: #1e293b; color: #e2e8f0; }
+
+        /* Stage badges */
+        .badge-stage {
+            display: inline-block;
+            padding: 0.2rem 0.6rem;
+            border-radius: 0.25rem;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+        .stage-0 { background: rgba(100,116,139,.15); color: #94a3b8; }
+        .stage-1 { background: rgba(148,163,184,.15); color: #cbd5e1; }
+        .stage-2 { background: rgba(96,165,250,.15); color: #60a5fa; }
+        .stage-3 { background: rgba(129,140,248,.15); color: #818cf8; }
+        .stage-4 { background: rgba(192,132,252,.15); color: #c084fc; }
+        .stage-5 { background: rgba(52,211,153,.15); color: #34d399; }
+        .stage-6 { background: rgba(251,191,36,.15); color: #fbbf24; }
+        .stage-7 { background: rgba(249,115,22,.15); color: #f97316; }
+        .stage-8 { background: rgba(34,197,94,.15); color: #22c55e; }
+        .stage-declined { background: rgba(239,68,68,.15); color: #ef4444; }
+
+        .urgent-badge {
+            display: inline-block;
+            background: #ef4444;
+            color: white;
+            font-size: 11px;
+            font-weight: 600;
+            padding: 2px 8px;
+            border-radius: 4px;
+            text-transform: uppercase;
+        }
+
+        /* Staleness dots */
+        .staleness-dot {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-left: 6px;
+            vertical-align: middle;
+        }
+        .staleness-fresh { background: #22c55e; }
+        .staleness-stale { background: #f59e0b; }
+        .staleness-cold  { background: #ef4444; }
+
+        /* SECTION TITLES */
+        .section-title {
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 0.07em;
+            text-transform: uppercase;
+            color: var(--muted);
+            border-left: 3px solid var(--accent);
+            padding-left: 8px;
+            margin: 0;
+        }
+        .section-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1rem;
+        }
+        .section-count {
+            background: #374151;
+            color: #9ca3af;
+            font-size: 11px;
+            padding: 1px 7px;
+            border-radius: 10px;
+        }
+
+        /* AT A GLANCE */
+        .glance-card {
+            background: linear-gradient(135deg, #1e2d4a 0%, #172032 100%);
+            border: 1px solid #2563eb40;
+            border-left: 3px solid #2563eb;
+        }
+        .glance-inner {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .glance-icon {
+            width: 16px;
+            height: 16px;
+            flex-shrink: 0;
+            color: #f59e0b;
+        }
+        .glance-icon svg {
+            width: 16px;
+            height: 16px;
+            stroke: currentColor;
+            stroke-width: 2;
+        }
+        .glance-text {
+            font-size: 14px;
+            font-weight: 600;
+            color: #e2e8f0;
+            flex: 1;
+        }
+        .glance-label {
+            font-size: 10px;
+            font-weight: 600;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: #60a5fa;
+            white-space: nowrap;
+        }
+
+        /* RELATIONSHIP BRIEF */
+        .brief-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1rem;
+        }
+        .brief-narrative {
+            color: var(--text);
+            line-height: 1.7;
+            font-size: 14px;
+        }
+        .brief-narrative p { margin-bottom: 0.85rem; }
+        .brief-narrative p:last-child { margin-bottom: 0; }
+        .brief-loading {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: var(--muted);
+            padding: 1.5rem 0;
+            font-size: 13px;
+        }
+        .loading-pulse {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--accent);
+            animation: pulse 1.2s ease-in-out infinite;
+            flex-shrink: 0;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 0.3; }
+            50% { opacity: 1; }
+        }
+        .btn-refresh {
+            background: none;
+            border: 1px solid #475569;
+            color: var(--muted);
+            font-size: 12px;
+            padding: 3px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+        .btn-refresh:hover { border-color: var(--accent); color: var(--accent); }
+        .brief-ts {
+            font-size: 11px;
+            color: var(--muted);
+            font-weight: 400;
+            margin-left: 6px;
+            opacity: 0.7;
+        }
+        .brief-refreshed-ts {
+            font-size: 11px;
+            color: var(--muted);
+            margin-top: 0.75rem;
+            opacity: 0.75;
+        }
+
+        /* ACTIVE TASKS */
+        .task-list { list-style: none; }
+        .task-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.5rem;
+            padding: 0.5rem 0.4rem;
+            font-size: 13px;
+            color: var(--text);
+            border-bottom: 1px solid #1e293b;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+        .task-item:last-child { border-bottom: none; }
+        .task-item:hover { background: #1e293b; }
+        .task-text { flex: 1; }
+        .task-meta { display: flex; align-items: center; gap: 6px; flex-shrink: 0; margin-top: 1px; }
+        .task-pri {
+            font-size: 10px; font-weight: 600; padding: 1px 5px; border-radius: 3px;
+            text-transform: uppercase; letter-spacing: 0.04em;
+        }
+        .task-pri-hi  { background: #7f1d1d; color: #fca5a5; }
+        .task-pri-med { background: #1e3a5f; color: #93c5fd; }
+        .task-pri-lo  { background: #1e3a2f; color: #6ee7b7; }
+        .task-owner { font-size: 11px; color: var(--muted); }
+
+        /* CONTACTS */
+        .contact-card {
+            padding: 0.6rem 0;
+            border-bottom: 1px solid #1e293b;
+        }
+        .contact-card:last-child { border-bottom: none; }
+        .contact-name { font-weight: 600; color: var(--text); font-size: 13px; }
+        .contact-title { font-size: 12px; color: var(--muted); }
+        .contact-email { font-size: 12px; color: #60a5fa; }
+        .contact-phone { font-size: 12px; color: var(--muted); }
+        .contact-notes { font-size: 12px; color: var(--muted); font-style: italic; margin-top: 1px; }
+
+        /* INTERACTION ROWS */
+        .interaction-row {
+            display: grid;
+            grid-template-columns: 90px 80px 1fr;
+            gap: 8px;
+            padding: 6px 0;
+            border-bottom: 1px solid #1e293b;
+            font-size: 13px;
+            align-items: start;
+        }
+        .interaction-row:last-child { border-bottom: none; }
+        .ix-date { color: var(--muted); font-variant-numeric: tabular-nums; }
+        .ix-summary { color: #cbd5e1; }
+        .ix-type {
+            display: inline-block;
+            font-size: 11px;
+            font-weight: 500;
+            padding: 1px 6px;
+            border-radius: 3px;
+            text-align: center;
+        }
+        .badge-meeting  { background: #1e3a5f; color: #93c5fd; }
+        .badge-email    { background: #374151; color: #d1d5db; }
+        .badge-call     { background: #14532d; color: #86efac; }
+        .badge-note     { background: #3b0764; color: #d8b4fe; }
+        .badge-doc      { background: #422006; color: #fcd34d; }
+        .badge-default  { background: #374151; color: #9ca3af; }
+
+        /* COLLAPSIBLE SECTIONS */
+        .collapsible-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: pointer;
+            padding: 0.75rem 0;
+            user-select: none;
+        }
+        .collapsible-header:hover .section-title { color: #cbd5e1; }
+        .collapsible-toggle {
+            font-size: 11px;
+            color: var(--muted);
+        }
+        .collapsible-body {
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+        }
+        .collapsible-body.collapsed { max-height: 0 !important; }
+
+        /* MEETING SUMMARIES */
+        .meeting-item { padding-bottom: 1rem; margin-bottom: 1rem; border-bottom: 1px solid #1e293b; }
+        .meeting-item:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+        .meeting-date-title { font-weight: 600; font-size: 13px; margin-bottom: 0.5rem; color: var(--text); }
+        .meeting-content-wrap { position: relative; }
+        .meeting-content {
+            color: var(--muted);
+            font-size: 13px;
+            line-height: 1.6;
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+        }
+        .meeting-content.collapsed { max-height: 80px; }
+        .meeting-fade {
+            position: absolute;
+            bottom: 0; left: 0; right: 0;
+            height: 40px;
+            background: linear-gradient(transparent, var(--bg-secondary));
+            pointer-events: none;
+        }
+        .meeting-fade.hidden { display: none; }
+        .show-more-btn {
+            background: none;
+            border: none;
+            color: var(--accent);
+            cursor: pointer;
+            font-size: 12px;
+            padding: 0.25rem 0;
+            display: block;
+            margin-top: 4px;
+        }
+        .show-more-btn:hover { color: var(--accent-hover); }
+
+        /* DEEP SCAN BUTTON + STATUS */
+        .btn-scan {
+            background: none;
+            border: 1px solid #475569;
+            color: var(--muted);
+            font-size: 11px;
+            padding: 3px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: var(--transition);
+            white-space: nowrap;
+        }
+        .btn-scan:hover:not(:disabled) { border-color: #22c55e; color: #22c55e; }
+        .btn-scan:disabled { opacity: 0.5; cursor: default; }
+        .scan-status {
+            font-size: 11px;
+            padding: 3px 8px;
+            border-radius: 4px;
+            margin-left: 6px;
+        }
+        .scan-status.running { color: #60a5fa; }
+        .scan-status.success { color: #22c55e; }
+        .scan-status.error   { color: #ef4444; }
+
+        /* EMAIL HISTORY ROWS (reused from old template) */
+        .email-row {
+            display: grid;
+            grid-template-columns: 90px 1fr 150px;
+            gap: 8px;
+            padding: 7px 0;
+            border-bottom: 1px solid #1e293b;
+            font-size: 13px;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+        .email-row:last-child { border-bottom: none; }
+        .email-row:hover { background: rgba(37,99,235,.05); }
+        .email-date-col { color: var(--muted); font-variant-numeric: tabular-nums; }
+        .email-subject-col { color: #60a5fa; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .email-from-col { color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .email-detail-row { display: none; padding: 0.75rem 0; border-bottom: 1px solid #1e293b; }
+        .email-detail-row.open { display: block; }
+        .email-detail-row .detail-summary { color: var(--text); font-size: 13px; line-height: 1.6; margin-bottom: 0.5rem; }
+        .email-view-link { color: var(--accent); font-size: 12px; text-decoration: none; }
+        .email-view-link:hover { color: var(--accent-hover); }
+
+        /* NOTES LOG */
+        .note-entry {
+            padding: 0.6rem 0;
+            border-bottom: 1px solid #1e293b;
+        }
+        .note-entry:last-child { border-bottom: none; }
+        .note-meta {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 4px;
+        }
+        .note-author {
+            font-size: 12px;
+            font-weight: 600;
+            color: #60a5fa;
+        }
+        .note-date {
+            font-size: 11px;
+            color: var(--muted);
+            font-variant-numeric: tabular-nums;
+        }
+        .note-text {
+            font-size: 13px;
+            color: #cbd5e1;
+            line-height: 1.5;
+        }
+        .notes-add-form {
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px solid #334155;
+        }
+        .notes-form-row {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .notes-input-author {
+            background: #0f172a;
+            border: 1px solid #334155;
+            border-radius: 4px;
+            color: var(--text);
+            font-size: 13px;
+            padding: 6px 10px;
+            width: 200px;
+            outline: none;
+        }
+        .notes-input-author:focus { border-color: var(--accent); }
+        .notes-input-text {
+            background: #0f172a;
+            border: 1px solid #334155;
+            border-radius: 4px;
+            color: var(--text);
+            font-size: 13px;
+            padding: 8px 10px;
+            width: 100%;
+            resize: vertical;
+            min-height: 60px;
+            outline: none;
+            font-family: inherit;
+        }
+        .notes-input-text:focus { border-color: var(--accent); }
+        .btn-add-note {
+            background: var(--accent);
+            border: none;
+            border-radius: 4px;
+            color: white;
+            font-size: 13px;
+            font-weight: 600;
+            padding: 7px 18px;
+            cursor: pointer;
+            align-self: flex-end;
+            transition: background 0.15s;
+        }
+        .btn-add-note:hover { background: var(--accent-hover); }
+        .btn-add-note:disabled { opacity: 0.5; cursor: default; }
+        .note-save-status {
+            font-size: 12px;
+            padding: 3px 0;
+            align-self: flex-end;
+        }
+        .note-save-status.ok { color: #22c55e; }
+        .note-save-status.err { color: #ef4444; }
+        .notes-empty {
+            font-size: 13px;
+            color: var(--muted);
+            font-style: italic;
+            padding: 0.25rem 0;
+        }
+
+        /* UPCOMING MEETINGS */
+        .upcoming-meeting-entry {
+            padding: 0.6rem 0;
+            border-bottom: 1px solid #1e293b;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 8px;
+        }
+        .upcoming-meeting-entry:last-child { border-bottom: none; }
+        .upcoming-meeting-info { flex: 1; }
+        .upcoming-meeting-date {
+            font-size: 13px;
+            font-weight: 600;
+            color: #93c5fd;
+            margin-bottom: 2px;
+        }
+        .upcoming-meeting-purpose {
+            font-size: 13px;
+            color: #cbd5e1;
+            line-height: 1.4;
+        }
+        .upcoming-meeting-attendees {
+            font-size: 11px;
+            color: var(--muted);
+            margin-top: 3px;
+        }
+        .upcoming-meeting-delete {
+            background: none;
+            border: none;
+            color: #4b5563;
+            cursor: pointer;
+            font-size: 14px;
+            padding: 2px 4px;
+            border-radius: 3px;
+            flex-shrink: 0;
+            transition: color 0.15s;
+        }
+        .upcoming-meeting-delete:hover { color: #ef4444; }
+        .upcoming-meeting-form {
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px solid #334155;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .upcoming-meeting-form-row {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .upcoming-meeting-input {
+            background: #0f172a;
+            border: 1px solid #334155;
+            border-radius: 4px;
+            color: var(--text);
+            font-size: 13px;
+            padding: 6px 10px;
+            outline: none;
+            font-family: inherit;
+        }
+        .upcoming-meeting-input:focus { border-color: var(--accent); }
+        .upcoming-meeting-input-date { width: 140px; }
+        .upcoming-meeting-input-time { width: 110px; }
+        .upcoming-meeting-input-attendees { flex: 1; min-width: 160px; }
+        .upcoming-meeting-input-purpose { width: 100%; }
+
+        /* QUICK ACTIONS */
+        .quick-actions-section { margin-bottom: 20px; }
+        .quick-actions-toggle { display: flex; gap: 6px; margin-bottom: 12px; }
+        .quick-actions-toggle button {
+            padding: 6px 14px;
+            border-radius: 16px;
+            border: 1px solid #374151;
+            background: transparent;
+            color: #9ca3af;
+            font-size: 12px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+        .quick-actions-toggle button.active {
+            background: #1e3a5f;
+            border-color: #3b82f6;
+            color: #93c5fd;
+        }
+        .task-form { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+        .priority-toggle { display: flex; gap: 4px; flex: 0 0 auto; }
+        .priority-toggle button {
+            padding: 6px 10px;
+            border-radius: 4px;
+            border: 1px solid #374151;
+            background: #374151;
+            color: #9ca3af;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            min-width: 36px;
+            text-align: center;
+            transition: all 0.1s ease;
+        }
+        .priority-toggle button.active-hi { background: #ef4444; border-color: #ef4444; color: white; }
+        .priority-toggle button.active-med { background: #f59e0b; border-color: #f59e0b; color: white; }
+        .priority-toggle button.active-lo { background: #6b7280; border-color: #6b7280; color: white; }
+        .task-form input[type="text"] {
+            flex: 1 1 auto;
+            min-width: 200px;
+            padding: 8px 10px;
+            border: 1px solid #374151;
+            border-radius: 6px;
+            background: #1e293b;
+            color: #e2e8f0;
+            font-size: 13px;
+        }
+        .task-form input[type="text"]:focus { border-color: #3b82f6; outline: none; }
+        .task-form input[type="text"].input-error { border-color: #ef4444; }
+        .task-form .btn-add-task {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            display: none;
+        }
+        .task-form .btn-add-task.visible { display: inline-block; }
+        .qa-note-author-select {
+            padding: 7px 10px;
+            border: 1px solid #374151;
+            border-radius: 6px;
+            background: #1e293b;
+            color: #e2e8f0;
+            font-size: 13px;
+            cursor: pointer;
+            flex: 0 0 auto;
+        }
+        @keyframes taskFlash { 0% { background: #1e3a5f; } 100% { background: transparent; } }
+        .task-card-flash { animation: taskFlash 0.7s ease; }
+
+        /* UTILITY */
+        .hidden { display: none !important; }
+        @media (max-width: 640px) {
+            .prospect-grid { grid-template-columns: 1fr 1fr; }
+            .interaction-row { grid-template-columns: 75px 1fr; }
+            .ix-type { display: none; }
+        }
+
+        /* ADD CONTACT SECTION */
+        .add-contact-section {
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px solid #334155;
+        }
+        .btn-add-contact-detail {
+            background: none;
+            border: 1px solid #475569;
+            color: var(--muted);
+            font-size: 13px;
+            padding: 6px 14px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+        .btn-add-contact-detail:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+        .add-contact-form-detail {
+            margin-top: 1rem;
+            padding: 1rem;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+        }
+        .form-label-detail {
+            display: block;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--muted);
+            margin-bottom: 8px;
+        }
+        .form-input-detail {
+            width: 100%;
+            padding: 8px 12px;
+            background: var(--bg-primary);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            color: var(--text);
+            font-size: 13px;
+            outline: none;
+            font-family: inherit;
+        }
+        .form-input-detail:focus {
+            border-color: var(--accent);
+        }
+        .form-row-detail {
+            margin-bottom: 10px;
+        }
+        .form-actions-detail {
+            display: flex;
+            gap: 8px;
+            margin-top: 12px;
+        }
+        .btn-save-detail {
+            background: var(--accent);
+            border: none;
+            color: white;
+            font-size: 13px;
+            padding: 6px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 500;
+        }
+        .btn-save-detail:hover {
+            background: var(--accent-hover);
+        }
+        .btn-cancel-detail {
+            background: none;
+            border: 1px solid #475569;
+            color: var(--muted);
+            font-size: 13px;
+            padding: 6px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .btn-cancel-detail:hover {
+            border-color: #64748b;
+            color: #e2e8f0;
+        }
+        .btn-switch-mode-detail {
+            background: none;
+            border: 1px solid #475569;
+            color: var(--muted);
+            padding: 6px 12px;
+            border-radius: 4px;
+            font-size: 12px;
+            cursor: pointer;
+            margin-top: 8px;
+        }
+        .btn-switch-mode-detail:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+        .search-input-wrap-detail {
+            position: relative;
+            margin-bottom: 12px;
+        }
+        .search-results-dropdown-detail {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            max-height: 200px;
+            overflow-y: auto;
+            background: var(--bg-primary);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            margin-top: 4px;
+            z-index: 100;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+        .search-result-item-detail {
+            padding: 10px 12px;
+            font-size: 13px;
+            color: var(--text);
+            cursor: pointer;
+            border-bottom: 1px solid var(--bg-tertiary);
+        }
+        .search-result-item-detail:last-child {
+            border-bottom: none;
+        }
+        .search-result-item-detail:hover {
+            background: var(--bg-secondary);
+        }
+        .search-result-name-detail {
+            font-weight: 600;
+            color: var(--text);
+        }
+        .search-result-meta-detail {
+            font-size: 11px;
+            color: var(--muted);
+            margin-top: 2px;
+        }
+        .search-result-create-detail {
+            padding: 10px 12px;
+            font-size: 13px;
+            color: var(--accent);
+            font-weight: 500;
+            text-align: center;
+            cursor: pointer;
+            border-top: 1px solid var(--border);
+        }
+        .search-result-create-detail:hover {
+            background: rgba(37, 99, 235, 0.1);
+        }
+    </style>
+</head>
+<body>
+{% set active_tab = 'pipeline' %}
+{% include '_nav.html' %}
+
+    <div class="container">
+        <!-- Header -->
+        <div class="page-header">
+            <div>
+                <a href="/crm" class="breadcrumb-back" id="back-link">← Back to Pipeline</a>
+                <div class="page-title">{{ org }}</div>
+                <div class="page-subtitle">{{ offering }}</div>
+            </div>
+            <div style="display:flex;gap:8px">
+                <a href="/crm/org/{{ org }}/edit" class="btn btn-secondary">Edit Org</a>
+                <a href="/crm/prospect/{{ offering }}/{{ org }}" class="btn btn-primary">Edit Prospect</a>
+            </div>
+        </div>
+
+        <!-- Prospect Card (server-rendered, no empty fields) -->
+        <div class="card">
+            <div class="prospect-grid">
+                <!-- Stage — always present -->
+                <div class="field-editable" data-field="stage" data-type="select" data-options="{{ config.stages | join('||') }}">
+                    <div class="field-label">Stage</div>
+                    <div class="field-value">
+                        {% set sn = prospect['Stage'].split('.')[0] | int(0) %}
+                        {% set sc = 'stage-' + sn|string if sn < 9 else 'stage-declined' %}
+                        <span class="badge-stage {{ sc }}">{{ prospect['Stage'] }}</span>
+                    </div>
+                </div>
+
+                <!-- Org Type — always present -->
+                <div class="field-editable" data-field="org_type" data-type="select" data-options="{{ config.org_types | join('||') }}">
+                    <div class="field-label">Type</div>
+                    <div class="field-value">{{ org_data.Type or '—' }}</div>
+                </div>
+
+                <!-- Primary Contact -->
+                <div>
+                    <div class="field-label">Primary Contact</div>
+                    <div class="field-value">{{ prospect.get('Primary Contact', '').split(';')[0].strip() or '—' }}</div>
+                </div>
+
+                <!-- Assigned To -->
+                <div class="field-editable" data-field="assigned_to" data-type="select" data-options="{{ config.team | map(attribute='name') | join('||') }}">
+                    <div class="field-label">Assigned To</div>
+                    <div class="field-value">{{ prospect.get('Assigned To') or '—' }}</div>
+                </div>
+
+                <!-- Target -->
+                <div class="field-editable" data-field="target" data-type="text">
+                    <div class="field-label">Target</div>
+                    <div class="field-value">{{ prospect.get('Target') or '—' }}</div>
+                </div>
+
+                <!-- Last Touch -->
+                <div>
+                    <div class="field-label">Last Touch</div>
+                    <div class="field-value">
+                        {% if prospect.get('Last Touch') %}
+                        <span data-relative-date="{{ prospect['Last Touch'] }}">{{ prospect['Last Touch'] }}</span>
+                        <span class="staleness-dot" data-stale-date="{{ prospect['Last Touch'] }}"></span>
+                        {% else %}—{% endif %}
+                    </div>
+                </div>
+
+                <!-- Closing -->
+                <div class="field-editable" data-field="closing" data-type="select" data-options="{{ config.closing_options | join('||') }}">
+                    <div class="field-label">Closing</div>
+                    <div class="field-value">{{ prospect.get('Closing') or '—' }}</div>
+                </div>
+
+                <!-- Urgent — only show if truly urgent -->
+                {% if prospect.urgent_bool %}
+                <div>
+                    <div class="field-label">&nbsp;</div>
+                    <div class="field-value"><span class="urgent-badge">Urgent</span></div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- At a Glance (populated on Refresh only, hidden until first Refresh) -->
+        <div class="card glance-card hidden" id="glance-card">
+            <div class="glance-inner">
+                <i data-lucide="zap" class="glance-icon"></i>
+                <span class="glance-text" id="glance-text"></span>
+                <span class="glance-label">At a Glance</span>
+            </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="card quick-actions-section" id="quick-actions-card">
+            <div class="quick-actions-toggle">
+                <button id="qa-pill-task" onclick="switchQA('task')">Add Task</button>
+                <button id="qa-pill-note" class="active" onclick="switchQA('note')">Add Quick Note</button>
+            </div>
+            <!-- Add Task form (hidden by default) -->
+            <div id="qa-task-form" class="task-form" style="display:none">
+                <div class="priority-toggle">
+                    <button id="pri-hi" onclick="setPriority('Hi')">Hi</button>
+                    <button id="pri-med" class="active-med" onclick="setPriority('Med')">Med</button>
+                    <button id="pri-lo" onclick="setPriority('Lo')">Lo</button>
+                </div>
+                <select id="qa-task-assignee" class="qa-note-author-select">
+                    {% for member in config.team %}
+                    <option value="{{ member.name }}" {% if member.name == 'Oscar Vasquez' %}selected{% endif %}>{{ member.name }}</option>
+                    {% endfor %}
+                </select>
+                <input type="text" id="qa-task-input" placeholder="What needs to happen?"
+                       oninput="onQaTaskInput()" onkeydown="onQaTaskKey(event)">
+                <button class="btn-add-task" id="qa-task-submit" onclick="submitQuickTask()">Add</button>
+            </div>
+            <!-- Add Quick Note form (visible by default) -->
+            <div id="qa-note-form" class="task-form">
+                <select id="qa-note-author" class="qa-note-author-select">
+                    {% for member in config.team %}
+                    <option value="{{ member.name }}">{{ member.name }}</option>
+                    {% endfor %}
+                </select>
+                <input type="text" id="qa-note-input" placeholder="Add a note about this prospect..."
+                       oninput="onQaNoteInput()" onkeydown="onQaNoteKey(event)">
+                <button class="btn-add-task" id="qa-note-submit" onclick="submitQuickNote()">Add</button>
+            </div>
+            <span class="note-save-status hidden" id="qa-status"></span>
+        </div>
+
+        <!-- Relationship Brief (AI-synthesized, with caching) -->
+        <div class="card" id="brief-card">
+            <div id="relationship-brief">
+                <div class="brief-header">
+                    <div class="section-title">Relationship Brief</div>
+                </div>
+                <div class="brief-loading">
+                    <div class="loading-pulse"></div>
+                    <span>Synthesizing intelligence...</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Active Tasks (rendered by JS) -->
+        <div class="card" id="tasks-card">
+            <div class="section-header">
+                <div class="section-title">Active Tasks</div>
+                <button class="btn btn-secondary btn-sm" onclick="openNewTaskModal()" style="font-size:12px;padding:3px 10px;">+ Add Task</button>
+            </div>
+            <ul class="task-list" id="tasks-list">
+                <li style="color:var(--muted);font-size:13px;font-style:italic;padding:0.4rem 0;">No open tasks.</li>
+            </ul>
+        </div>
+
+        <!-- Contacts (rendered by JS, hidden if empty) -->
+        <div class="card hidden" id="contacts-card">
+            <div class="section-header">
+                <div class="section-title">Organization Information & Contacts</div>
+                <span class="section-count" id="contacts-count"></span>
+            </div>
+            <div id="contacts-body"></div>
+
+            <!-- Add Contact Section -->
+            <div class="add-contact-section" id="add-contact-section">
+                <button class="btn-add-contact-detail" id="btn-show-add-contact-detail" onclick="showAddContactFormDetail()">+ Add Contact</button>
+
+                <div class="add-contact-form-detail hidden" id="add-contact-form-detail">
+                    <!-- Search Existing Mode -->
+                    <div id="search-mode-detail">
+                        <label class="form-label-detail">Search for existing contact:</label>
+                        <div class="search-input-wrap-detail">
+                            <input type="text"
+                                   id="contact-search-input-detail"
+                                   class="form-input-detail"
+                                   placeholder="Type name to search..."
+                                   autocomplete="off"
+                                   oninput="searchPeopleDetail(this.value)">
+                            <div class="search-results-dropdown-detail hidden" id="search-results-detail"></div>
+                        </div>
+                        <button class="btn-switch-mode-detail" onclick="switchToCreateModeDetail()">Or create new contact</button>
+                    </div>
+
+                    <!-- Create New Mode -->
+                    <div id="create-mode-detail" class="hidden">
+                        <label class="form-label-detail">Create new contact:</label>
+                        <div class="form-row-detail">
+                            <input type="text" id="new-contact-name-detail" class="form-input-detail" placeholder="Name *" required>
+                        </div>
+                        <div class="form-row-detail">
+                            <input type="text" id="new-contact-title-detail" class="form-input-detail" placeholder="Title">
+                        </div>
+                        <div class="form-row-detail">
+                            <input type="email" id="new-contact-email-detail" class="form-input-detail" placeholder="Email">
+                        </div>
+                        <div class="form-row-detail">
+                            <input type="tel" id="new-contact-phone-detail" class="form-input-detail" placeholder="Phone">
+                        </div>
+                        <div class="form-actions-detail">
+                            <button class="btn-cancel-detail" onclick="hideAddContactFormDetail()">Cancel</button>
+                            <button class="btn-save-detail" onclick="submitNewContactDetail()">Save</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Interaction History (collapsible, starts expanded) -->
+        <div class="card hidden" id="interactions-card">
+            <div class="collapsible-header" onclick="toggleSection('interactions')">
+                <div style="display:flex;align-items:center;gap:8px;">
+                    <div class="section-title">Interaction History</div>
+                    <span class="section-count" id="interactions-count"></span>
+                </div>
+                <span class="collapsible-toggle" id="interactions-toggle">▲</span>
+            </div>
+            <div class="collapsible-body" id="interactions-body"></div>
+        </div>
+
+        <!-- Meeting Summaries (collapsible, starts expanded) -->
+        <div class="card hidden" id="meetings-card">
+            <div class="collapsible-header" onclick="toggleSection('meetings')">
+                <div style="display:flex;align-items:center;gap:8px;">
+                    <div class="section-title">Meeting Summaries</div>
+                    <span class="section-count" id="meetings-count"></span>
+                </div>
+                <span class="collapsible-toggle" id="meetings-toggle">▲</span>
+            </div>
+            <div class="collapsible-body" id="meetings-body"></div>
+        </div>
+
+        <!-- Notes Log (freeform team notes: calls, observations, etc.) -->
+        <div class="card" id="notes-card">
+            <div class="section-header">
+                <div class="section-title">Notes Log</div>
+                <span class="section-count" id="notes-count"></span>
+            </div>
+            <div id="notes-body">
+                <div class="notes-empty">No notes yet.</div>
+            </div>
+            <!-- Add note form -->
+            <div class="notes-add-form">
+                <div class="notes-form-row">
+                    <input type="text" id="note-author" class="notes-input-author"
+                           placeholder="Your name" maxlength="60"
+                           value="{{ config.team[0].name if config.team else '' }}">
+                    <textarea id="note-text" class="notes-input-text"
+                              placeholder="Add a note… e.g. &quot;Spoke with Julia — busy next 2 weeks, call after IC on the 24th&quot;"
+                              rows="2"></textarea>
+                    <div style="display:flex;gap:10px;align-items:center;align-self:flex-end">
+                        <span class="note-save-status hidden" id="note-status"></span>
+                        <button class="btn-add-note" id="btn-add-note" onclick="submitNote()">Add Note</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Upcoming Meetings -->
+        <div class="card" id="upcoming-meetings-card">
+            <div class="section-header">
+                <div class="section-title">Upcoming Meetings</div>
+                <span class="section-count" id="upcoming-meetings-count"></span>
+            </div>
+            <div id="upcoming-meetings-body">
+                <div class="notes-empty">No upcoming meetings scheduled.</div>
+            </div>
+            <div class="upcoming-meeting-form">
+                <div class="upcoming-meeting-form-row">
+                    <input type="date" id="um-date" class="upcoming-meeting-input upcoming-meeting-input-date">
+                    <input type="time" id="um-time" class="upcoming-meeting-input upcoming-meeting-input-time" placeholder="Time">
+                    <input type="text" id="um-attendees" class="upcoming-meeting-input upcoming-meeting-input-attendees"
+                           placeholder="Attendees (e.g. Oscar, Trent, Scott)" maxlength="200">
+                </div>
+                <input type="text" id="um-purpose" class="upcoming-meeting-input upcoming-meeting-input-purpose"
+                       placeholder="Purpose / agenda" maxlength="300">
+                <div style="display:flex;gap:10px;align-items:center;">
+                    <span class="note-save-status hidden" id="um-status"></span>
+                    <button class="btn-add-note" id="btn-add-meeting" onclick="submitUpcomingMeeting()">Schedule Meeting</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Email History (collapsible, starts collapsed) -->
+        <div class="card hidden" id="emails-card">
+            <div class="collapsible-header" onclick="toggleSection('emails')">
+                <div style="display:flex;align-items:center;gap:8px;">
+                    <div class="section-title">Email History</div>
+                    <span class="section-count" id="emails-count"></span>
+                </div>
+                <div style="display:flex;align-items:center;gap:6px;" onclick="event.stopPropagation()">
+                    <button class="btn-scan" id="deep-scan-btn" onclick="runDeepEmailScan()">
+                        ⟳ Deep Scan (90d)
+                    </button>
+                    <span class="scan-status hidden" id="scan-status"></span>
+                    <span class="collapsible-toggle" id="emails-toggle" onclick="toggleSection('emails')" style="cursor:pointer">▼</span>
+                </div>
+            </div>
+            <div class="collapsible-body collapsed" id="emails-body"></div>
+        </div>
+    </div>
+
+    <script>
+    // ============================================
+    // CONSTANTS
+    // ============================================
+    const ORG = {{ org | tojson }};
+    const OFFERING = {{ offering | tojson }};
+    // BRIEF_CACHE_PREFIX kept for legacy cleanup only (no longer used for caching)
+    const enc = encodeURIComponent;
+
+    // ============================================
+    // BACK BUTTON FILTER PRESERVATION
+    // ============================================
+    (function() {
+        const params = new URLSearchParams(window.location.search);
+        const backFilters = params.get('back_filters');
+        const backLink = document.getElementById('back-link');
+        if (backFilters) {
+            backLink.href = `/crm?${backFilters}`;
+        } else {
+            backLink.href = '/crm';
+        }
+    })();
+
+    // ============================================
+    // INLINE FIELD EDITING (click-to-edit)
+    // ============================================
+    document.querySelectorAll('.field-editable').forEach(el => {
+        el.addEventListener('click', function(e) {
+            if (el.querySelector('.field-edit-select, .field-edit-input')) return;
+            const field = el.dataset.field;
+            const type = el.dataset.type;
+            const valueEl = el.querySelector('.field-value');
+            const currentText = valueEl.textContent.trim();
+            const currentVal = currentText === '—' ? '' : currentText;
+
+            if (type === 'select') {
+                const options = (el.dataset.options || '').split('||').filter(Boolean);
+                const select = document.createElement('select');
+                select.className = 'field-edit-select';
+                select.innerHTML = '<option value="">— None —</option>' +
+                    options.map(o => `<option value="${o}" ${o === currentVal ? 'selected' : ''}>${o}</option>`).join('');
+                valueEl.innerHTML = '';
+                valueEl.appendChild(select);
+                select.focus();
+
+                async function save() {
+                    const newVal = select.value;
+                    if (field === 'org_type') {
+                        await fetch(`/crm/api/org/${enc(ORG)}`, {
+                            method: 'PATCH',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ type: newVal }),
+                        });
+                    } else {
+                        await fetch('/crm/api/prospect/field', {
+                            method: 'PATCH',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ org: ORG, offering: OFFERING, field: field, value: newVal }),
+                        });
+                    }
+                    location.reload();
+                }
+                select.addEventListener('change', save);
+                select.addEventListener('blur', () => { location.reload(); });
+                select.addEventListener('keydown', (ev) => { if (ev.key === 'Escape') location.reload(); });
+            } else if (type === 'text') {
+                const input = document.createElement('input');
+                input.type = 'text';
+                input.className = 'field-edit-input';
+                input.value = currentVal;
+                valueEl.innerHTML = '';
+                valueEl.appendChild(input);
+                input.focus();
+                input.select();
+
+                async function save() {
+                    const newVal = input.value.trim();
+                    if (newVal !== currentVal) {
+                        await fetch('/crm/api/prospect/field', {
+                            method: 'PATCH',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ org: ORG, offering: OFFERING, field: field, value: newVal }),
+                        });
+                    }
+                    location.reload();
+                }
+                input.addEventListener('blur', save);
+                input.addEventListener('keydown', (ev) => {
+                    if (ev.key === 'Enter') save();
+                    if (ev.key === 'Escape') location.reload();
+                });
+            }
+            e.stopPropagation();
+        });
+    });
+
+    const TYPE_BADGE = {
+        'Meeting':           'badge-meeting',
+        'Email':             'badge-email',
+        'Call':              'badge-call',
+        'Note':              'badge-note',
+        'Document Sent':     'badge-doc',
+        'Document Received': 'badge-doc',
+    };
+
+    // ============================================
+    // INIT
+    // ============================================
+    document.addEventListener('DOMContentLoaded', () => {
+        applyRelativeDates();
+        applyStalenessDots();
+        loadPageData();
+    });
+
+    // ============================================
+    // PAGE DATA LOAD
+    // ============================================
+    async function loadPageData() {
+        try {
+            const resp = await fetch(
+                `/crm/api/prospect/${enc(OFFERING)}/${enc(ORG)}/brief`
+            );
+            if (!resp.ok) throw new Error('Brief API failed');
+            const data = await resp.json();
+
+            // Render all reference sections immediately
+            loadTasks();
+            renderContacts(data.merged_contacts);
+            renderInteractions(data.interactions);
+            renderMeetings(data.meeting_summaries);
+            renderEmails(data.email_history);
+            renderNotesLog(data.notes_log || []);
+            renderUpcomingMeetings(data.upcoming_meetings || []);
+
+            // Render At a Glance if available from saved brief
+            if (data.saved_brief && data.saved_brief.at_a_glance) {
+                showGlance(data.saved_brief.at_a_glance);
+            }
+
+            // Display persisted brief or placeholder (no AI call on page load)
+            loadBrief(data);
+
+        } catch (err) {
+            console.error('Page data load failed:', err);
+            showBriefError();
+        }
+    }
+
+    // ============================================
+    // BRIEF: load from saved JSON store (preserves formatting), fall back to markdown field
+    // ============================================
+    function loadBrief(data) {
+        // Prefer the saved brief from briefs.json — it keeps paragraph breaks intact.
+        const saved = data.saved_brief;
+        if (saved && saved.narrative && saved.narrative.trim()) {
+            renderNarrative(saved.narrative, saved.generated_at || data.brief_refreshed);
+            return;
+        }
+
+        // Fallback: read from the prospect markdown field (may have stripped newlines).
+        let brief = data.relationship_brief;
+        const refreshed = data.brief_refreshed;
+
+        if (brief && brief.trim()) {
+            // Handle case where brief was saved as raw JSON string
+            const trimmed = brief.trim();
+            if (trimmed.startsWith('{') && trimmed.endsWith('}')) {
+                try {
+                    const parsed = JSON.parse(trimmed);
+                    if (parsed.narrative) brief = parsed.narrative;
+                    if (parsed.at_a_glance) showGlance(parsed.at_a_glance);
+                } catch (_) { /* not JSON, use as-is */ }
+            }
+            renderNarrative(brief, refreshed);
+        } else {
+            showBriefPlaceholder();
+        }
+    }
+
+    async function refreshBrief() {
+        showBriefLoading();
+        try {
+            const resp = await fetch(
+                `/crm/api/prospect/${enc(OFFERING)}/${enc(ORG)}/brief`,
+                { method: 'POST' }
+            );
+            if (!resp.ok) throw new Error('Refresh failed');
+            const synth = await resp.json();
+            renderNarrative(synth.narrative, synth.brief_refreshed);
+            if (synth.at_a_glance) {
+                showGlance(synth.at_a_glance);
+            }
+        } catch (err) {
+            console.error('Brief refresh error:', err);
+            showBriefError();
+        }
+    }
+
+    function showGlance(text) {
+        const card = document.getElementById('glance-card');
+        const el = document.getElementById('glance-text');
+        if (!text || !text.trim()) { card.classList.add('hidden'); return; }
+        el.textContent = text;
+        card.classList.remove('hidden');
+    }
+
+    function narrativeToHtml(text) {
+        if (!text) return '';
+        return text.trim()
+            .split(/\n\n+/)
+            .filter(p => p.trim())
+            .map(p => `<p>${esc(p.trim().replace(/\n/g, ' '))}</p>`)
+            .join('');
+    }
+
+    function renderNarrative(narrative, refreshDate) {
+        const refreshHtml = refreshDate
+            ? `<div class="brief-refreshed-ts">Last refreshed: ${esc(formatBriefDate(refreshDate))}</div>`
+            : '';
+        document.getElementById('relationship-brief').innerHTML = `
+            <div class="brief-header">
+                <div class="section-title">Relationship Brief</div>
+                <button class="btn-refresh" onclick="refreshBrief()">⟳ Refresh</button>
+            </div>
+            <div class="brief-narrative">${narrativeToHtml(narrative)}</div>
+            ${refreshHtml}
+        `;
+    }
+
+    function showBriefPlaceholder() {
+        document.getElementById('relationship-brief').innerHTML = `
+            <div class="brief-header">
+                <div class="section-title">Relationship Brief</div>
+                <button class="btn-refresh" onclick="refreshBrief()">⟳ Generate Brief</button>
+            </div>
+            <div style="color:var(--muted);font-size:13px;padding:0.75rem 0;font-style:italic;">
+                No relationship brief yet. Click refresh to generate one.
+            </div>
+        `;
+    }
+
+    function formatBriefDate(dateStr) {
+        if (!dateStr) return '';
+        try {
+            // Handle both YYYY-MM-DD and ISO datetime strings
+            const d = new Date(dateStr.length === 10 ? dateStr + 'T00:00:00' : dateStr);
+            return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+        } catch (_) { return dateStr.slice(0, 10); }
+    }
+
+    function showBriefLoading() {
+        document.getElementById('relationship-brief').innerHTML = `
+            <div class="brief-header">
+                <div class="section-title">Relationship Brief</div>
+            </div>
+            <div class="brief-loading">
+                <div class="loading-pulse"></div>
+                <span>Synthesizing intelligence...</span>
+            </div>
+        `;
+    }
+
+    function showBriefError() {
+        document.getElementById('relationship-brief').innerHTML = `
+            <div class="brief-header">
+                <div class="section-title">Relationship Brief</div>
+                <button class="btn-refresh" onclick="refreshBrief()">Retry</button>
+            </div>
+            <div style="color:var(--muted);font-size:13px;padding:1rem 0;">
+                Brief generation unavailable. See reference sections below for full context.
+            </div>
+        `;
+    }
+
+    // ============================================
+    // ACTIVE TASKS
+    // ============================================
+    async function loadTasks() {
+        try {
+            const resp = await fetch(`/tasks/api/tasks/for-org?org=${enc(ORG)}`);
+            const tasks = resp.ok ? await resp.json() : [];
+            renderTasks(tasks);
+        } catch (_) { /* silently ignore */ }
+    }
+
+    function renderTasks(tasks) {
+        const list = document.getElementById('tasks-list');
+        if (!tasks || tasks.length === 0) {
+            list.innerHTML = '<li style="color:var(--muted);font-size:13px;font-style:italic;padding:0.4rem 0;">No open tasks.</li>';
+            return;
+        }
+        list.innerHTML = tasks.map(task => {
+            const priClass = { Hi: 'task-pri-hi', Med: 'task-pri-med', Lo: 'task-pri-lo' }[task.priority] || 'task-pri-med';
+            const priBadge = `<span class="task-pri ${priClass}">${esc(task.priority)}</span>`;
+            const ownerBadge = task.assigned_to ? `<span class="task-owner">${esc(task.assigned_to)}</span>` : '';
+            return `<li class="task-item" onclick='openEditTaskModal(${JSON.stringify(task)})'>
+                <span class="task-text">${esc(task.text)}</span>
+                <span class="task-meta">${ownerBadge}${priBadge}</span>
+            </li>`;
+        }).join('');
+    }
+
+    function openEditTaskModal(task) {
+        openTaskEditModal({
+            title: 'Edit Task',
+            text: task.text,
+            priority: task.priority || 'Med',
+            status: task.status || 'New',
+            assigned_to: task.assigned_to || '',
+            context: task.context || '',
+            section: task.section || 'Fundraising - Me',
+            index: task.index,
+            org: ORG,
+            hideFields: ['org'],
+            showDelete: true,
+        });
+    }
+
+    function openNewTaskModal() {
+        openTaskEditModal({
+            title: 'New Task',
+            text: '',
+            priority: 'Med',
+            status: 'New',
+            assigned_to: '',
+            context: '',
+            section: 'Fundraising - Me',
+            index: -1,
+            org: ORG,
+            hideFields: ['org'],
+            showDelete: false,
+        });
+    }
+
+    // ============================================
+    // CONTACTS
+    // ============================================
+    function renderContacts(merged) {
+        const body = document.getElementById('contacts-body');
+        const card = document.getElementById('contacts-card');
+        const addSection = document.getElementById('add-contact-section');
+
+        // Always show the card (even if empty) so the "+ Add Contact" button is visible
+        card.classList.remove('hidden');
+
+        if (!merged || merged.length === 0) {
+            body.innerHTML = '<p style="color:var(--muted);font-size:13px;font-style:italic;">No contacts yet.</p>';
+            document.getElementById('contacts-count').textContent = '';
+        } else {
+            body.innerHTML = merged.map(c => {
+                let html = `<div class="contact-card">`;
+                const nameHtml = c.slug
+                    ? `<a href="/crm/people/${encodeURIComponent(c.slug)}" class="contact-name-link">${esc(c.name)}</a>`
+                    : esc(c.name);
+                html += `<div class="contact-name">${nameHtml}</div>`;
+                const titleParts = [c.title, c.role].filter(Boolean);
+                if (titleParts.length) html += `<div class="contact-title">${esc(titleParts.join(' · '))}</div>`;
+                if (c.email) html += `<div class="contact-email"><a href="mailto:${esc(c.email)}" style="color:inherit;text-decoration:none;">${esc(c.email)}</a></div>`;
+                if (c.phone) html += `<div class="contact-phone">${esc(c.phone)}</div>`;
+                if (c.notes) html += `<div class="contact-notes">${esc(c.notes)}</div>`;
+                html += `</div>`;
+                return html;
+            }).join('');
+            document.getElementById('contacts-count').textContent = merged.length;
+        }
+
+        // Always show the add contact section
+        if (addSection) addSection.classList.remove('hidden');
+    }
+
+    // ============================================
+    // INTERACTION HISTORY
+    // ============================================
+    function renderInteractions(interactions) {
+        if (!interactions || interactions.length === 0) return;
+        const body = document.getElementById('interactions-body');
+        body.innerHTML = interactions.map(ix => {
+            const badgeCls = TYPE_BADGE[ix.type] || 'badge-default';
+            const summary = ix.summary || ix.subject || '';
+            return `<div class="interaction-row">
+                <span class="ix-date">${esc(ix.date || '')}</span>
+                <span class="ix-type ${badgeCls}">${esc(ix.type || '')}</span>
+                <span class="ix-summary">${esc(summary)}</span>
+            </div>`;
+        }).join('');
+        document.getElementById('interactions-count').textContent = interactions.length;
+        document.getElementById('interactions-card').classList.remove('hidden');
+        // Set body max-height for transition
+        body.style.maxHeight = body.scrollHeight + 'px';
+    }
+
+    // ============================================
+    // MEETING SUMMARIES
+    // ============================================
+    function renderMeetings(summaries) {
+        if (!summaries || summaries.length === 0) return;
+        const body = document.getElementById('meetings-body');
+        body.innerHTML = summaries.map((ms, i) => {
+            const title = parseFilenameToTitle(ms.filename);
+            const contentHtml = renderMarkdown(ms.content);
+            const id = `meeting-${i}`;
+            return `<div class="meeting-item">
+                <div class="meeting-date-title">${esc(title)}</div>
+                <div class="meeting-content-wrap" id="wrap-${id}">
+                    <div class="meeting-content collapsed" id="${id}">${contentHtml}</div>
+                    <div class="meeting-fade" id="fade-${id}"></div>
+                </div>
+                <button class="show-more-btn" id="btn-${id}" onclick="toggleMeeting('${id}')">Show more</button>
+            </div>`;
+        }).join('');
+        document.getElementById('meetings-count').textContent = summaries.length;
+        document.getElementById('meetings-card').classList.remove('hidden');
+        body.style.maxHeight = body.scrollHeight + 'px';
+
+        // Hide "show more" for short content
+        summaries.forEach((_, i) => {
+            const id = `meeting-${i}`;
+            const el = document.getElementById(id);
+            if (el && el.scrollHeight <= 85) {
+                document.getElementById(`fade-${id}`).classList.add('hidden');
+                document.getElementById(`btn-${id}`).style.display = 'none';
+            }
+        });
+    }
+
+    function toggleMeeting(id) {
+        const el = document.getElementById(id);
+        const fade = document.getElementById(`fade-${id}`);
+        const btn = document.getElementById(`btn-${id}`);
+        const expanded = !el.classList.contains('collapsed');
+        el.classList.toggle('collapsed', expanded);
+        el.style.maxHeight = expanded ? '' : el.scrollHeight + 'px';
+        if (fade) fade.classList.toggle('hidden', !expanded);
+        btn.textContent = expanded ? 'Show more' : 'Show less';
+        // Re-measure parent
+        const body = document.getElementById('meetings-body');
+        if (body) body.style.maxHeight = body.scrollHeight + 'px';
+    }
+
+    function parseFilenameToTitle(filename) {
+        if (!filename) return '';
+        const base = filename.replace(/\.md$/, '');
+        const m = base.match(/^(\d{4})-(\d{2})-(\d{2})-(.+)$/);
+        if (!m) return base;
+        const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+        const d = parseInt(m[3], 10);
+        const mo = months[parseInt(m[2], 10) - 1];
+        const yr = m[1];
+        const titleSlug = m[4].replace(/-/g, ' / ').replace(/\b\w/g, c => c.toUpperCase());
+        return `${mo} ${d}, ${yr} — ${titleSlug}`;
+    }
+
+    // ============================================
+    // EMAIL HISTORY
+    // ============================================
+    function renderEmails(emails) {
+        if (!emails || emails.length === 0) {
+            document.getElementById('emails-count').textContent = '0';
+            document.getElementById('emails-card').classList.remove('hidden');
+            return;
+        }
+        const body = document.getElementById('emails-body');
+        body.innerHTML = emails.map((e, i) => {
+            const detailId = `email-detail-${i}`;
+            // Extract first name from delegate mailbox for "via Tony" indicator
+            let viaBadge = '';
+            if (e.mailbox && e.mailbox.includes('@')) {
+                const localPart = e.mailbox.split('@')[0];
+                const firstName = localPart.charAt(0).toUpperCase() + localPart.slice(1);
+                viaBadge = ` <span style="font-size:10px;color:#94a3b8;font-weight:normal;">via ${firstName}</span>`;
+            }
+            return `<div class="email-row" onclick="toggleEmailDetail('${detailId}')">
+                <span class="email-date-col">${esc(e.date || '')}</span>
+                <span class="email-subject-col">${esc(e.subject || '')}</span>
+                <span class="email-from-col">${esc(e.fromName || e.from || '')}${viaBadge}</span>
+            </div>
+            <div class="email-detail-row" id="${detailId}">
+                <div class="detail-summary">${esc(e.summary || '')}</div>
+                ${e.outlookUrl ? `<a href="${esc(e.outlookUrl)}" target="_blank" rel="noopener" class="email-view-link">View in Outlook →</a>` : ''}
+            </div>`;
+        }).join('');
+        document.getElementById('emails-count').textContent = emails.length;
+        document.getElementById('emails-card').classList.remove('hidden');
+        // starts collapsed — don't set maxHeight
+    }
+
+    function toggleEmailDetail(id) {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.classList.toggle('open');
+        // Re-measure parent
+        const body = document.getElementById('emails-body');
+        if (!body.classList.contains('collapsed') && body.style.maxHeight) {
+            body.style.maxHeight = body.scrollHeight + 'px';
+        }
+    }
+
+    // ============================================
+    // COLLAPSIBLE SECTIONS
+    // ============================================
+    function toggleSection(name) {
+        const body = document.getElementById(`${name}-body`);
+        const toggle = document.getElementById(`${name}-toggle`);
+        const collapsed = body.classList.contains('collapsed');
+
+        if (collapsed) {
+            body.classList.remove('collapsed');
+            body.style.maxHeight = body.scrollHeight + 'px';
+            toggle.textContent = '▲';
+        } else {
+            body.style.maxHeight = body.scrollHeight + 'px';
+            // Force reflow then collapse
+            requestAnimationFrame(() => {
+                body.style.maxHeight = body.scrollHeight + 'px';
+                requestAnimationFrame(() => {
+                    body.classList.add('collapsed');
+                    toggle.textContent = '▼';
+                });
+            });
+        }
+    }
+
+    // ============================================
+    // RELATIVE DATES + STALENESS
+    // ============================================
+    function applyRelativeDates() {
+        document.querySelectorAll('[data-relative-date]').forEach(el => {
+            const ds = el.getAttribute('data-relative-date');
+            if (ds) el.textContent = formatRelDate(ds);
+        });
+    }
+
+    function applyStalenessDots() {
+        document.querySelectorAll('.staleness-dot[data-stale-date]').forEach(el => {
+            const ds = el.getAttribute('data-stale-date');
+            if (!ds) { el.style.display = 'none'; return; }
+            const days = daysDiff(ds);
+            if (days < 0) { el.style.display = 'none'; return; }
+            if (days <= 7) el.classList.add('staleness-fresh');
+            else if (days <= 14) el.classList.add('staleness-stale');
+            else el.classList.add('staleness-cold');
+        });
+    }
+
+    function daysDiff(dateStr) {
+        const d = new Date(dateStr + 'T00:00:00');
+        const now = new Date();
+        now.setHours(0, 0, 0, 0);
+        return Math.floor((now - d) / 86400000);
+    }
+
+    function formatRelDate(dateStr) {
+        const days = daysDiff(dateStr);
+        if (days === 0) return 'Today';
+        if (days === 1) return 'Yesterday';
+        const d = new Date(dateStr + 'T00:00:00');
+        if (days < 7) return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    }
+
+    // ============================================
+    // SIMPLE MARKDOWN → HTML
+    // ============================================
+    function renderMarkdown(text) {
+        if (!text) return '';
+        const lines = text.split('\n');
+        let html = '', inList = false;
+        for (const raw of lines) {
+            const line = raw.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+            if (/^### /.test(raw))     { if (inList){html+='</ul>';inList=false;} html+=`<strong>${line.replace(/^### /,'')}</strong><br>`; }
+            else if (/^## /.test(raw)) { if (inList){html+='</ul>';inList=false;} html+=`<strong>${line.replace(/^## /,'')}</strong><br>`; }
+            else if (/^# /.test(raw))  { if (inList){html+='</ul>';inList=false;} html+=`<strong>${line.replace(/^# /,'')}</strong><br>`; }
+            else if (/^- /.test(raw))  { if (!inList){html+='<ul>';inList=true;} html+=`<li>${applyInline(line.replace(/^- /,''))}</li>`; }
+            else if (/^---+$/.test(raw.trim())) { if (inList){html+='</ul>';inList=false;} html+='<hr style="border-color:#334155;margin:0.5rem 0">'; }
+            else if (raw.trim() === '') { if (inList){html+='</ul>';inList=false;} }
+            else                       { if (inList){html+='</ul>';inList=false;} html+=`<p style="margin-bottom:0.35rem;color:#94a3b8">${applyInline(line)}</p>`; }
+        }
+        if (inList) html += '</ul>';
+        return html;
+    }
+
+    function applyInline(t) {
+        return t
+            .replace(/\*\*([^*\n]+)\*\*/g, '<strong>$1</strong>')
+            .replace(/\*([^*\n]+)\*/g, '<em>$1</em>');
+    }
+
+    // ============================================
+    // NOTES LOG
+    // ============================================
+    function renderNotesLog(notes) {
+        const body = document.getElementById('notes-body');
+        const countEl = document.getElementById('notes-count');
+
+        if (!notes || notes.length === 0) {
+            body.innerHTML = '<div class="notes-empty">No notes yet. Add one below.</div>';
+            countEl.textContent = '';
+            return;
+        }
+
+        // Display newest first
+        const sorted = [...notes].reverse();
+        body.innerHTML = sorted.map(n => {
+            const dateStr = formatNoteDate(n.date || '');
+            return `<div class="note-entry">
+                <div class="note-meta">
+                    <span class="note-author">${esc(n.author || 'Unknown')}</span>
+                    <span class="note-date">${esc(dateStr)}</span>
+                </div>
+                <div class="note-text">${esc(n.text || '')}</div>
+            </div>`;
+        }).join('');
+        countEl.textContent = notes.length;
+    }
+
+    function formatNoteDate(isoStr) {
+        if (!isoStr) return '';
+        try {
+            const d = new Date(isoStr);
+            return d.toLocaleDateString('en-US', {
+                month: 'short', day: 'numeric', year: 'numeric',
+                hour: 'numeric', minute: '2-digit',
+            });
+        } catch (_) { return isoStr.slice(0, 10); }
+    }
+
+    async function submitNote() {
+        const authorEl = document.getElementById('note-author');
+        const textEl = document.getElementById('note-text');
+        const statusEl = document.getElementById('note-status');
+        const btn = document.getElementById('btn-add-note');
+
+        const author = (authorEl.value || '').trim();
+        const text = (textEl.value || '').trim();
+
+        if (!author) { authorEl.focus(); return; }
+        if (!text) { textEl.focus(); return; }
+
+        btn.disabled = true;
+        statusEl.className = 'note-save-status';
+        statusEl.textContent = 'Saving…';
+        statusEl.classList.remove('hidden');
+
+        try {
+            const resp = await fetch(
+                `/crm/api/prospect/${enc(OFFERING)}/${enc(ORG)}/add-note`,
+                {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ author, text }),
+                }
+            );
+            if (!resp.ok) throw new Error('Save failed');
+            const result = await resp.json();
+
+            // Reload notes from server to get full updated list
+            const briefResp = await fetch(
+                `/crm/api/prospect/${enc(OFFERING)}/${enc(ORG)}/brief`
+            );
+            if (briefResp.ok) {
+                const data = await briefResp.json();
+                renderNotesLog(data.notes_log || []);
+            }
+
+            textEl.value = '';
+            statusEl.className = 'note-save-status ok';
+            statusEl.textContent = 'Saved';
+            setTimeout(() => statusEl.classList.add('hidden'), 2500);
+        } catch (err) {
+            statusEl.className = 'note-save-status err';
+            statusEl.textContent = 'Error — try again';
+        } finally {
+            btn.disabled = false;
+        }
+    }
+
+    // ============================================
+    // UPCOMING MEETINGS
+    // ============================================
+
+    function renderUpcomingMeetings(meetings) {
+        const body = document.getElementById('upcoming-meetings-body');
+        const countEl = document.getElementById('upcoming-meetings-count');
+
+        if (!meetings || meetings.length === 0) {
+            body.innerHTML = '<div class="notes-empty">No upcoming meetings scheduled.</div>';
+            countEl.textContent = '';
+            return;
+        }
+
+        body.innerHTML = meetings.map(m => {
+            const dateStr = formatMeetingDateTime(m.meeting_date, m.meeting_time);
+            return `<div class="upcoming-meeting-entry">
+                <div class="upcoming-meeting-info">
+                    <div class="upcoming-meeting-date">${esc(dateStr)}</div>
+                    ${m.purpose ? `<div class="upcoming-meeting-purpose">${esc(m.purpose)}</div>` : ''}
+                    ${m.attendees ? `<div class="upcoming-meeting-attendees">With: ${esc(m.attendees)}</div>` : ''}
+                </div>
+                <button class="upcoming-meeting-delete" title="Remove"
+                        onclick="deleteUpcomingMeeting(${esc(JSON.stringify(m.id))})">✕</button>
+            </div>`;
+        }).join('');
+        countEl.textContent = meetings.length;
+    }
+
+    function formatMeetingDateTime(dateStr, timeStr) {
+        if (!dateStr) return 'TBD';
+        try {
+            const [y, mo, d] = dateStr.split('-').map(Number);
+            const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+            let label = `${months[mo - 1]} ${d}, ${y}`;
+            if (timeStr) {
+                const [h, min] = timeStr.split(':').map(Number);
+                const ampm = h >= 12 ? 'PM' : 'AM';
+                const h12 = h % 12 || 12;
+                label += ` at ${h12}:${String(min).padStart(2, '0')} ${ampm}`;
+            }
+            return label;
+        } catch (_) {
+            return dateStr + (timeStr ? ` ${timeStr}` : '');
+        }
+    }
+
+    async function submitUpcomingMeeting() {
+        const dateEl = document.getElementById('um-date');
+        const timeEl = document.getElementById('um-time');
+        const attendeesEl = document.getElementById('um-attendees');
+        const purposeEl = document.getElementById('um-purpose');
+        const statusEl = document.getElementById('um-status');
+        const btn = document.getElementById('btn-add-meeting');
+
+        const meeting_date = (dateEl.value || '').trim();
+        const meeting_time = (timeEl.value || '').trim();
+        const attendees = (attendeesEl.value || '').trim();
+        const purpose = (purposeEl.value || '').trim();
+
+        if (!meeting_date) { dateEl.focus(); return; }
+
+        btn.disabled = true;
+        statusEl.className = 'note-save-status';
+        statusEl.textContent = 'Saving…';
+        statusEl.classList.remove('hidden');
+
+        try {
+            const resp = await fetch(
+                `/crm/api/prospect/${enc(OFFERING)}/${enc(ORG)}/add-meeting`,
+                {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ meeting_date, meeting_time, attendees, purpose }),
+                }
+            );
+            if (!resp.ok) throw new Error('Save failed');
+
+            const briefResp = await fetch(`/crm/api/prospect/${enc(OFFERING)}/${enc(ORG)}/brief`);
+            if (briefResp.ok) {
+                const data = await briefResp.json();
+                renderUpcomingMeetings(data.upcoming_meetings || []);
+            }
+
+            dateEl.value = '';
+            timeEl.value = '';
+            attendeesEl.value = '';
+            purposeEl.value = '';
+            statusEl.className = 'note-save-status ok';
+            statusEl.textContent = 'Scheduled';
+            setTimeout(() => statusEl.classList.add('hidden'), 2500);
+        } catch (err) {
+            statusEl.className = 'note-save-status err';
+            statusEl.textContent = 'Error — try again';
+        } finally {
+            btn.disabled = false;
+        }
+    }
+
+    async function deleteUpcomingMeeting(meetingId) {
+        if (!confirm('Remove this upcoming meeting?')) return;
+        try {
+            const resp = await fetch(
+                `/crm/api/prospect/${enc(OFFERING)}/${enc(ORG)}/delete-meeting`,
+                {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id: meetingId }),
+                }
+            );
+            if (!resp.ok) throw new Error('Delete failed');
+            const briefResp = await fetch(`/crm/api/prospect/${enc(OFFERING)}/${enc(ORG)}/brief`);
+            if (briefResp.ok) {
+                const data = await briefResp.json();
+                renderUpcomingMeetings(data.upcoming_meetings || []);
+            }
+        } catch (err) {
+            alert('Could not remove meeting — try again.');
+        }
+    }
+
+    // ============================================
+    // DEEP EMAIL SCAN
+    // ============================================
+    async function runDeepEmailScan() {
+        const btn = document.getElementById('deep-scan-btn');
+        const status = document.getElementById('scan-status');
+
+        btn.disabled = true;
+        status.className = 'scan-status running';
+        status.textContent = 'Scanning…';
+        status.classList.remove('hidden');
+
+        try {
+            const resp = await fetch(
+                `/crm/api/prospect/${enc(OFFERING)}/${enc(ORG)}/email-scan`,
+                { method: 'POST' }
+            );
+            const data = await resp.json();
+            if (!resp.ok) throw new Error(data.error || 'Scan failed');
+
+            status.className = 'scan-status success';
+            status.textContent = data.message || `+${data.added} emails found`;
+
+            // Refresh email list if new emails were found
+            if (data.added > 0) {
+                const briefResp = await fetch(
+                    `/crm/api/prospect/${enc(OFFERING)}/${enc(ORG)}/brief`
+                );
+                if (briefResp.ok) {
+                    const briefData = await briefResp.json();
+                    renderEmails(briefData.email_history);
+                }
+            }
+        } catch (err) {
+            status.className = 'scan-status error';
+            status.textContent = err.message || 'Scan failed';
+        } finally {
+            btn.disabled = false;
+        }
+    }
+
+    // ============================================
+    // QUICK ACTIONS
+    // ============================================
+    let qaCurrentPriority = 'Med';
+
+    function switchQA(tab) {
+        const pillTask = document.getElementById('qa-pill-task');
+        const pillNote = document.getElementById('qa-pill-note');
+        const taskForm = document.getElementById('qa-task-form');
+        const noteForm = document.getElementById('qa-note-form');
+        if (tab === 'task') {
+            pillTask.classList.add('active');
+            pillNote.classList.remove('active');
+            taskForm.style.display = '';
+            noteForm.style.display = 'none';
+            document.getElementById('qa-task-input').focus();
+        } else {
+            pillNote.classList.add('active');
+            pillTask.classList.remove('active');
+            noteForm.style.display = '';
+            taskForm.style.display = 'none';
+            document.getElementById('qa-note-input').focus();
+        }
+    }
+
+    function setPriority(p) {
+        qaCurrentPriority = p;
+        ['Hi', 'Med', 'Lo'].forEach(level => {
+            const btn = document.getElementById('pri-' + level.toLowerCase());
+            btn.className = p === level ? 'active-' + level.toLowerCase() : '';
+        });
+    }
+
+    function onQaTaskInput() {
+        const hasContent = document.getElementById('qa-task-input').value.trim().length > 0;
+        document.getElementById('qa-task-submit').classList.toggle('visible', hasContent);
+    }
+
+    function onQaNoteInput() {
+        const hasContent = document.getElementById('qa-note-input').value.trim().length > 0;
+        document.getElementById('qa-note-submit').classList.toggle('visible', hasContent);
+    }
+
+    function onQaTaskKey(e) {
+        if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) submitQuickTask();
+    }
+
+    function onQaNoteKey(e) {
+        if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) submitQuickNote();
+    }
+
+    async function submitQuickTask() {
+        const input = document.getElementById('qa-task-input');
+        const btn = document.getElementById('qa-task-submit');
+        const assigneeSelect = document.getElementById('qa-task-assignee');
+        const text = input.value.trim();
+        const assignee = assigneeSelect.value;
+        if (!text || !assignee) return;
+
+        btn.disabled = true;
+        try {
+            const resp = await fetch('/crm/api/tasks', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    org: ORG,
+                    text: text,
+                    owner: assignee,
+                    priority: qaCurrentPriority,
+                    section: 'IR / Fundraising',
+                }),
+            });
+            if (!resp.ok) throw new Error('Failed');
+
+            // Re-fetch tasks from server so new task is completable
+            await loadTasks();
+            const tasksCard = document.getElementById('tasks-card');
+            tasksCard.classList.add('task-card-flash');
+            setTimeout(() => tasksCard.classList.remove('task-card-flash'), 700);
+
+            input.value = '';
+            btn.classList.remove('visible');
+            setPriority('Med');
+        } catch (_) {
+            input.classList.add('input-error');
+            setTimeout(() => input.classList.remove('input-error'), 2000);
+        } finally {
+            btn.disabled = false;
+        }
+    }
+
+    async function submitQuickNote() {
+        const authorEl = document.getElementById('qa-note-author');
+        const inputEl = document.getElementById('qa-note-input');
+        const btn = document.getElementById('qa-note-submit');
+        const statusEl = document.getElementById('qa-status');
+        const author = authorEl.value.trim();
+        const text = inputEl.value.trim();
+        if (!text) return;
+
+        btn.disabled = true;
+        statusEl.className = 'note-save-status';
+        statusEl.textContent = 'Saving…';
+        statusEl.classList.remove('hidden');
+        try {
+            const resp = await fetch(
+                `/crm/api/prospect/${enc(OFFERING)}/${enc(ORG)}/add-note`,
+                {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ author, text }),
+                }
+            );
+            if (!resp.ok) throw new Error('Failed');
+
+            // Reload notes from server
+            const briefResp = await fetch(`/crm/api/prospect/${enc(OFFERING)}/${enc(ORG)}/brief`);
+            if (briefResp.ok) {
+                const data = await briefResp.json();
+                renderNotesLog(data.notes_log || []);
+            }
+
+            inputEl.value = '';
+            btn.classList.remove('visible');
+            statusEl.className = 'note-save-status ok';
+            statusEl.textContent = 'Saved';
+            setTimeout(() => statusEl.classList.add('hidden'), 2500);
+        } catch (_) {
+            inputEl.classList.add('input-error');
+            setTimeout(() => inputEl.classList.remove('input-error'), 2000);
+            statusEl.className = 'note-save-status err';
+            statusEl.textContent = 'Error — try again';
+        } finally {
+            btn.disabled = false;
+        }
+    }
+
+    // ============================================
+    // ESCAPE HTML
+    // ============================================
+    function esc(t) {
+        if (t == null) return '';
+        const map = {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'};
+        return String(t).replace(/[&<>"']/g, c => map[c]);
+    }
+
+    // ============================================
+    // ADD CONTACT FUNCTIONALITY
+    // ============================================
+    let searchTimeoutDetail = null;
+
+    function showAddContactFormDetail() {
+        document.getElementById('btn-show-add-contact-detail').classList.add('hidden');
+        document.getElementById('add-contact-form-detail').classList.remove('hidden');
+        document.getElementById('search-mode-detail').classList.remove('hidden');
+        document.getElementById('create-mode-detail').classList.add('hidden');
+        document.getElementById('contact-search-input-detail').focus();
+    }
+
+    function hideAddContactFormDetail() {
+        document.getElementById('add-contact-form-detail').classList.add('hidden');
+        document.getElementById('btn-show-add-contact-detail').classList.remove('hidden');
+        // Reset forms
+        document.getElementById('contact-search-input-detail').value = '';
+        document.getElementById('search-results-detail').classList.add('hidden');
+        document.getElementById('search-mode-detail').classList.remove('hidden');
+        document.getElementById('create-mode-detail').classList.add('hidden');
+        document.getElementById('new-contact-name-detail').value = '';
+        document.getElementById('new-contact-title-detail').value = '';
+        document.getElementById('new-contact-email-detail').value = '';
+        document.getElementById('new-contact-phone-detail').value = '';
+    }
+
+    function switchToCreateModeDetail() {
+        document.getElementById('search-mode-detail').classList.add('hidden');
+        document.getElementById('create-mode-detail').classList.remove('hidden');
+        document.getElementById('new-contact-name-detail').focus();
+    }
+
+    async function searchPeopleDetail(query) {
+        const resultsEl = document.getElementById('search-results-detail');
+
+        if (!query.trim()) {
+            resultsEl.classList.add('hidden');
+            return;
+        }
+
+        // Debounce
+        if (searchTimeoutDetail) clearTimeout(searchTimeoutDetail);
+        searchTimeoutDetail = setTimeout(async () => {
+            try {
+                const resp = await fetch(`/crm/api/people/search?q=${enc(query)}`);
+                const people = await resp.json();
+
+                if (people.length === 0) {
+                    resultsEl.innerHTML = '<div class="search-result-item-detail" style="cursor:default;">No matches found</div><div class="search-result-create-detail" onclick="switchToCreateModeDetail()">+ Create New Contact</div>';
+                } else {
+                    resultsEl.innerHTML = people.map(p => {
+                        const meta = [p.title, p.email].filter(Boolean).join(' · ');
+                        return `<div class="search-result-item-detail" onclick='selectExistingPersonDetail(${JSON.stringify(p)})'>
+                            <div class="search-result-name-detail">${esc(p.name)}</div>
+                            ${meta ? `<div class="search-result-meta-detail">${esc(meta)}</div>` : ''}
+                        </div>`;
+                    }).join('') + '<div class="search-result-create-detail" onclick="switchToCreateModeDetail()">+ Create New Contact</div>';
+                }
+                resultsEl.classList.remove('hidden');
+            } catch (err) {
+                console.error('Search failed:', err);
+            }
+        }, 300);
+    }
+
+    async function selectExistingPersonDetail(person) {
+        document.getElementById('search-results-detail').classList.add('hidden');
+
+        try {
+            const resp = await fetch(`/crm/api/org/${enc(ORG)}/contacts`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    name: person.name,
+                    title: person.title || '',
+                    email: person.email || '',
+                    phone: person.phone || '',
+                    is_new: false
+                })
+            });
+
+            if (!resp.ok) {
+                const err = await resp.json().catch(() => ({}));
+                throw new Error(err.error || 'Failed to add contact');
+            }
+
+            // Reload page to show new contact
+            window.location.reload();
+        } catch (err) {
+            alert('Failed to add contact: ' + err.message);
+        }
+    }
+
+    async function submitNewContactDetail() {
+        const name = document.getElementById('new-contact-name-detail').value.trim();
+        const title = document.getElementById('new-contact-title-detail').value.trim();
+        const email = document.getElementById('new-contact-email-detail').value.trim();
+        const phone = document.getElementById('new-contact-phone-detail').value.trim();
+
+        if (!name) {
+            alert('Name is required');
+            document.getElementById('new-contact-name-detail').focus();
+            return;
+        }
+
+        try {
+            const resp = await fetch(`/crm/api/org/${enc(ORG)}/contacts`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    name: name,
+                    title: title,
+                    email: email,
+                    phone: phone,
+                    is_new: true
+                })
+            });
+
+            if (!resp.ok) {
+                const err = await resp.json().catch(() => ({}));
+                throw new Error(err.error || 'Failed to create contact');
+            }
+
+            // Reload page to show new contact
+            window.location.reload();
+        } catch (err) {
+            alert('Failed to create contact: ' + err.message);
+        }
+    }
+
+    // Close dropdown when clicking outside
+    document.addEventListener('click', function(e) {
+        const searchWrap = document.querySelector('.search-input-wrap-detail');
+        if (searchWrap && !searchWrap.contains(e.target)) {
+            document.getElementById('search-results-detail').classList.add('hidden');
+        }
+    });
+    // Task edit modal globals
+    window.TASK_MODAL_TEAM = {{ config.team | map(attribute='name') | list | tojson }};
+    window.TASK_MODAL_TEAM_MAP = {{ config.team_map | tojson }};
+    window.TASK_MODAL_SECTIONS = ['Fundraising - Me', 'Fundraising - Others', 'Other Work', 'Personal'];
+    window.taskModalOnSave = function() { loadTasks(); };
+    window.taskModalOnDelete = function() { loadTasks(); };
+    </script>
+<script src="/static/task-edit-modal.js"></script>
+</body>
+</html>

@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ org_name }} — Edit Org | Overwatch</title>
+  <link rel="stylesheet" href="/static/crm.css">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0f172a; color: #e2e8f0; min-height: 100vh; }
+
+    .page { padding: 24px; max-width: 900px; margin: 0 auto; }
+
+    /* Page header */
+    .page-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; margin-bottom: 1.25rem; }
+    .page-title { font-size: 1.75rem; font-weight: 700; color: #f1f5f9; }
+
+    /* Cards */
+    .card { background: #1e293b; border: 1px solid #334155; border-radius: 8px; margin-bottom: 20px; padding: 20px; }
+
+    /* Summary grid — mirrors Prospect detail */
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1.25rem;
+    }
+    .summary-grid-notes {
+      margin-top: 1rem;
+      padding-top: 1rem;
+      border-top: 1px solid #334155;
+    }
+    .field-label {
+      font-size: 0.75rem;
+      color: #94a3b8;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      font-weight: 500;
+      margin-bottom: 0.3rem;
+    }
+    .field-value { font-size: 0.95rem; font-weight: 600; color: #e2e8f0; }
+    .field-value.editable { cursor: pointer; border-radius: 6px; padding: 4px 6px; margin: -4px -6px; transition: background 0.15s; }
+    .field-value.editable:hover { background: rgba(59,130,246,0.08); }
+    .field-value .muted { color: #94a3b8; font-weight: 400; }
+
+    /* Inline edit controls */
+    .field-value select,
+    .field-value input,
+    .field-value textarea {
+      width: 100%; padding: 4px 8px; border: 1px solid #3b82f6; border-radius: 4px;
+      font-size: 0.95rem; font-weight: 600; font-family: inherit;
+      background: #0f172a; color: #e2e8f0; outline: none;
+    }
+    .field-value textarea { resize: vertical; min-height: 60px; font-weight: 400; }
+
+    .section-title { font-size: 14px; font-weight: 600; color: #cbd5e1; margin-bottom: 12px; margin-top: 4px; }
+
+    .prospect-link { display: block; padding: 8px 0; color: #60a5fa; text-decoration: none; font-size: 14px; border-bottom: 1px solid #334155; }
+    .prospect-link:hover { text-decoration: underline; }
+    .prospect-link:last-child { border-bottom: none; }
+
+    /* Brief */
+    .brief-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+    .brief-title { font-size: 11px; font-weight: 600; letter-spacing: 0.07em; text-transform: uppercase; color: #94a3b8; border-left: 3px solid #2563eb; padding-left: 8px; }
+    .brief-ts { font-size: 11px; color: #94a3b8; font-weight: 400; margin-left: 6px; opacity: 0.7; }
+    .brief-narrative { color: #cbd5e1; line-height: 1.7; font-size: 14px; }
+    .brief-narrative p { margin-bottom: 0.85rem; }
+    .brief-narrative p:last-child { margin-bottom: 0; }
+    .brief-loading { display: flex; align-items: center; gap: 10px; color: #94a3b8; padding: 1.5rem 0; font-size: 13px; }
+    @keyframes pulse { 0%,100% { opacity: 0.3; } 50% { opacity: 1; } }
+    .loading-pulse { width: 8px; height: 8px; border-radius: 50%; background: #2563eb; animation: pulse 1.2s ease infinite; flex-shrink: 0; }
+    .btn-sm { background: none; border: 1px solid #475569; color: #94a3b8; font-size: 12px; padding: 3px 10px; border-radius: 4px; cursor: pointer; transition: border-color 0.15s, color 0.15s; }
+    .btn-sm:hover { border-color: #2563eb; color: #60a5fa; }
+
+    .saved-flash { animation: saved-pulse 0.6s ease; }
+    @keyframes saved-pulse { 0%,100% { border-color: #334155; } 50% { border-color: #22c55e; } }
+
+    @media (max-width: 640px) { .summary-grid { grid-template-columns: repeat(2, 1fr); } }
+  </style>
+</head>
+<body>
+{% set active_tab = 'orgs' %}
+{% include '_nav.html' %}
+
+<div class="page">
+  <a href="/crm/orgs" class="breadcrumb-back">← Back to Organizations</a>
+
+  <!-- Page title -->
+  <div class="page-header">
+    <h1 class="page-title">{{ org_name }}</h1>
+  </div>
+
+  <!-- Summary card -->
+  <div class="card" id="summary-card">
+    <div class="summary-grid">
+      <div>
+        <div class="field-label">Type</div>
+        <div class="field-value editable" id="type-display" onclick="startEdit('type', this)">
+          {{ org_data.Type or '<span class="muted">—</span>' | safe }}
+        </div>
+      </div>
+      <div>
+        <div class="field-label">Domain</div>
+        <div class="field-value editable" id="domain-display" onclick="startEdit('domain', this)">
+          {{ org_data.Domain or '<span class="muted">—</span>' | safe }}
+        </div>
+      </div>
+      <div><!-- spacer --></div>
+    </div>
+    {% if org_data.Notes %}
+    <div class="summary-grid-notes">
+      <div class="field-label">Notes</div>
+      <div class="field-value editable" id="notes-display" onclick="startEdit('notes', this)">
+        {{ org_data.Notes }}
+      </div>
+    </div>
+    {% else %}
+    <div class="summary-grid-notes">
+      <div class="field-label">Notes</div>
+      <div class="field-value editable" id="notes-display" onclick="startEdit('notes', this)">
+        <span class="muted">—</span>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Relationship Brief -->
+  <div class="card" id="brief-card">
+    <div id="org-brief">
+      <div class="brief-loading">
+        <div class="loading-pulse"></div>
+        <span>Loading brief...</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2 class="section-title">Contacts</h2>
+    {% include '_contacts_table.html' %}
+  </div>
+
+  <div class="card">
+    <h2 class="section-title">Prospects Linked to This Org</h2>
+    {% if prospects %}
+      {% for p in prospects %}
+      <a href="/crm/prospect/{{ p.offering }}/{{ org_name }}/detail" class="prospect-link">
+        {{ p.offering }} — {{ p.Stage or '—' }} — {{ p.Target or '$0' }}
+      </a>
+      {% endfor %}
+    {% else %}
+      <p style="color:#94a3b8;font-size:14px;">No prospects linked yet.</p>
+    {% endif %}
+  </div>
+
+</div>
+
+<script>
+const ORG_NAME = {{ org_name | tojson }};
+const ORG_TYPES = {{ config.org_types | tojson }};
+
+// Current data (mirrors what's on the server)
+const orgData = {
+  type:   {{ (org_data.Type or '') | tojson }},
+  domain: {{ (org_data.Domain or '') | tojson }},
+  notes:  {{ (org_data.Notes or '') | tojson }},
+};
+
+function escHtml(str) {
+  return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function renderField(el, field) {
+  const val = orgData[field];
+  el.onclick = () => startEdit(field, el);
+  el.innerHTML = val
+    ? escHtml(val)
+    : '<span class="muted">—</span>';
+}
+
+function startEdit(field, el) {
+  el.onclick = null;
+  const current = orgData[field] || '';
+  let input;
+
+  if (field === 'type') {
+    input = document.createElement('select');
+    ['', ...ORG_TYPES].forEach(opt => {
+      const o = document.createElement('option');
+      o.value = opt; o.textContent = opt || '(none)';
+      if (opt === current) o.selected = true;
+      input.appendChild(o);
+    });
+    input.addEventListener('change', () => save(field, input.value, el));
+    input.addEventListener('blur',   () => { if (input.value === current) renderField(el, field); });
+  } else if (field === 'domain') {
+    input = document.createElement('input');
+    input.type = 'text'; input.value = current;
+    input.placeholder = 'e.g. example.com';
+    input.addEventListener('blur',    () => save(field, input.value.trim(), el));
+    input.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); input.blur(); } if (e.key === 'Escape') renderField(el, field); });
+  } else {
+    input = document.createElement('textarea');
+    input.value = current; input.rows = 3;
+    input.placeholder = 'Notes about this organization...';
+    input.addEventListener('blur',    () => save(field, input.value.trim(), el));
+    input.addEventListener('keydown', e => { if (e.key === 'Escape') renderField(el, field); });
+  }
+
+  input.addEventListener('click', e => e.stopPropagation());
+  el.innerHTML = '';
+  el.appendChild(input);
+  input.focus();
+  if (input.tagName === 'INPUT') input.select();
+}
+
+async function save(field, value, el) {
+  if (value === orgData[field]) { renderField(el, field); return; }
+  const resp = await fetch(`/crm/api/org/${encodeURIComponent(ORG_NAME)}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ [field]: value }),
+  });
+  if (resp.ok) {
+    orgData[field] = value;
+    renderField(el, field);
+    const card = document.getElementById('summary-card');
+    card.classList.add('saved-flash');
+    setTimeout(() => card.classList.remove('saved-flash'), 700);
+  } else {
+    const err = document.createElement('div');
+    err.style.cssText = 'color:#ef4444;font-size:12px;margin-top:4px;';
+    err.textContent = 'Save failed';
+    el.appendChild(err);
+    setTimeout(() => renderField(el, field), 1500);
+  }
+}
+
+// ============================================
+// RELATIONSHIP BRIEF
+// ============================================
+function narrativeToHtml(text) {
+  if (!text) return '';
+  return text.trim()
+    .split(/\n\n+/)
+    .filter(p => p.trim())
+    .map(p => `<p>${escHtml(p.trim().replace(/\n/g, ' '))}</p>`)
+    .join('');
+}
+
+async function loadOrgBrief() {
+  try {
+    const resp = await fetch(`/crm/api/org/${encodeURIComponent(ORG_NAME)}`);
+    const data = await resp.json();
+    const saved = data.saved_brief;
+    if (saved && saved.narrative) {
+      renderOrgBrief(saved.narrative, saved.generated_at);
+    } else {
+      showBriefLoading();
+      await _synthesizeOrgBrief();
+    }
+  } catch (err) {
+    renderOrgBriefError();
+  }
+}
+
+async function refreshOrgBrief() {
+  showBriefLoading();
+  await _synthesizeOrgBrief();
+}
+
+async function _synthesizeOrgBrief() {
+  try {
+    const resp = await fetch('/crm/api/synthesize-org-brief', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ org: ORG_NAME }),
+    });
+    if (!resp.ok) throw new Error('Synthesis failed');
+    const synth = await resp.json();
+    renderOrgBrief(synth.narrative);
+  } catch (err) {
+    renderOrgBriefError();
+  }
+}
+
+function renderOrgBrief(narrative, generatedAt) {
+  const tsHtml = generatedAt
+    ? `<span class="brief-ts" title="Generated ${generatedAt}">
+         ${new Date(generatedAt).toLocaleDateString('en-US', {month:'short', day:'numeric'})}
+       </span>`
+    : '';
+  document.getElementById('org-brief').innerHTML = `
+    <div class="brief-header">
+      <span class="brief-title">Relationship Brief ${tsHtml}</span>
+      <button class="btn-sm" onclick="refreshOrgBrief()">⟳ Refresh</button>
+    </div>
+    <div class="brief-narrative">${narrativeToHtml(narrative)}</div>
+  `;
+}
+
+function showBriefLoading() {
+  document.getElementById('org-brief').innerHTML = `
+    <div class="brief-header"><span class="brief-title">Relationship Brief</span></div>
+    <div class="brief-loading">
+      <div class="loading-pulse"></div>
+      <span>Synthesizing intelligence...</span>
+    </div>
+  `;
+}
+
+function renderOrgBriefError() {
+  document.getElementById('org-brief').innerHTML = `
+    <div class="brief-header">
+      <span class="brief-title">Relationship Brief</span>
+      <button class="btn-sm" onclick="refreshOrgBrief()">Retry</button>
+    </div>
+    <div style="color:#94a3b8;font-size:13px;padding:0.5rem 0">Brief generation unavailable.</div>
+  `;
+}
+
+loadOrgBrief();
+</script>
+</body>
+</html>

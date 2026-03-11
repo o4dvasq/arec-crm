@@ -1,0 +1,2145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Pipeline — Overwatch</title>
+  <link rel="stylesheet" href="/static/crm.css">
+  <link rel="stylesheet" href="/static/task-edit-modal.css">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0f172a; color: #e2e8f0; min-height: 100vh; }
+
+    /* Layout */
+    .page { padding: 20px 24px; max-width: 1400px; margin: 0 auto; }
+
+    /* Tabs */
+    .tabs { display: flex; gap: 0; margin-bottom: 0; border-bottom: 2px solid #334155; }
+    .tab { padding: 10px 20px; cursor: pointer; font-size: 14px; font-weight: 500; color: #94a3b8; border-bottom: 2px solid transparent; margin-bottom: -2px; user-select: none; }
+    .tab:hover { color: #cbd5e1; }
+    .tab.active { color: #3b82f6; border-bottom-color: #3b82f6; }
+    .tab-meta { font-size: 11px; color: #94a3b8; margin-top: 2px; }
+
+    /* Fund summary bar */
+    .fund-bar { background: #1e293b; border: 1px solid #334155; border-top: none; padding: 10px 16px; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-bottom: 12px; }
+
+    .stat-chip {
+      display: flex;
+      flex-direction: column;
+      padding: 8px 14px;
+      background: #334155;
+      border: 1px solid #475569;
+      border-radius: 8px;
+    }
+
+    .stat-value {
+      font-size: 18px;
+      font-weight: 700;
+      color: #f1f5f9;
+      line-height: 1.2;
+    }
+
+    .stat-label {
+      font-size: 11px;
+      color: #94a3b8;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+      margin-top: 2px;
+    }
+
+    /* Filters */
+    .filters { display: flex; gap: 8px; padding: 8px 16px; margin-bottom: 12px; flex-wrap: wrap; align-items: center; background: #1e293b; border: 1px solid #334155; border-radius: 8px; }
+    .filters input[type=text] { padding: 6px 10px; border: 1px solid #334155; border-radius: 6px; font-size: 13px; width: 180px; outline: none; background: #0f172a; color: #e2e8f0; }
+    .filters input[type=text]:focus { border-color: #3b82f6; }
+    .filters select { padding: 6px 10px; border: 1px solid #334155; border-radius: 6px; font-size: 13px; background: #0f172a; color: #e2e8f0; outline: none; cursor: pointer; }
+    .filters select:focus { border-color: #3b82f6; }
+    .toggle-label { font-size: 13px; color: #94a3b8; display: flex; align-items: center; gap: 6px; cursor: pointer; }
+    .filters .spacer { flex: 1; }
+
+    /* Unmatched panel */
+    .unmatched-panel { background: #1e293b; border: 1px solid #ca8a04; border-radius: 8px; margin-bottom: 16px; overflow: hidden; }
+    .unmatched-header { padding: 10px 16px; background: rgba(202,138,4,0.15); display: flex; justify-content: space-between; align-items: center; cursor: pointer; font-size: 13px; font-weight: 600; color: #fbbf24; }
+    .unmatched-body { padding: 0 16px 12px; display: none; }
+    .unmatched-body.open { display: block; }
+    .unmatched-row { display: flex; gap: 12px; padding: 8px 0; border-bottom: 1px solid #334155; font-size: 13px; align-items: center; flex-wrap: wrap; }
+    .unmatched-row:last-child { border-bottom: none; }
+    .unmatched-row .info { flex: 1; min-width: 200px; }
+    .unmatched-row .actions { display: flex; gap: 8px; align-items: center; }
+    .btn-sm { padding: 4px 10px; font-size: 12px; border-radius: 4px; border: 1px solid #475569; background: #334155; color: #e2e8f0; cursor: pointer; }
+    .btn-sm:hover { background: #475569; }
+    .btn-sm.danger { border-color: #ef4444; color: #f87171; }
+    .btn-sm.danger:hover { background: rgba(239,68,68,0.15); }
+
+    /* Table */
+    .table-wrap { background: #1e293b; border: 1px solid #334155; border-radius: 8px; overflow: hidden; }
+    table { width: 100%; border-collapse: collapse; }
+    thead { background: #0f172a; }
+    th { padding: 10px 14px; text-align: left; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: #94a3b8; border-bottom: 1px solid #334155; cursor: pointer; user-select: none; white-space: nowrap; }
+    th:hover { color: #e2e8f0; }
+    td { padding: 10px 14px; font-size: 13px; border-bottom: 1px solid #334155; vertical-align: middle; }
+    tr:last-child td { border-bottom: none; }
+    tr { cursor: pointer; }
+
+    /* Row styling with urgency border */
+    tbody tr {
+      border-left: 3px solid transparent;
+      transition: border-left-color 0.2s ease;
+    }
+
+    tbody tr.urgent-row {
+      border-left-color: #ef4444;
+    }
+
+    tbody tr:nth-child(even):not(.stage-subtotal) {
+      background: rgba(255,255,255,0.02);
+    }
+
+    tbody tr:not(.stage-subtotal) {
+      cursor: pointer;
+    }
+
+    tbody tr:hover:not(.stage-subtotal) {
+      background: #334155;
+    }
+
+    /* Badges */
+    .badge { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 600; }
+    .urgent-checkbox { cursor: pointer; width: 15px; height: 15px; accent-color: #ca8a04; }
+    .filter-chip { padding: 5px 12px; border: 1px solid #334155; border-radius: 6px; background: #1e293b; color: #94a3b8; font-size: 12px; font-family: inherit; cursor: pointer; white-space: nowrap; }
+    .filter-chip:hover { border-color: #475569; color: #e2e8f0; }
+    .filter-chip[data-active="true"] { background-color: #fef08a; border-color: #ca8a04; color: #713f12; font-weight: 600; }
+    .stage-badge { background: rgba(59,130,246,.15); color: #60a5fa; }
+
+    /* Stage colors */
+    .stage-7, .stage-8 { background: rgba(34,197,94,.15); color: #52c41a; }
+    .stage-5, .stage-6 { background: rgba(59,130,246,.15); color: #60a5fa; }
+    .stage-3, .stage-4 { background: rgba(148,163,184,.15); color: #cbd5e1; }
+    .stage-1, .stage-2 { background: rgba(148,163,184,.1); color: #94a3b8; }
+
+    /* Editable cells */
+    td.editable { position: relative; }
+    td.editable:hover::after { content: '✎'; position: absolute; right: 6px; top: 50%; transform: translateY(-50%); font-size: 11px; color: #94a3b8; }
+    .cell-input { width: 100%; padding: 4px 6px; border: 1px solid #3b82f6; border-radius: 4px; font-size: 13px; font-family: inherit; outline: none; background: #0f172a; color: #e2e8f0; }
+    .cell-select { width: 100%; padding: 4px 6px; border: 1px solid #3b82f6; border-radius: 4px; font-size: 13px; font-family: inherit; outline: none; background: #0f172a; color: #e2e8f0; cursor: pointer; }
+    .cell-textarea { width: 100%; padding: 4px 6px; border: 1px solid #3b82f6; border-radius: 4px; font-size: 13px; font-family: inherit; outline: none; background: #0f172a; color: #e2e8f0; resize: vertical; min-width: 220px; }
+
+    /* Save feedback */
+    @keyframes flash-green { 0%,100% { background: inherit; } 50% { background: rgba(34,197,94,.2); } }
+    @keyframes flash-red { 0%,100% { background: inherit; } 50% { background: rgba(220,38,38,.2); } }
+    .flash-ok { animation: flash-green 0.6s ease; }
+    .flash-err { animation: flash-red 0.6s ease; }
+
+    /* Empty state */
+    .empty-state { text-align: center; padding: 60px 20px; color: #94a3b8; }
+
+    /* Compact tasks column */
+    .tasks-cell {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 250px;
+      font-size: 13px;
+      color: #cbd5e1;
+    }
+
+    .task-count-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: #334155;
+      color: #cbd5e1;
+      font-size: 11px;
+      font-weight: 600;
+      margin-right: 6px;
+      flex-shrink: 0;
+      vertical-align: middle;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .task-count-badge:hover { background: #3b82f6; color: #fff; }
+
+    /* Task expand popover */
+    #task-popover {
+      position: fixed;
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 8px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+      z-index: 600;
+      min-width: 280px;
+      max-width: 380px;
+      padding: 10px 0;
+      display: none;
+    }
+    #task-popover.visible { display: block; }
+    .task-popover-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      padding: 7px 14px;
+      font-size: 12px;
+      color: #cbd5e1;
+      border-bottom: 1px solid #1e3a5f;
+    }
+    .task-popover-item:last-child { border-bottom: none; }
+    .task-popover-pri {
+      font-size: 10px; font-weight: 700; padding: 1px 5px; border-radius: 3px;
+      text-transform: uppercase; letter-spacing: 0.04em; flex-shrink: 0; margin-top: 1px;
+    }
+    .task-popover-pri-hi  { background: #7f1d1d; color: #fca5a5; }
+    .task-popover-pri-med { background: #1e3a5f; color: #93c5fd; }
+    .task-popover-pri-lo  { background: #1e3a2f; color: #6ee7b7; }
+    .task-popover-owner { color: #64748b; font-size: 11px; margin-top: 2px; }
+
+    .task-preview-text {
+      vertical-align: middle;
+    }
+
+    /* Context Menu */
+    .ctx-menu {
+      position: fixed;
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 8px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+      z-index: 500;
+      min-width: 200px;
+      padding: 6px 0;
+      display: none;
+    }
+
+    .ctx-menu.open { display: block; }
+
+    .ctx-menu-item {
+      padding: 10px 16px;
+      color: #e2e8f0;
+      font-size: 13px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      user-select: none;
+    }
+
+    .ctx-menu-item:hover {
+      background: rgba(255,255,255,0.05);
+    }
+
+    .ctx-menu-item.with-submenu::after {
+      content: '▸';
+      margin-left: auto;
+      font-size: 10px;
+      color: #64748b;
+    }
+
+    .ctx-menu-divider {
+      height: 1px;
+      background: #334155;
+      margin: 4px 0;
+    }
+
+    .ctx-menu-header {
+      padding: 8px 16px;
+      font-size: 12px;
+      color: #94a3b8;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    /* Stage submenu */
+    .ctx-stage-submenu {
+      position: absolute;
+      left: 100%;
+      top: 0;
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 8px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+      min-width: 180px;
+      padding: 6px 0;
+      display: none;
+      margin-left: 4px;
+    }
+
+    .ctx-stage-submenu.open { display: block; }
+
+    .ctx-stage-item {
+      padding: 8px 16px;
+      color: #e2e8f0;
+      font-size: 13px;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .ctx-stage-item:hover {
+      background: rgba(255,255,255,0.05);
+    }
+
+    /* Mobile bottom sheet */
+    @media (max-width: 768px) {
+      .ctx-menu {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        top: auto;
+        border-radius: 16px 16px 0 0;
+        min-width: unset;
+        max-height: 60vh;
+        overflow-y: auto;
+      }
+
+      .ctx-stage-submenu {
+        position: static;
+        margin: 0;
+        border: none;
+        border-top: 1px solid #334155;
+        border-radius: 0;
+        box-shadow: none;
+      }
+    }
+
+    /* Mobile */
+    @media (max-width: 768px) {
+      .filters { gap: 8px; }
+      .filters input[type=text] { width: 150px; }
+    }
+
+
+    /* Column manager button */
+    .btn-columns {
+      background: #334155;
+      color: #e2e8f0;
+      border: 1px solid #475569;
+      border-radius: 6px;
+      padding: 6px 14px;
+      cursor: pointer;
+      font-size: 13px;
+    }
+    .btn-columns:hover { background: #475569; }
+
+    /* New Prospect button */
+    .btn-new-prospect {
+      background: #3b82f6; color: #fff; border: none; border-radius: 6px;
+      padding: 6px 14px; cursor: pointer; font-size: 13px; font-weight: 500;
+      margin-left: auto;
+    }
+    .btn-new-prospect:hover { background: #2563eb; }
+
+    /* Export button */
+    .btn-export {
+      background: #475569; color: #fff; border: none; border-radius: 6px;
+      padding: 6px 14px; cursor: pointer; font-size: 13px; font-weight: 500;
+      margin-left: 8px;
+    }
+    .btn-export:hover { background: #64748b; }
+
+    /* New Prospect modal form styles */
+    .np-modal-overlay {
+      position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.6); z-index: 1000;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .np-modal-card {
+      background: #1e293b; border: 1px solid #334155; border-radius: 10px;
+      width: 100%; max-width: 480px; color: #e2e8f0;
+    }
+    .np-modal-head {
+      padding: 14px 20px; border-bottom: 1px solid #334155;
+      display: flex; justify-content: space-between; align-items: center;
+      font-weight: 600; font-size: 16px;
+    }
+    .np-modal-close { background: none; border: none; color: #94a3b8; font-size: 20px; cursor: pointer; }
+    .np-modal-body { padding: 20px; display: flex; flex-direction: column; gap: 14px; }
+    .np-field-row { display: flex; flex-direction: column; gap: 4px; }
+    .np-field-row label { font-size: 12px; color: #94a3b8; font-weight: 600; text-transform: uppercase; }
+    .np-field-row input, .np-field-row select {
+      padding: 8px 10px; background: #0f172a; border: 1px solid #334155;
+      border-radius: 6px; color: #e2e8f0; font-size: 14px; font-family: inherit; outline: none;
+    }
+    .np-field-row input:focus, .np-field-row select:focus { border-color: #3b82f6; }
+    .np-modal-foot {
+      padding: 14px 20px; border-top: 1px solid #334155;
+      display: flex; justify-content: flex-end; gap: 10px;
+    }
+    .np-btn-ghost {
+      background: none; border: 1px solid #475569; color: #94a3b8;
+      padding: 7px 16px; border-radius: 6px; cursor: pointer; font-size: 14px; font-family: inherit;
+    }
+    .np-btn-ghost:hover { border-color: #64748b; color: #cbd5e1; }
+    .np-btn-primary {
+      background: #3b82f6; border: none; color: #fff;
+      padding: 7px 16px; border-radius: 6px; cursor: pointer; font-size: 14px; font-family: inherit; font-weight: 600;
+    }
+    .np-btn-primary:hover { background: #2563eb; }
+
+    /* Column manager wrapper */
+    .col-manager-wrap { position: relative; }
+
+    /* Column manager panel */
+    .column-manager-panel {
+      position: absolute;
+      top: calc(100% + 4px);
+      right: 0;
+      width: 240px;
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 8px;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+      z-index: 100;
+      max-height: 400px;
+      overflow-y: auto;
+    }
+    .column-manager-panel.hidden { display: none; }
+
+    /* Panel header */
+    .col-panel-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 12px;
+      border-bottom: 1px solid #334155;
+      color: #e2e8f0;
+      font-weight: 600;
+      font-size: 13px;
+      position: sticky;
+      top: 0;
+      background: #1e293b;
+    }
+    .col-panel-header button { background: none; border: none; cursor: pointer; color: #94a3b8; font-size: 16px; line-height: 1; padding: 0; }
+    .col-panel-header button:hover { color: #e2e8f0; }
+
+    /* Panel rows */
+    .col-row {
+      display: flex;
+      align-items: center;
+      padding: 8px 12px;
+      gap: 10px;
+      cursor: default;
+      user-select: none;
+      color: #e2e8f0;
+      font-size: 13px;
+    }
+    .col-row:hover { background: rgba(255, 255, 255, 0.05); }
+    .col-row.dragging { opacity: 0.4; }
+    .col-row.drag-over { border-top: 2px solid #3b82f6; }
+
+    /* Column manager drag handle */
+    .col-row .drag-handle {
+      color: #64748b;
+      cursor: grab;
+      font-size: 14px;
+      padding: 2px 4px;
+      flex-shrink: 0;
+    }
+    .col-row.locked .drag-handle { cursor: default; color: #334155; }
+
+    /* Row drag handle */
+    td .drag-handle {
+      position: absolute;
+      left: 4px;
+      opacity: 0;
+      cursor: grab;
+      color: #94a3b8;
+      font-size: 14px;
+      transition: opacity 0.2s ease;
+      user-select: none;
+    }
+
+    tbody tr:hover .drag-handle {
+      opacity: 1;
+    }
+
+    tbody tr.dragging {
+      opacity: 0.5;
+      transform: scale(0.98);
+    }
+
+    tr.stage-subtotal.drag-over {
+      outline: 2px solid #3b82f6;
+      outline-offset: -2px;
+      background: rgba(59,130,246,0.1) !important;
+    }
+
+    @keyframes flash-red {
+      0%, 100% { background: inherit; }
+      50% { background: rgba(220,38,38,0.15); }
+    }
+
+    .drag-error-flash {
+      animation: flash-red 0.6s ease;
+    }
+
+    /* Reset button */
+    .col-reset-btn {
+      display: block;
+      width: 100%;
+      padding: 10px 12px;
+      border: none;
+      border-top: 1px solid #334155;
+      background: none;
+      color: #64748b;
+      cursor: pointer;
+      font-size: 12px;
+      text-align: left;
+    }
+    .col-reset-btn:hover { color: #94a3b8; background: rgba(255, 255, 255, 0.03); }
+
+    /* Shake animation for minimum column enforcement */
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      25% { transform: translateX(-4px); }
+      75% { transform: translateX(4px); }
+    }
+    .shake { animation: shake 0.3s ease; }
+
+    /* Right-aligned numeric columns */
+    td.col-target_display,
+    td.col-committed_display { text-align: right; }
+    th.col-target_display,
+    th.col-committed_display { text-align: right; }
+
+    /* Stage subtotal rows */
+    tr.stage-subtotal td {
+      background: #0f172a;
+      font-weight: 700;
+      font-size: 12px;
+      color: #94a3b8;
+      border-bottom: 2px solid #334155;
+      border-top: 1px solid #334155;
+      padding: 8px 14px;
+    }
+    tr.stage-subtotal td.subtotal-amount {
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+    }
+    tr.stage-subtotal { cursor: pointer; user-select: none; }
+    tr.stage-subtotal:hover td { background: #1e293b; }
+    tr.stage-subtotal td:first-child .chevron {
+      display: inline-block; transition: transform .15s; margin-right: 4px; font-size: 10px;
+    }
+    tr.stage-subtotal.collapsed td:first-child .chevron { transform: rotate(-90deg); }
+    tr.stage-group-row.hidden-row { display: none; }
+
+    /* Stage progress bar */
+    .stage-progress-bar {
+      height: 4px;
+      background: #334155;
+      border-radius: 2px;
+      margin-top: 6px;
+      overflow: hidden;
+      max-width: 200px;
+    }
+
+    .stage-progress-fill {
+      height: 100%;
+      background: #3b82f6;
+      border-radius: 2px;
+      transition: width 0.3s ease;
+    }
+
+    .stage-committed-label {
+      font-size: 11px;
+      color: #94a3b8;
+      margin-top: 2px;
+      font-weight: 400;
+    }
+
+  </style>
+</head>
+<body>
+
+{% set active_tab = 'pipeline' %}
+{% include '_nav.html' %}
+
+<div class="page">
+
+  <!-- Offering tabs -->
+  <div class="tabs" id="tabs"></div>
+
+  <!-- Fund summary bar -->
+  <div class="fund-bar" id="fund-bar">
+    <span class="fund-stat">Loading...</span>
+  </div>
+
+  <!-- Unmatched panel -->
+  <div class="unmatched-panel" id="unmatched-panel" style="display:none">
+    <div class="unmatched-header" onclick="toggleUnmatched()">
+      <span id="unmatched-title">&#9888; Unmatched Emails</span>
+      <div style="display:flex;gap:8px;align-items:center">
+        <button class="btn-sm" onclick="event.stopPropagation();runCapture()" id="run-capture-btn">
+          Run Capture
+        </button>
+        <span>&#9662;</span>
+      </div>
+    </div>
+    <div class="unmatched-body" id="unmatched-body"></div>
+  </div>
+
+  <!-- Filters + Column manager -->
+  <div class="filters">
+    <input type="text" id="search" placeholder="Search org..." oninput="applyFilters()">
+    <select id="filter-stage" onchange="applyFilters()">
+      <option value="">All Stages</option>
+      {% for stage in config.stages %}
+      <option value="{{ stage }}">{{ stage }}</option>
+      {% endfor %}
+    </select>
+    <button id="urgentFilter" class="filter-chip" data-active="false" onclick="toggleUrgentFilter()">⚡ Urgent Only</button>
+    <select id="filter-assigned" onchange="applyFilters()">
+      <option value="">All Assigned</option>
+      {% for member in config.team %}
+      <option value="{{ member }}">{{ member }}</option>
+      {% endfor %}
+    </select>
+    <select id="filter-type" onchange="applyFilters()">
+      <option value="">All Types</option>
+      {% for t in config.org_types %}
+      <option value="{{ t }}">{{ t }}</option>
+      {% endfor %}
+    </select>
+    <label class="toggle-label">
+      <input type="checkbox" id="include-closed" checked onchange="reloadProspects()"> Include Closed
+    </label>
+    <div class="spacer"></div>
+    <button class="btn-new-prospect" onclick="openNewProspectModal()">+ New Prospect</button>
+    <button class="btn-export" onclick="exportPipeline()">Export ↓</button>
+    <div class="col-manager-wrap">
+      <button class="btn-columns" onclick="toggleColumnPanel()">Columns &#9660;</button>
+      <div class="column-manager-panel hidden" id="col-panel">
+        <div class="col-panel-header">
+          <span>Columns</span>
+          <button onclick="closeColumnPanel()">&#x2715;</button>
+        </div>
+        <div id="col-panel-rows"></div>
+        <button class="col-reset-btn" onclick="resetColumns()">Reset to defaults</button>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- New Prospect Modal -->
+  <div id="newProspectOverlay" class="np-modal-overlay" style="display:none">
+    <div class="np-modal-card">
+      <div class="np-modal-head">
+        <span>New Prospect</span>
+        <button class="np-modal-close" onclick="closeNewProspectModal()">&times;</button>
+      </div>
+      <div class="np-modal-body">
+        <div class="np-field-row">
+          <label>Organization *</label>
+          <input type="text" id="npOrgName" list="npOrgDatalist" placeholder="Select or type a new org name" autocomplete="off">
+          <datalist id="npOrgDatalist"></datalist>
+          <span style="font-size:11px;color:#64748b;margin-top:2px">Choose an existing org or type a new name</span>
+        </div>
+        <div class="np-field-row">
+          <label>Stage</label>
+          <select id="npStage"></select>
+        </div>
+        <div class="np-field-row">
+          <label>Target</label>
+          <input type="text" id="npTarget" placeholder="$0" value="$0">
+        </div>
+        <div class="np-field-row" style="flex-direction:row;align-items:center;gap:10px">
+          <label style="margin-bottom:0">Urgent</label>
+          <input type="checkbox" id="npUrgent" style="width:16px;height:16px;accent-color:#ca8a04;cursor:pointer">
+        </div>
+        <div class="np-field-row">
+          <label>Assigned To</label>
+          <select id="npAssignedTo">
+            <option value="">— None —</option>
+          </select>
+        </div>
+      </div>
+      <div class="np-modal-foot">
+        <button class="np-btn-ghost" onclick="closeNewProspectModal()">Cancel</button>
+        <button class="np-btn-primary" onclick="submitNewProspect()">Create</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Task expand popover -->
+  <div id="task-popover"></div>
+
+  <!-- Pipeline table -->
+  <div class="table-wrap">
+    <table id="pipeline-table">
+      <thead>
+        <tr id="table-header-row"></tr>
+      </thead>
+      <tbody id="pipeline-body">
+        <tr><td colspan="5" class="empty-state">Loading pipeline...</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+</div>
+
+<script>
+const CONFIG = {
+  stages: {{ config.stages | tojson }},
+  team: {{ config.team | tojson }},
+  closing_options: {{ config.closing_options | tojson }},
+};
+const OFFERINGS = {{ offerings | tojson }};
+
+// Global state for unmatched resolution
+let ALL_ORGS = [];
+let ALL_UNMATCHED_ITEMS = [];
+
+// Maps column key → API response field name
+const FIELD_MAP = {
+  org:               'org',
+  urgent:            'urgent',
+  stage:             'Stage',
+  target_display:    'Target',
+  tasks:             'Tasks',
+  org_type:          'Type',
+  assigned_to:       'Assigned To',
+  closing:           'Closing',
+  primary_contact:   'Primary Contact',
+  last_touch:        'Last Touch',
+  committed_display: 'Committed',
+  at_a_glance:       'at_a_glance',
+};
+
+// Maps column key → PATCH API field name
+const PATCH_FIELD_MAP = {
+  urgent:         'urgent',
+  stage:          'stage',
+  target_display: 'target',
+  assigned_to:    'assigned_to',
+  closing:        'closing',
+};
+
+// Column keys that support inline editing
+const EDITABLE_KEYS = new Set(['stage', 'target_display', 'assigned_to', 'closing']);
+
+// Dropdown options keyed by column key
+const DROPDOWN_FIELDS_BY_KEY = {
+  stage:       CONFIG.stages,
+  assigned_to: [...CONFIG.team.map(m => m.name), ''],
+  closing:     [...CONFIG.closing_options, ''],
+};
+
+// ---------------------------------------------------------------------------
+// Column config
+// ---------------------------------------------------------------------------
+
+const DEFAULT_COLUMNS = [
+  { key: 'org',              label: 'Organization',    visible: true,  locked: true  },
+  { key: 'target_display',   label: 'Expected',        visible: true,  locked: false },
+  { key: 'tasks',            label: 'Tasks',           visible: true,  locked: false },
+  { key: 'at_a_glance',      label: 'At a Glance',     visible: true,  locked: false },
+  { key: 'org_type',         label: 'Type',            visible: false, locked: false },
+  { key: 'assigned_to',      label: 'Assigned To',     visible: false, locked: false },
+  { key: 'closing',          label: 'Closing',         visible: false, locked: false },
+  { key: 'primary_contact',  label: 'Primary Contact', visible: false, locked: false },
+  { key: 'last_touch',       label: 'Last Touch',      visible: false, locked: false },
+  { key: 'committed_display',label: 'Committed',       visible: false, locked: false },
+];
+
+const COL_CONFIG_VERSION = 4;  // Bump when DEFAULT_COLUMNS changes
+
+let columnConfig = loadColumnConfig();
+
+function saveColumnConfig() {
+  const toSave = columnConfig.map(c => ({ key: c.key, visible: c.visible }));
+  localStorage.setItem('crm_column_config', JSON.stringify(toSave));
+  localStorage.setItem('crm_column_config_version', String(COL_CONFIG_VERSION));
+}
+
+function loadColumnConfig() {
+  const saved = localStorage.getItem('crm_column_config');
+  const savedVersion = parseInt(localStorage.getItem('crm_column_config_version') || '0');
+  if (!saved || savedVersion < COL_CONFIG_VERSION) {
+    localStorage.setItem('crm_column_config_version', String(COL_CONFIG_VERSION));
+    localStorage.removeItem('crm_column_config');
+    return DEFAULT_COLUMNS.map(c => ({ ...c }));
+  }
+  try {
+    const parsed = JSON.parse(saved);
+    // Filter out removed columns (stage, urgent) for migration
+    const filtered = parsed.filter(c => !['stage', 'urgent'].includes(c.key));
+    const savedKeys = filtered.map(c => c.key);
+    const merged = filtered
+      .map(c => {
+        const def = DEFAULT_COLUMNS.find(d => d.key === c.key);
+        if (!def) return null;
+        return { ...def, visible: c.visible };
+      })
+      .filter(Boolean);
+    // Append any new columns added since last save
+    DEFAULT_COLUMNS.forEach(d => {
+      if (!savedKeys.includes(d.key)) merged.push({ ...d });
+    });
+    // Ensure org is always first
+    const orgIdx = merged.findIndex(c => c.key === 'org');
+    if (orgIdx > 0) merged.unshift(merged.splice(orgIdx, 1)[0]);
+    return merged;
+  } catch {
+    return DEFAULT_COLUMNS.map(c => ({ ...c }));
+  }
+}
+
+// ---------------------------------------------------------------------------
+// State
+// ---------------------------------------------------------------------------
+
+let allProspects = [];
+let filteredProspects = [];
+let currentOffering = '';
+let sortField = '';
+let sortDir = 1;
+let editingCell = null;
+let dragSrcKey = null;
+
+// ---------------------------------------------------------------------------
+// Export Pipeline
+// ---------------------------------------------------------------------------
+
+function exportPipeline() {
+  const params = new URLSearchParams();
+  params.set('offering', currentOffering);
+
+  // Pass active filters from UI
+  const stageFilter = document.getElementById('filter-stage');
+  if (stageFilter && stageFilter.value) {
+    params.set('stage', stageFilter.value);
+  }
+
+  const urgentOnly = document.getElementById('urgentFilter');
+  if (urgentOnly && urgentOnly.dataset.active === 'true') {
+    params.set('urgent', 'true');
+  }
+
+  const typeFilter = document.getElementById('filter-type');
+  if (typeFilter && typeFilter.value) {
+    params.set('type', typeFilter.value);
+  }
+
+  const assignedFilter = document.getElementById('filter-assigned');
+  if (assignedFilter && assignedFilter.value) {
+    params.set('assigned', assignedFilter.value);
+  }
+
+  // Trigger download
+  window.location.href = `/crm/api/export?${params.toString()}`;
+}
+
+// ---------------------------------------------------------------------------
+// New Prospect modal
+// ---------------------------------------------------------------------------
+
+function openNewProspectModal() {
+  const stageSel = document.getElementById('npStage');
+  stageSel.innerHTML = CONFIG.stages.map(s =>
+    `<option value="${s}" ${s === '1. Prospect' ? 'selected' : ''}>${s}</option>`
+  ).join('');
+  document.getElementById('npUrgent').checked = false;
+  const teamSel = document.getElementById('npAssignedTo');
+  teamSel.innerHTML = '<option value="">— None —</option>' +
+    CONFIG.team.map(t => `<option value="${t.name}">${t.name}</option>`).join('');
+
+  // Populate org datalist from known orgs
+  const dl = document.getElementById('npOrgDatalist');
+  const orgs = window.TASK_MODAL_PROSPECT_ORGS || [];
+  dl.innerHTML = orgs.map(o => `<option value="${o.replace(/"/g, '&quot;')}">`).join('');
+
+  document.getElementById('npOrgName').value = '';
+  document.getElementById('npTarget').value = '$0';
+  document.getElementById('newProspectOverlay').style.display = 'flex';
+  document.getElementById('npOrgName').focus();
+}
+
+function closeNewProspectModal() {
+  document.getElementById('newProspectOverlay').style.display = 'none';
+}
+
+async function submitNewProspect() {
+  const org = document.getElementById('npOrgName').value.trim();
+  if (!org) { document.getElementById('npOrgName').focus(); return; }
+  const body = {
+    org: org,
+    offering: currentOffering,
+    stage: document.getElementById('npStage').value,
+    target: document.getElementById('npTarget').value,
+  };
+  const resp = await fetch('/crm/api/prospect', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  if (resp.ok) {
+    closeNewProspectModal();
+    const urgent = document.getElementById('npUrgent').checked;
+    const assignedTo = document.getElementById('npAssignedTo').value;
+    if (urgent) {
+      await fetch('/crm/api/prospect/field', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ org, offering: currentOffering, field: 'urgent', value: true }),
+      });
+    }
+    if (assignedTo) {
+      await fetch('/crm/api/prospect/field', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ org, offering: currentOffering, field: 'assigned_to', value: assignedTo }),
+      });
+    }
+    reloadProspects();
+  } else {
+    const err = await resp.json().catch(() => ({}));
+    alert(err.error || 'Failed to create prospect');
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Context Menu
+// ---------------------------------------------------------------------------
+
+let ctxMenuState = {
+  open: false,
+  prospectIdx: null,
+  x: 0,
+  y: 0
+};
+
+function buildCtxMenu(idx) {
+  const p = filteredProspects[idx];
+  const offering = p.offering || currentOffering;
+  const org = p.org || '';
+
+  const detailUrl = `/crm/prospect/${encodeURIComponent(offering)}/${encodeURIComponent(org)}/detail`;
+  const urgentLabel = p.urgent ? 'Unmark Urgent' : 'Mark Urgent';
+
+  let html = `
+    <div class="ctx-menu-header">${escHtml(org)}</div>
+    <div class="ctx-menu-item" data-action="open-detail" data-url="${detailUrl}">
+      📋 Open Detail
+    </div>
+    <div class="ctx-menu-item" data-action="create-followup" data-idx="${idx}">
+      ➕ Add Task
+    </div>
+    <div class="ctx-menu-divider"></div>
+    <div class="ctx-menu-item" data-action="toggle-urgent" data-idx="${idx}">
+      ${p.urgent ? '⭕' : '🔴'} ${urgentLabel}
+    </div>
+    <div class="ctx-menu-item with-submenu" data-action="show-stage-submenu">
+      🔄 Move to Stage
+    </div>
+    <div class="ctx-stage-submenu" id="ctx-stage-submenu">`;
+
+  CONFIG.stages.forEach(stage => {
+    html += `<div class="ctx-stage-item" data-action="set-stage" data-idx="${idx}" data-stage="${escHtml(stage)}">${escHtml(stage)}</div>`;
+  });
+
+  html += `</div>`;
+
+  return html;
+}
+
+function showContextMenu(idx, x, y) {
+  closeCtxMenu();
+
+  const existing = document.getElementById('ctx-menu');
+  if (existing) existing.remove();
+
+  const menu = document.createElement('div');
+  menu.id = 'ctx-menu';
+  menu.className = 'ctx-menu open';
+  menu.innerHTML = buildCtxMenu(idx);
+  document.body.appendChild(menu);
+
+  ctxMenuState = { open: true, prospectIdx: idx, x, y };
+  positionMenu(menu, x, y);
+
+  // Attach event listeners
+  menu.querySelectorAll('[data-action]').forEach(item => {
+    item.addEventListener('click', handleCtxMenuAction);
+  });
+}
+
+function positionMenu(menu, x, y) {
+  const isMobile = window.innerWidth <= 768;
+  if (isMobile) return; // Mobile uses bottom sheet, no positioning needed
+
+  const menuRect = menu.getBoundingClientRect();
+  let left = x;
+  let top = y;
+
+  // Keep menu within viewport
+  if (left + menuRect.width > window.innerWidth) {
+    left = window.innerWidth - menuRect.width - 10;
+  }
+  if (top + menuRect.height > window.innerHeight) {
+    top = window.innerHeight - menuRect.height - 10;
+  }
+
+  menu.style.left = left + 'px';
+  menu.style.top = top + 'px';
+}
+
+function closeCtxMenu() {
+  const menu = document.getElementById('ctx-menu');
+  if (menu) menu.remove();
+  ctxMenuState = { open: false, prospectIdx: null, x: 0, y: 0 };
+}
+
+function showTaskPopover(event, tasks) {
+  event.stopPropagation();
+  const popover = document.getElementById('task-popover');
+
+  const priClass = { Hi: 'task-popover-pri-hi', Med: 'task-popover-pri-med', Lo: 'task-popover-pri-lo' };
+  popover.innerHTML = tasks.map(t => {
+    const pri = t.priority || 'Med';
+    const text = t.text || t.task || '';
+    const owner = t.owner || '';
+    const cls = priClass[pri] || 'task-popover-pri-med';
+    const ownerHtml = owner ? `<div class="task-popover-owner">${escHtml(owner)}</div>` : '';
+    return `<div class="task-popover-item">
+      <span class="task-popover-pri ${cls}">${escHtml(pri)}</span>
+      <div><div>${escHtml(text)}</div>${ownerHtml}</div>
+    </div>`;
+  }).join('');
+
+  // Position near the clicked badge
+  const rect = event.target.getBoundingClientRect();
+  popover.classList.add('visible');
+  const pw = popover.offsetWidth;
+  let left = rect.left;
+  if (left + pw > window.innerWidth - 8) left = window.innerWidth - pw - 8;
+  popover.style.left = left + 'px';
+  popover.style.top = (rect.bottom + 6) + 'px';
+}
+
+function closeTaskPopover() {
+  const popover = document.getElementById('task-popover');
+  if (popover) popover.classList.remove('visible');
+}
+
+function showStageSubmenu() {
+  const submenu = document.getElementById('ctx-stage-submenu');
+  if (submenu) submenu.classList.add('open');
+}
+
+async function handleCtxMenuAction(e) {
+  const action = e.currentTarget.dataset.action;
+  const idx = parseInt(e.currentTarget.dataset.idx);
+
+  switch (action) {
+    case 'open-detail':
+      window.location.href = e.currentTarget.dataset.url;
+      break;
+
+    case 'create-followup':
+      closeCtxMenu();
+      openFollowupModal(idx);
+      break;
+
+    case 'toggle-urgent':
+      closeCtxMenu();
+      await toggleUrgentViaMenu(idx);
+      break;
+
+    case 'show-stage-submenu':
+      showStageSubmenu();
+      break;
+
+    case 'set-stage':
+      closeCtxMenu();
+      await updateStageViaMenu(idx, e.currentTarget.dataset.stage);
+      break;
+  }
+}
+
+async function toggleUrgentViaMenu(idx) {
+  const p = filteredProspects[idx];
+  const newUrgent = !p.urgent;
+  const resp = await fetch('/crm/api/prospect/field', {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ org: p.org, offering: currentOffering, field: 'urgent', value: newUrgent }),
+  });
+  if (resp.ok) {
+    p.urgent = newUrgent;
+    const tr = document.querySelector(`tr[data-idx="${idx}"]`);
+    if (tr) tr.classList.toggle('urgent-row', p.urgent);
+    showToast(`✓ ${p.org} marked as ${newUrgent ? 'urgent' : 'not urgent'}`, 'success');
+  } else {
+    showToast('Failed to update urgency', 'error');
+  }
+}
+
+async function updateStageViaMenu(idx, newStage) {
+  const p = filteredProspects[idx];
+  const resp = await fetch('/crm/api/prospect/field', {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ org: p.org, offering: currentOffering, field: 'stage', value: newStage }),
+  });
+  if (resp.ok) {
+    showToast(`✓ ${p.org} moved to ${newStage}`, 'success');
+    reloadProspects();
+  } else {
+    showToast('Failed to update stage', 'error');
+  }
+}
+
+function openFollowupModal(idx) {
+  const p = filteredProspects[idx];
+  // Reuse existing task modal
+  openTaskEditModal({
+    title: `New Follow-up: ${p.org}`,
+    text: '',
+    priority: 'Med',
+    assigned_to: 'Oscar',
+    section: 'Fundraising - Me',
+    index: -1,
+    org: p.org,
+    showDelete: false,
+    hideFields: ['section', 'org'],
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Init
+// ---------------------------------------------------------------------------
+
+async function init() {
+  renderTabs();
+  const stored = localStorage.getItem('crm_offering');
+  currentOffering = stored && OFFERINGS.find(o => o.name === stored) ? stored : OFFERINGS[0]?.name || '';
+  setActiveTab(currentOffering);
+  await loadOrgsList();
+  await reloadProspects();
+  loadUnmatched();
+  initRowDragHandlers();
+
+  // Close column panel, context menu, and task popover on outside click
+  document.addEventListener('click', e => {
+    if (!e.target.closest('.col-manager-wrap')) closeColumnPanel();
+    if (!e.target.closest('.ctx-menu')) closeCtxMenu();
+    if (!e.target.closest('#task-popover') && !e.target.closest('.task-count-badge')) closeTaskPopover();
+  });
+
+  // Context menu event delegation
+  document.addEventListener('contextmenu', e => {
+    const row = e.target.closest('tbody tr[data-idx]');
+    if (row && !row.classList.contains('stage-subtotal')) {
+      e.preventDefault();
+      const idx = parseInt(row.dataset.idx);
+      showContextMenu(idx, e.clientX, e.clientY);
+    }
+  });
+
+  // Mobile long-press support
+  let longPressTimer = null;
+  document.addEventListener('touchstart', e => {
+    const row = e.target.closest('tbody tr[data-idx]');
+    if (row && !row.classList.contains('stage-subtotal')) {
+      longPressTimer = setTimeout(() => {
+        const idx = parseInt(row.dataset.idx);
+        showContextMenu(idx, 0, 0);
+      }, 500);
+    }
+  });
+
+  document.addEventListener('touchend', () => {
+    if (longPressTimer) clearTimeout(longPressTimer);
+  });
+
+  document.addEventListener('touchmove', () => {
+    if (longPressTimer) clearTimeout(longPressTimer);
+  });
+
+  // Escape key closes context menu
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && ctxMenuState.open) {
+      closeCtxMenu();
+    }
+  });
+}
+
+function renderTabs() {
+  const container = document.getElementById('tabs');
+  container.innerHTML = OFFERINGS.map(o => `
+    <div class="tab" id="tab-${o.name}" onclick="switchOffering('${o.name.replace(/'/g, "\\'")}')">
+      ${o.name}
+    </div>
+  `).join('');
+}
+
+function setActiveTab(offering) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  const tab = document.getElementById('tab-' + offering);
+  if (tab) tab.classList.add('active');
+}
+
+async function switchOffering(offering) {
+  currentOffering = offering;
+  localStorage.setItem('crm_offering', offering);
+  setActiveTab(offering);
+  await reloadProspects();
+}
+
+// ---------------------------------------------------------------------------
+// Data loading
+// ---------------------------------------------------------------------------
+
+async function reloadProspects() {
+  const includeClosed = document.getElementById('include-closed').checked;
+  const url = `/crm/api/prospects?offering=${encodeURIComponent(currentOffering)}&include_closed=${includeClosed}`;
+  const resp = await fetch(url);
+  allProspects = await resp.json();
+  window.TASK_MODAL_PROSPECT_ORGS = allProspects.map(p => p.org);
+  defaultSort();
+  applyFilters();
+  loadFundSummary();
+}
+
+async function loadFundSummary() {
+  const resp = await fetch(`/crm/api/fund-summary?offering=${encodeURIComponent(currentOffering)}`);
+  const s = await resp.json();
+  const progressPct = s.fund_target > 0 ? Math.round((s.total_committed / s.fund_target) * 100) : 0;
+  document.getElementById('fund-bar').innerHTML = `
+    <div class="stat-chip">
+      <div class="stat-value">${s.prospect_count}</div>
+      <div class="stat-label">Prospects</div>
+    </div>
+    <div class="stat-chip">
+      <div class="stat-value">${s.total_target_fmt}</div>
+      <div class="stat-label">Pipeline</div>
+    </div>
+    <div class="stat-chip">
+      <div class="stat-value">${s.total_committed_fmt} / ${s.fund_target_fmt}</div>
+      <div class="stat-label">Committed / Target</div>
+    </div>
+    <div class="stat-chip">
+      <div class="stat-value">${progressPct}%</div>
+      <div class="stat-label">Progress</div>
+    </div>
+  `;
+}
+
+async function loadUnmatched() {
+  const resp = await fetch('/crm/api/unmatched');
+  const items = await resp.json();
+  ALL_UNMATCHED_ITEMS = items;
+  const panel = document.getElementById('unmatched-panel');
+  if (!items.length) { panel.style.display = 'none'; return; }
+  panel.style.display = '';
+  document.getElementById('unmatched-title').textContent = `⚠ ${items.length} Unmatched Email${items.length > 1 ? 's' : ''}`;
+  const body = document.getElementById('unmatched-body');
+  body.innerHTML = items.map(item => `
+    <div class="unmatched-row" id="ur-${encodeURIComponent(item.participant_email)}">
+      <div class="info">
+        <strong>${item.participant_name || item.participant_email}</strong>
+        <span style="color:#64748b;margin-left:8px">&lt;${item.participant_email}&gt;</span>
+        <div style="color:#94a3b8;font-size:12px;margin-top:2px">${item.subject || ''} · ${item.date || ''}</div>
+      </div>
+      <div class="actions">
+        <select id="org-sel-${encodeURIComponent(item.participant_email)}" class="btn-sm"
+                onchange="showResolveForm('${item.participant_email}')" style="min-width:120px">
+          <option value="">Link to org ▼</option>
+          ${ALL_ORGS.map(o => `<option value="${o}">${o}</option>`).join('')}
+        </select>
+        <button class="btn-sm danger" onclick="dismissUnmatched('${item.participant_email}')">
+          Dismiss
+        </button>
+      </div>
+      <div id="resolve-${encodeURIComponent(item.participant_email)}" style="display:none;margin-top:8px;flex:0 0 100%">
+        <!-- Resolve form appears here -->
+      </div>
+    </div>
+  `).join('');
+}
+
+function toggleUnmatched() {
+  document.getElementById('unmatched-body').classList.toggle('open');
+}
+
+async function dismissUnmatched(email) {
+  await fetch(`/crm/api/unmatched/${encodeURIComponent(email)}`, { method: 'DELETE' });
+  document.getElementById('ur-' + encodeURIComponent(email))?.remove();
+  const remaining = document.querySelectorAll('.unmatched-row').length;
+  if (!remaining) document.getElementById('unmatched-panel').style.display = 'none';
+}
+
+async function runCapture() {
+  const btn = document.getElementById('run-capture-btn');
+  btn.textContent = 'Running...';
+  btn.disabled = true;
+
+  try {
+    const resp = await fetch('/crm/api/auto-capture', { method: 'POST' });
+    const result = await resp.json();
+
+    if (result.ok) {
+      showToast(`✓ ${result.interactions_logged} logged, ${result.unmatched_count} unmatched`, 'success');
+      await loadUnmatched();
+    } else {
+      showToast(`Error: ${result.error}`, 'error');
+    }
+  } catch (e) {
+    showToast(`Error: ${e.message}`, 'error');
+  } finally {
+    btn.textContent = 'Run Capture';
+    btn.disabled = false;
+  }
+}
+
+function showToast(message, type) {
+  const toast = document.createElement('div');
+  toast.style.cssText = `
+    position: fixed; top: 20px; right: 20px; z-index: 9999;
+    padding: 12px 20px; border-radius: 6px; font-size: 14px;
+    background: ${type === 'success' ? '#10b981' : '#ef4444'};
+    color: white; box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  `;
+  toast.textContent = message;
+  document.body.appendChild(toast);
+  setTimeout(() => toast.remove(), 3000);
+}
+
+function showResolveForm(email) {
+  const select = document.getElementById(`org-sel-${encodeURIComponent(email)}`);
+  const orgName = select.value;
+  if (!orgName) return;
+
+  const formDiv = document.getElementById(`resolve-${encodeURIComponent(email)}`);
+  const item = ALL_UNMATCHED_ITEMS.find(i => i.participant_email === email);
+
+  formDiv.innerHTML = `
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+      <label style="font-size:12px">Offering:</label>
+      <select id="off-${encodeURIComponent(email)}" class="btn-sm" style="min-width:120px">
+        ${OFFERINGS.map(o => `<option>${o.name}</option>`).join('')}
+      </select>
+      <label style="font-size:12px">Type:</label>
+      <select id="type-${encodeURIComponent(email)}" class="btn-sm">
+        <option>Email</option>
+        <option>Meeting</option>
+        <option>Call</option>
+      </select>
+      <button class="btn-sm" onclick="confirmResolve('${email}', '${orgName}')">Confirm</button>
+      <button class="btn-sm" onclick="cancelResolve('${email}')">Cancel</button>
+    </div>
+  `;
+  formDiv.style.display = 'block';
+}
+
+async function confirmResolve(email, orgName) {
+  const item = ALL_UNMATCHED_ITEMS.find(i => i.participant_email === email);
+  const offering = document.getElementById(`off-${encodeURIComponent(email)}`).value;
+  const type = document.getElementById(`type-${encodeURIComponent(email)}`).value;
+
+  await fetch('/crm/api/unmatched/resolve', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({
+      participant_email: email,
+      participant_name: item.participant_name,
+      org: orgName,
+      offering: offering,
+      type: type,
+      subject: item.subject,
+      date: item.date,
+    })
+  });
+
+  document.getElementById(`ur-${encodeURIComponent(email)}`)?.remove();
+  const remaining = document.querySelectorAll('.unmatched-row').length;
+  if (!remaining) document.getElementById('unmatched-panel').style.display = 'none';
+  showToast(`✓ Linked to ${orgName}`, 'success');
+}
+
+function cancelResolve(email) {
+  document.getElementById(`resolve-${encodeURIComponent(email)}`).style.display = 'none';
+  document.getElementById(`org-sel-${encodeURIComponent(email)}`).value = '';
+}
+
+// Load orgs for dropdown (call on init)
+async function loadOrgsList() {
+  try {
+    const resp = await fetch('/crm/api/orgs');
+    ALL_ORGS = await resp.json();
+  } catch (e) {
+    console.error('Failed to load orgs:', e);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Column manager panel
+// ---------------------------------------------------------------------------
+
+function toggleColumnPanel() {
+  const panel = document.getElementById('col-panel');
+  if (panel.classList.contains('hidden')) {
+    renderColumnPanel();
+    panel.classList.remove('hidden');
+  } else {
+    panel.classList.add('hidden');
+  }
+}
+
+function closeColumnPanel() {
+  document.getElementById('col-panel').classList.add('hidden');
+}
+
+function renderColumnPanel() {
+  const container = document.getElementById('col-panel-rows');
+  container.innerHTML = columnConfig.map(col => `
+    <div class="col-row${col.locked ? ' locked' : ''}" data-key="${col.key}">
+      <span class="drag-handle">&#9776;</span>
+      <input type="checkbox" ${col.visible ? 'checked' : ''} ${col.locked ? 'disabled' : ''} onchange="toggleColumnVisible('${col.key}')">
+      <span>${escHtml(col.label)}</span>
+    </div>
+  `).join('');
+
+  // Non-locked rows are draggable
+  container.querySelectorAll('.col-row:not(.locked)').forEach(row => {
+    row.setAttribute('draggable', 'true');
+    row.addEventListener('dragstart', onDragStart);
+    row.addEventListener('dragend', onDragEnd);
+  });
+
+  // All rows are valid drop targets
+  container.querySelectorAll('.col-row').forEach(row => {
+    row.addEventListener('dragover', onDragOver);
+    row.addEventListener('dragleave', onDragLeave);
+    row.addEventListener('drop', onDrop);
+  });
+}
+
+function toggleColumnVisible(key) {
+  const col = columnConfig.find(c => c.key === key);
+  if (!col || col.locked) return;
+
+  if (col.visible) {
+    // Prevent hiding the last visible non-locked column
+    const visibleNonLocked = columnConfig.filter(c => !c.locked && c.visible);
+    if (visibleNonLocked.length <= 1) {
+      const checkbox = document.querySelector(`.col-row[data-key="${key}"] input[type=checkbox]`);
+      if (checkbox) {
+        checkbox.classList.remove('shake');
+        void checkbox.offsetWidth; // force reflow to restart animation
+        checkbox.classList.add('shake');
+        setTimeout(() => checkbox.classList.remove('shake'), 400);
+      }
+      return;
+    }
+  }
+
+  col.visible = !col.visible;
+  const checkbox = document.querySelector(`.col-row[data-key="${key}"] input[type=checkbox]`);
+  if (checkbox) checkbox.checked = col.visible;
+  renderTable();
+  saveColumnConfig();
+}
+
+function resetColumns() {
+  columnConfig = DEFAULT_COLUMNS.map(c => ({ ...c }));
+  saveColumnConfig();
+  renderColumnPanel();
+  renderTable();
+}
+
+// ---------------------------------------------------------------------------
+// Drag and drop
+// ---------------------------------------------------------------------------
+
+function onDragStart() {
+  dragSrcKey = this.dataset.key;
+  this.classList.add('dragging');
+}
+
+function onDragOver(e) {
+  e.preventDefault();
+  document.querySelectorAll('.col-row').forEach(r => r.classList.remove('drag-over'));
+  this.classList.add('drag-over');
+}
+
+function onDragLeave() {
+  this.classList.remove('drag-over');
+}
+
+function onDrop(e) {
+  e.preventDefault();
+  document.querySelectorAll('.col-row').forEach(r => r.classList.remove('drag-over', 'dragging'));
+  const targetKey = this.dataset.key;
+  if (!dragSrcKey || dragSrcKey === targetKey) return;
+
+  const srcIdx = columnConfig.findIndex(c => c.key === dragSrcKey);
+  const tgtIdx = columnConfig.findIndex(c => c.key === targetKey);
+  if (srcIdx === -1 || tgtIdx === -1) return;
+
+  const [moved] = columnConfig.splice(srcIdx, 1);
+  const newTgtIdx = columnConfig.findIndex(c => c.key === targetKey);
+  columnConfig.splice(newTgtIdx, 0, moved);
+
+  // Ensure org is always first
+  const orgIdx = columnConfig.findIndex(c => c.key === 'org');
+  if (orgIdx > 0) columnConfig.unshift(columnConfig.splice(orgIdx, 1)[0]);
+
+  dragSrcKey = null;
+  renderColumnPanel();
+  renderTable();
+  saveColumnConfig();
+}
+
+function onDragEnd() {
+  document.querySelectorAll('.col-row').forEach(r => r.classList.remove('dragging', 'drag-over'));
+  dragSrcKey = null;
+}
+
+// ---------------------------------------------------------------------------
+// Row drag and drop (for stage management)
+// ---------------------------------------------------------------------------
+
+let draggedProspect = null;
+let draggedRow = null;
+
+function initRowDragHandlers() {
+  document.addEventListener('dragstart', e => {
+    const handle = e.target.closest('.drag-handle[data-idx]');
+    if (handle) {
+      const idx = parseInt(handle.dataset.idx);
+      draggedProspect = filteredProspects[idx];
+      draggedRow = e.target.closest('tr');
+      if (draggedRow) draggedRow.classList.add('dragging');
+    }
+  });
+
+  document.addEventListener('dragover', e => {
+    const stageRow = e.target.closest('tr.stage-subtotal');
+    if (stageRow && draggedProspect) {
+      e.preventDefault();
+      document.querySelectorAll('tr.stage-subtotal').forEach(r => r.classList.remove('drag-over'));
+      stageRow.classList.add('drag-over');
+    }
+  });
+
+  document.addEventListener('drop', async e => {
+    const stageRow = e.target.closest('tr.stage-subtotal');
+    if (stageRow && draggedProspect) {
+      e.preventDefault();
+      const targetStage = stageRow.dataset.stage;
+      const currentStage = draggedProspect.Stage;
+
+      if (targetStage !== currentStage) {
+        const resp = await fetch('/crm/api/prospect/field', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            org: draggedProspect.org,
+            offering: currentOffering,
+            field: 'stage',
+            value: targetStage
+          }),
+        });
+
+        if (resp.ok) {
+          showToast(`✓ ${draggedProspect.org} moved to ${targetStage}`, 'success');
+          reloadProspects();
+        } else {
+          showToast('Failed to update stage', 'error');
+          if (draggedRow) {
+            draggedRow.classList.add('drag-error-flash');
+            setTimeout(() => draggedRow.classList.remove('drag-error-flash'), 700);
+          }
+        }
+      }
+    }
+
+    // Cleanup
+    document.querySelectorAll('tr.stage-subtotal').forEach(r => r.classList.remove('drag-over'));
+    if (draggedRow) draggedRow.classList.remove('dragging');
+    draggedProspect = null;
+    draggedRow = null;
+  });
+
+  document.addEventListener('dragend', () => {
+    document.querySelectorAll('tr.stage-subtotal').forEach(r => r.classList.remove('drag-over'));
+    if (draggedRow) draggedRow.classList.remove('dragging');
+    draggedProspect = null;
+    draggedRow = null;
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Filtering & sorting
+// ---------------------------------------------------------------------------
+
+function parseMoney(s) {
+  if (!s) return 0;
+  // For range values like "$50M–$100M", use only the first number
+  const first = String(s).split(/[–—]/)[0];
+  return parseInt(first.replace(/[^0-9]/g, '')) || 0;
+}
+
+function defaultSort() {
+  sortField = '__default__';
+  sortDir = 1;
+  allProspects.sort((a, b) => {
+    const sa = parseInt(a.Stage) || 0;
+    const sb = parseInt(b.Stage) || 0;
+    if (sa !== sb) return sb - sa;
+    if (a.urgent !== b.urgent) return a.urgent ? -1 : 1;  // urgent first within stage
+    const ta = parseMoney(a.Target);
+    const tb = parseMoney(b.Target);
+    return tb - ta;
+  });
+}
+
+function sortBy(colKey) {
+  const apiField = FIELD_MAP[colKey];
+  if (!apiField) return;
+
+  if (sortField === colKey) {
+    sortDir *= -1;
+  } else {
+    sortField = colKey;
+    sortDir = 1;
+  }
+
+  filteredProspects.sort((a, b) => {
+    // Always keep same-stage prospects together to preserve subtotal grouping
+    const sa = parseInt(a.Stage) || 0;
+    const sb = parseInt(b.Stage) || 0;
+    if (sa !== sb) return sb - sa;
+
+    if (colKey === 'stage') return 0;
+    let va = a[apiField] || '';
+    let vb = b[apiField] || '';
+    if (colKey === 'target_display' || colKey === 'committed_display') {
+      return (parseMoney(vb) - parseMoney(va)) * sortDir;
+    }
+    return String(va).localeCompare(String(vb)) * sortDir;
+  });
+  renderTable();
+}
+
+function toggleUrgentFilter() {
+  const btn = document.getElementById('urgentFilter');
+  const active = btn.dataset.active !== 'true';
+  btn.dataset.active = String(active);
+  applyFilters();
+}
+
+function applyFilters() {
+  const search = document.getElementById('search').value.toLowerCase();
+  const stage = document.getElementById('filter-stage').value;
+  const urgentOnly = document.getElementById('urgentFilter').dataset.active === 'true';
+  const assigned = document.getElementById('filter-assigned').value;
+
+  filteredProspects = allProspects.filter(p => {
+    if (search && !p.org.toLowerCase().includes(search)) return false;
+    if (stage && p.Stage !== stage) return false;
+    if (urgentOnly && !p.urgent) return false;
+    if (assigned && p['Assigned To'] !== assigned) return false;
+    return true;
+  });
+  renderTable();
+}
+
+async function toggleUrgent(event, idx) {
+  event.stopPropagation();
+  const p = filteredProspects[idx];
+  const newUrgent = !p.urgent;
+  const resp = await fetch('/crm/api/prospect/field', {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ org: p.org, offering: currentOffering, field: 'urgent', value: newUrgent }),
+  });
+  if (resp.ok) {
+    p.urgent = newUrgent;
+    const tr = document.querySelector(`tr[data-idx="${idx}"]`);
+    if (tr) tr.classList.toggle('urgent-row', p.urgent);
+  } else {
+    event.target.checked = p.urgent; // revert
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Rendering
+// ---------------------------------------------------------------------------
+
+function renderTableHeader() {
+  const visibleCols = columnConfig.filter(c => c.visible);
+  const tr = document.getElementById('table-header-row');
+  tr.innerHTML = visibleCols.map(col =>
+    `<th class="col-${col.key}" onclick="sortBy('${col.key}')">${escHtml(col.label)} <span id="sort-${col.key}"></span></th>`
+  ).join('');
+
+  // Restore sort indicator after re-render
+  if (sortField && sortField !== '__default__') {
+    const indicator = document.getElementById('sort-' + sortField);
+    if (indicator) indicator.textContent = sortDir === 1 ? ' ↑' : ' ↓';
+  }
+}
+
+function buildCellContent(col, p, idx) {
+  const val = p[FIELD_MAP[col.key]];
+  switch (col.key) {
+
+    case 'target_display':
+    case 'committed_display': {
+      if (!val || val === '$0') return '<span style="color:#94a3b8">—</span>';
+      const abbrev = formatCurrencyAbbrev(val);
+      return `<span title="${escHtml(val)}">${escHtml(abbrev)}</span>`;
+    }
+
+    case 'tasks': {
+      const allTasks = [
+        ...(p.prospect_tasks || []).filter(t => t.status === 'open'),
+        ...(p._tasks || [])
+      ];
+
+      if (allTasks.length === 0) {
+        return '<span style="color:#94a3b8">—</span>';
+      }
+
+      const firstTask = allTasks[0];
+      const firstText = firstTask.text || firstTask.task || '';
+      const truncated = firstText.length > 50 ? firstText.slice(0, 50) + '…' : firstText;
+
+      const badge = allTasks.length > 1
+        ? `<span class="task-count-badge" onclick="showTaskPopover(event, ${escHtml(JSON.stringify(allTasks))})" title="Show all ${allTasks.length} tasks">+${allTasks.length - 1}</span>`
+        : '';
+
+      return `<div class="tasks-cell">${badge}<span class="task-preview-text">${escHtml(truncated)}</span></div>`;
+    }
+
+    case 'at_a_glance': {
+      if (!val) return '<span style="color:#94a3b8">—</span>';
+      const display = val.length > 60 ? val.slice(0, 60) + '…' : val;
+      return `<span title="${escHtml(val)}" style="color:#475569;font-style:italic">⚡ ${escHtml(display)}</span>`;
+    }
+
+    case 'last_touch': {
+      if (!val) return '—';
+      const d = new Date(val);
+      const days = isNaN(d) ? null : Math.floor((Date.now() - d.getTime()) / 86400000);
+      const dotColor = days === null ? '#94a3b8' : days <= 7 ? '#16a34a' : days <= 14 ? '#d97706' : '#dc2626';
+      const dot = `<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${dotColor};margin-right:5px;vertical-align:middle"></span>`;
+      return dot + escHtml(val);
+    }
+
+    case 'org_type':
+      return val
+        ? `<span class="badge" style="background:#f0f4ff;color:#4f46e5;font-size:10px">${escHtml(val)}</span>`
+        : '<span style="color:#94a3b8">—</span>';
+
+    default:
+      return escHtml(val || '—');
+  }
+}
+
+function renderCell(col, p, idx, isFirstCell = false) {
+  // Org cell has special structure with drag handle
+  if (col.key === 'org') {
+    const safeOrg = escHtml(p.org);
+    const primaryContact = p['Primary Contact'];
+    const contactLine = primaryContact
+      ? `<div style="font-size:11px;color:#94a3b8;margin-top:2px;font-weight:400">${escHtml(primaryContact)}</div>`
+      : '';
+    const dragHandle = isFirstCell ? `<span class="drag-handle" draggable="true" data-idx="${idx}">⠿</span>` : '';
+    return `<td class="col-org org-cell" data-col-key="org" style="position:relative;padding-left:${isFirstCell ? '24px' : '14px'}">${dragHandle}<span style="font-weight:500">${safeOrg}</span>${contactLine}</td>`;
+  }
+  const isEditable = EDITABLE_KEYS.has(col.key);
+  const extraClass = isEditable ? ' editable' : '';
+  const onclickAttr = isEditable ? ` onclick="startEdit(event, ${idx}, '${col.key}')"` : '';
+  const dragHandle = isFirstCell ? `<span class="drag-handle" draggable="true" data-idx="${idx}">⠿</span>` : '';
+  const cellStyle = isFirstCell ? ' style="position:relative;padding-left:24px"' : '';
+  return `<td class="col-${col.key}${extraClass}" data-col-key="${col.key}"${onclickAttr}${cellStyle}>${dragHandle}${buildCellContent(col, p, idx)}</td>`;
+}
+
+function renderTableRow(p, idx, extraClass = '') {
+  const visibleCols = columnConfig.filter(c => c.visible);
+  const cells = visibleCols.map((col, colIdx) => renderCell(col, p, idx, colIdx === 0)).join('');
+  const classes = [extraClass, p.urgent ? 'urgent-row' : ''].filter(Boolean).join(' ');
+  const classAttr = classes ? ` class="${classes}"` : '';
+  return `<tr data-idx="${idx}"${classAttr}>${cells}</tr>`;
+}
+
+// Track which stages are collapsed (Closed starts collapsed)
+const collapsedStages = new Set(['6. Verbal', '7. Legal / DD', '8. Closed', '0. Declined']);
+
+function toggleStageGroup(stageSlug) {
+  const key = stageSlug;
+  if (collapsedStages.has(key)) collapsedStages.delete(key);
+  else collapsedStages.add(key);
+  // Toggle classes in-place (no full re-render needed)
+  const subtotalRow = document.querySelector(`tr.stage-subtotal[data-stage="${CSS.escape(key)}"]`);
+  if (subtotalRow) subtotalRow.classList.toggle('collapsed');
+  document.querySelectorAll(`tr.stage-group-row[data-stage-group="${CSS.escape(key)}"]`).forEach(tr => {
+    tr.classList.toggle('hidden-row');
+  });
+}
+
+function renderTable() {
+  renderTableHeader();
+  const tbody = document.getElementById('pipeline-body');
+  const visibleCols = columnConfig.filter(c => c.visible);
+  if (!filteredProspects.length) {
+    tbody.innerHTML = `<tr><td colspan="${visibleCols.length}" class="empty-state">No prospects match the current filters</td></tr>`;
+    return;
+  }
+
+  // Group prospects by Stage and insert subtotal rows with collapsible support
+  const targetColIdx = visibleCols.findIndex(c => c.key === 'target_display');
+  const groups = [];
+  let currentStage = null;
+  let group = null;
+
+  filteredProspects.forEach((p, idx) => {
+    const stage = p.Stage || '';
+    if (stage !== currentStage) {
+      if (group) groups.push(group);
+      currentStage = stage;
+      group = { stage, rows: [], sum: 0 };
+    }
+    group.sum += parseMoney(p.Target);
+    group.rows.push({ p, idx });
+  });
+  if (group) groups.push(group);
+
+  let html = '';
+  groups.forEach(g => {
+    const isCollapsed = collapsedStages.has(g.stage);
+    const chevron = `<span class="chevron">&#9660;</span>`;
+    const collapsedClass = isCollapsed ? ' collapsed' : '';
+    const safeStage = escHtml(g.stage);
+
+    // Calculate committed sum for this stage
+    let committedSum = 0;
+    g.rows.forEach(r => {
+      committedSum += parseMoney(r.p.Committed || '$0');
+    });
+    const commitPct = g.sum > 0 ? Math.round((committedSum / g.sum) * 100) : 0;
+
+    // Progress bar (only if expanded and committed > 0)
+    const progressBar = !isCollapsed && committedSum > 0
+      ? `<div class="stage-progress-bar">
+           <div class="stage-progress-fill" style="width:${commitPct}%"></div>
+         </div>
+         <div class="stage-committed-label">${formatCurrencyAbbrev(committedSum)} committed</div>`
+      : '';
+
+    const cells = visibleCols.map((col, ci) => {
+      if (ci === 0) return `<td><div>${chevron} ${safeStage} (${g.rows.length})</div>${progressBar}</td>`;
+      if (ci === targetColIdx) return `<td class="subtotal-amount">$${g.sum.toLocaleString('en-US', {minimumFractionDigits: 0})}</td>`;
+      return '<td></td>';
+    }).join('');
+    html += `<tr class="stage-subtotal${collapsedClass}" data-stage="${safeStage}" onclick="toggleStageGroup('${g.stage.replace(/'/g, "\\'")}')">${cells}</tr>`;
+
+    const hiddenClass = isCollapsed ? ' hidden-row' : '';
+    g.rows.forEach(r => {
+      const rowClasses = hiddenClass ? `stage-group-row${hiddenClass}` : 'stage-group-row';
+      const rowHtml = renderTableRow(r.p, r.idx, rowClasses);
+      html += rowHtml.replace('<tr ', `<tr data-stage-group="${safeStage}" `);
+    });
+  });
+
+  tbody.innerHTML = html;
+}
+
+function escHtml(str) {
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+function formatCurrencyAbbrev(val) {
+  if (!val) return '—';
+  const num = parseFloat(String(val).replace(/[$,]/g, ''));
+  if (isNaN(num) || num === 0) return '$0';
+
+  if (num >= 1e9) return '$' + (num / 1e9).toFixed(1).replace(/\.0$/, '') + 'B';
+  if (num >= 1e6) return '$' + (num / 1e6).toFixed(1).replace(/\.0$/, '') + 'M';
+  if (num >= 1e3) return '$' + (num / 1e3).toFixed(0) + 'K';
+  return '$' + num.toFixed(0);
+}
+
+// ---------------------------------------------------------------------------
+// Inline editing
+// ---------------------------------------------------------------------------
+
+function startEdit(event, idx, colKey) {
+  event.stopPropagation();
+  if (editingCell) cancelEdit();
+
+  const p = filteredProspects[idx];
+  const tr = document.querySelector(`tr[data-idx="${idx}"]`);
+  const td = tr ? tr.querySelector(`td[data-col-key="${colKey}"]`) : null;
+  if (!td) return;
+
+  const apiField = FIELD_MAP[colKey];
+  const originalHTML = td.innerHTML;
+  const currentVal = p[apiField] || '';
+
+  let input;
+  if (DROPDOWN_FIELDS_BY_KEY[colKey]) {
+    input = document.createElement('select');
+    input.className = 'cell-select';
+    DROPDOWN_FIELDS_BY_KEY[colKey].forEach(opt => {
+      const o = document.createElement('option');
+      o.value = opt;
+      o.textContent = opt || '(none)';
+      if (opt === currentVal) o.selected = true;
+      input.appendChild(o);
+    });
+  } else {
+    input = document.createElement('input');
+    input.type = 'text';
+    input.className = 'cell-input';
+    input.value = currentVal;
+  }
+
+  td.innerHTML = '';
+  td.appendChild(input);
+  input.focus();
+  if (input.tagName === 'INPUT') input.select();
+
+  editingCell = { td, colKey, idx, originalHTML, input };
+
+  input.addEventListener('click', e => e.stopPropagation());
+  input.addEventListener('blur', () => saveEdit());
+  input.addEventListener('keydown', e => {
+    if (e.key === 'Enter') { e.preventDefault(); saveEdit(); }
+    if (e.key === 'Escape') { cancelEdit(); }
+  });
+}
+
+function cancelEdit() {
+  if (!editingCell) return;
+  editingCell.td.innerHTML = editingCell.originalHTML;
+  editingCell = null;
+}
+
+async function saveEdit() {
+  if (!editingCell) return;
+  const { td, colKey, idx, originalHTML, input } = editingCell;
+  const p = filteredProspects[idx];
+  const apiField = FIELD_MAP[colKey];
+  const patchField = PATCH_FIELD_MAP[colKey];
+  const newVal = input.value;
+  editingCell = null;
+
+  if (newVal === (p[apiField] || '')) {
+    td.innerHTML = originalHTML;
+    return;
+  }
+
+  td.innerHTML = '<span style="color:#94a3b8;font-size:12px">saving…</span>';
+
+  const resp = await fetch('/crm/api/prospect/field', {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ org: p.org, offering: currentOffering, field: patchField, value: newVal }),
+  });
+
+  if (resp.ok) {
+    const updated = await resp.json();
+    Object.assign(p, updated);
+    const col = columnConfig.find(c => c.key === colKey);
+    td.innerHTML = buildCellContent(col, p, idx);
+    td.classList.add('flash-ok');
+    setTimeout(() => td.classList.remove('flash-ok'), 700);
+  } else {
+    td.innerHTML = originalHTML;
+    td.classList.add('flash-err');
+    setTimeout(() => td.classList.remove('flash-err'), 700);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Direct Navigation with Filter Preservation
+// ---------------------------------------------------------------------------
+
+function getCurrentFilters() {
+  const filters = {};
+  const stage = document.getElementById('filter-stage');
+  if (stage && stage.value) filters.stage = stage.value;
+
+  const urgentOnly = document.getElementById('urgentFilter');
+  if (urgentOnly && urgentOnly.dataset.active === 'true') filters.urgent = 'true';
+
+  const typeFilter = document.getElementById('filter-type');
+  if (typeFilter && typeFilter.value) filters.type = typeFilter.value;
+
+  const assignedFilter = document.getElementById('filter-assigned');
+  if (assignedFilter && assignedFilter.value) filters.assigned = assignedFilter.value;
+
+  return filters;
+}
+
+document.addEventListener('click', function(e) {
+  const row = e.target.closest('tbody tr[data-idx]');
+  if (!row || row.classList.contains('stage-subtotal')) return;
+
+  const idx = parseInt(row.dataset.idx);
+  const p = filteredProspects[idx];
+  if (!p) return;
+
+  const filters = getCurrentFilters();
+  const filterParam = new URLSearchParams(filters).toString();
+  const url = `/crm/prospect/${encodeURIComponent(p.offering)}/${encodeURIComponent(p.org)}/detail`;
+  window.location.href = filterParam ? `${url}?back_filters=${encodeURIComponent(filterParam)}` : url;
+});
+
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') {
+    if (activeDrawer) { closeDrawer(); return; }
+    closeNewProspectModal();
+    closeColumnPanel();
+  }
+});
+
+// ---------------------------------------------------------------------------
+// People & Orgs drawers
+// ---------------------------------------------------------------------------
+
+let drawerPeople = [];
+let drawerOrgs = [];
+let activeDrawer = null;
+
+function openDrawer(type) {
+  closeDrawer();
+  activeDrawer = type;
+  document.getElementById('drawer-overlay').classList.add('open');
+  if (type === 'people') {
+    document.getElementById('people-drawer').classList.add('open');
+    document.getElementById('people-search').value = '';
+    loadDrawerPeople();
+    setTimeout(() => document.getElementById('people-search').focus(), 100);
+  } else {
+    document.getElementById('orgs-drawer').classList.add('open');
+    document.getElementById('orgs-search').value = '';
+    loadDrawerOrgs();
+    setTimeout(() => document.getElementById('orgs-search').focus(), 100);
+  }
+}
+
+function closeDrawer() {
+  document.getElementById('drawer-overlay').classList.remove('open');
+  document.getElementById('people-drawer').classList.remove('open');
+  document.getElementById('orgs-drawer').classList.remove('open');
+  activeDrawer = null;
+}
+
+async function loadDrawerPeople() {
+  document.getElementById('people-count').textContent = 'Loading...';
+  const res = await fetch('/crm/api/kb-people');
+  drawerPeople = await res.json();
+  renderDrawerPeople(drawerPeople);
+}
+
+function filterDrawerPeople(q) {
+  const filtered = q
+    ? drawerPeople.filter(p => p.name.toLowerCase().includes(q.toLowerCase()) || (p.org || '').toLowerCase().includes(q.toLowerCase()))
+    : drawerPeople;
+  renderDrawerPeople(filtered);
+}
+
+function renderDrawerPeople(people) {
+  document.getElementById('people-count').textContent = `${people.length} people`;
+  const list = document.getElementById('people-list');
+  if (!people.length) {
+    list.innerHTML = '<div class="drawer-empty">No matches</div>';
+    return;
+  }
+  list.innerHTML = people.map(p => {
+    const sub = [p.org, p.title, p.email].filter(Boolean).join(' · ');
+    return `
+      <div class="drawer-row" onclick="window.location.href='/crm/people/${encodeURIComponent(p.slug)}'">
+        <div class="drawer-row-info">
+          <span class="drawer-row-name">${escHtml(p.name)}</span>
+          <span class="drawer-row-sub">${escHtml(sub || '—')}</span>
+        </div>
+        <span class="drawer-row-arrow">&#9654;</span>
+      </div>
+    `;
+  }).join('');
+}
+
+async function loadDrawerOrgs() {
+  document.getElementById('orgs-count').textContent = 'Loading...';
+  const res = await fetch('/crm/api/orgs');
+  drawerOrgs = await res.json();
+  renderDrawerOrgs(drawerOrgs);
+}
+
+function filterDrawerOrgs(q) {
+  const filtered = q
+    ? drawerOrgs.filter(o => o.toLowerCase().includes(q.toLowerCase()))
+    : drawerOrgs;
+  renderDrawerOrgs(filtered);
+}
+
+function renderDrawerOrgs(orgs) {
+  document.getElementById('orgs-count').textContent = `${orgs.length} organizations`;
+  const list = document.getElementById('orgs-list');
+  if (!orgs.length) {
+    list.innerHTML = '<div class="drawer-empty">No matches</div>';
+    return;
+  }
+  list.innerHTML = orgs.map(name => `
+    <div class="drawer-row" onclick="window.location.href='/crm/org/${encodeURIComponent(name)}'">
+      <div class="drawer-row-info">
+        <span class="drawer-row-name">${escHtml(name)}</span>
+      </div>
+      <span class="drawer-row-arrow">&#9654;</span>
+    </div>
+  `).join('');
+}
+
+init();
+
+// --- Task Edit Modal setup ---
+window.TASK_MODAL_TEAM = CONFIG.team.map(m => m.name) || [];
+window.TASK_MODAL_TEAM_MAP = CONFIG.team_map || [];
+window.TASK_MODAL_SECTIONS = ['Fundraising - Me', 'Work', 'Personal'];
+window.taskModalOnSave = function() { reloadProspects(); };
+window.taskModalOnDelete = function() { reloadProspects(); };
+
+function openPipelineTaskEdit(el) {
+  openTaskEditModal({
+    title: 'Edit Task',
+    text: el.dataset.text || '',
+    priority: el.dataset.priority || 'Med',
+    assigned_to: el.dataset.owner || 'Oscar',
+    section: el.dataset.section || 'Fundraising - Me',
+    index: parseInt(el.dataset.index, 10) || 0,
+    org: el.dataset.org || '',
+    showDelete: true,
+    hideFields: ['section', 'org'],
+  });
+}
+
+function openPipelineTaskCreate(org) {
+  openTaskEditModal({
+    title: 'New Task',
+    text: '',
+    priority: 'Med',
+    assigned_to: 'Oscar',
+    section: 'Fundraising - Me',
+    index: -1,
+    org: org,
+    showDelete: false,
+    hideFields: ['section', 'org'],
+  });
+}
+
+</script>
+<script src="/static/task-edit-modal.js"></script>
+</body>
+</html>

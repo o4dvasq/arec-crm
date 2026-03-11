@@ -1,0 +1,46 @@
+# Environment & secrets
+.env
+.env*
+.env-transfer
+app/.env
+token_cache.bin
+*.token
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+build/
+.venv/
+venv/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Cowork / Claude internals
+.claude/
+.skills/
+.local-plugins/
+
+# Temp files
+*.tmp
+*.bak
+
+# Office temp/lock files
+~$*
+.~lock.*
+
+# Excel files (may contain sensitive data)
+*.xlsx
+
+# Dropbox conflict copies
+*conflicted copy*

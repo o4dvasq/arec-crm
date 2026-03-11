@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Edit Prospect — Overwatch</title>
+  <link rel="stylesheet" href="/static/crm.css">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0f172a; color: #e2e8f0; min-height: 100vh; }
+
+    .page { padding: 32px 24px; max-width: 640px; margin: 0 auto; }
+
+    .page-header { margin-bottom: 28px; }
+    .page-header h1 { font-size: 22px; font-weight: 700; color: #f1f5f9; margin-bottom: 4px; }
+    .page-header .offering-label { font-size: 13px; color: #64748b; }
+
+    /* Form card */
+    .form-card { background: #1e293b; border: 1px solid #334155; border-radius: 10px; overflow: hidden; }
+    .form-section { padding: 20px 24px; border-bottom: 1px solid #334155; }
+    .form-section:last-of-type { border-bottom: none; }
+
+    .field-row { display: flex; align-items: center; gap: 16px; margin-bottom: 14px; }
+    .field-row:last-child { margin-bottom: 0; }
+    .field-label { width: 130px; flex-shrink: 0; font-size: 13px; color: #94a3b8; font-weight: 500; }
+    .field-control { flex: 1; }
+
+    input[type=text], select, textarea {
+      width: 100%;
+      padding: 8px 10px;
+      background: #0f172a;
+      border: 1px solid #334155;
+      border-radius: 6px;
+      color: #e2e8f0;
+      font-size: 14px;
+      font-family: inherit;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    input[type=text]:focus, select:focus, textarea:focus { border-color: #2563eb; }
+    select { cursor: pointer; }
+    textarea { resize: vertical; }
+
+    /* Select option styling */
+    select option { background: #1e293b; color: #e2e8f0; }
+
+    /* Last touch */
+    .readonly-field { padding: 8px 10px; font-size: 14px; color: #64748b; }
+    .readonly-hint { font-size: 11px; color: #475569; margin-top: 3px; }
+
+    /* Add contact inline form */
+    .add-contact-inline { margin-top: 10px; padding: 12px; background: #0f172a; border: 1px solid #334155; border-radius: 6px; display: none; }
+    .add-contact-inline.visible { display: block; }
+    .add-contact-inline .row { display: flex; gap: 8px; align-items: flex-end; flex-wrap: wrap; }
+    .add-contact-inline .row input { flex: 1; min-width: 140px; }
+    .btn-add { padding: 8px 14px; background: #2563eb; color: #fff; border: none; border-radius: 5px; font-size: 13px; cursor: pointer; white-space: nowrap; }
+    .btn-add:hover { background: #1d4ed8; }
+    .add-contact-inline .hint { font-size: 11px; color: #475569; margin-bottom: 8px; }
+
+    /* Footer buttons */
+    .form-footer { padding: 16px 24px; display: flex; justify-content: flex-end; gap: 10px; border-top: 1px solid #334155; }
+    .btn { padding: 9px 20px; font-size: 14px; border-radius: 6px; border: none; cursor: pointer; font-weight: 500; }
+    .btn-cancel { background: #1e293b; color: #94a3b8; border: 1px solid #334155; }
+    .btn-cancel:hover { color: #e2e8f0; border-color: #475569; }
+    .btn-save { background: #2563eb; color: #fff; }
+    .btn-save:hover { background: #1d4ed8; }
+    .btn-save:disabled { background: #1e3a5f; color: #64748b; cursor: default; }
+    .btn-danger { background: #450a0a; color: #fca5a5; border: 1px solid #7f1d1d; }
+    .btn-danger:hover { background: #7f1d1d; color: #fef2f2; }
+
+    .error-banner { background: #450a0a; border: 1px solid #7f1d1d; color: #fca5a5; padding: 10px 14px; border-radius: 6px; font-size: 13px; margin-bottom: 16px; display: none; }
+  </style>
+</head>
+<body>
+
+{% set active_tab = 'pipeline' %}
+{% include '_nav.html' %}
+
+<div class="page">
+  <a href="/crm/prospect/{{ offering }}/{{ org }}/detail" class="breadcrumb-back">← Back to Detail</a>
+
+  <div class="page-header">
+    <h1>{{ org }}</h1>
+    <div class="offering-label">{{ offering }}</div>
+  </div>
+
+  <div class="error-banner" id="error-banner"></div>
+
+  <div class="form-card">
+
+    <!-- Top fields -->
+    <div class="form-section">
+      <div class="field-row">
+        <label class="field-label" for="field-stage">Stage</label>
+        <div class="field-control">
+          <select id="field-stage">
+            <option value="">— Select —</option>
+            {% for s in config.stages %}
+            <option value="{{ s }}" {% if prospect.Stage == s %}selected{% endif %}>{{ s }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+
+      <div class="field-row">
+        <label class="field-label" for="field-urgent">Urgent</label>
+        <div class="field-control" style="display:flex;align-items:center;padding:6px 0">
+          <input type="checkbox" id="field-urgent" style="width:16px;height:16px;accent-color:#ca8a04;cursor:pointer"
+            {% if prospect.urgent %}checked{% endif %}>
+        </div>
+      </div>
+
+      <div class="field-row">
+        <label class="field-label" for="field-target">Target</label>
+        <div class="field-control">
+          <input type="text" id="field-target" value="{{ prospect.Target or '' }}" placeholder="$0">
+        </div>
+      </div>
+
+      <div class="field-row">
+        <label class="field-label" for="field-closing">Closing</label>
+        <div class="field-control">
+          <select id="field-closing">
+            <option value="">— None —</option>
+            {% for c in config.closing_options %}
+            <option value="{{ c }}" {% if prospect.Closing == c %}selected{% endif %}>{{ c }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+
+      <div class="field-row">
+        <label class="field-label" for="field-assigned_to">Owner</label>
+        <div class="field-control">
+          <select id="field-assigned_to">
+            <option value="">— None —</option>
+            {% for member in config.team %}
+            <option value="{{ member }}" {% if prospect['Assigned To'] == member %}selected{% endif %}>{{ member }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+
+      <div class="field-row">
+        <label class="field-label" for="field-primary_contact">Primary Contact</label>
+        <div class="field-control">
+          <select id="field-primary_contact" onchange="handleContactSelectChange(this)">
+            <option value="">— Select —</option>
+            {% if contacts %}
+            <optgroup label="This org">
+              {% for contact in contacts %}
+              <option value="{{ contact.name }}"
+                      {% if prospect['Primary Contact'] == contact.name %}selected{% endif %}>
+                {{ contact.name }}{% if contact.role %} — {{ contact.role }}{% endif %}
+              </option>
+              {% endfor %}
+            </optgroup>
+            {% endif %}
+            {% if other_contacts %}
+            <optgroup label="Known contacts">
+              {% for contact in other_contacts %}
+              <option value="{{ contact.name }}"
+                      {% if prospect['Primary Contact'] == contact.name %}selected{% endif %}>
+                {{ contact.name }}{% if contact.organization %} — {{ contact.organization }}{% endif %}
+              </option>
+              {% endfor %}
+            </optgroup>
+            {% endif %}
+            <option value="__add_new__">+ Add new contact...</option>
+          </select>
+          <!-- Inline add-contact form (Delta 3) -->
+          <div id="add-contact-form" class="add-contact-inline">
+            <div class="hint">Create a new contact and link them to this org.</div>
+            <div class="row">
+              <input type="text" id="new-contact-name" placeholder="Full name *">
+              <input type="text" id="new-contact-email" placeholder="Email (optional)">
+              <button class="btn-add" onclick="addNewContact()">Add</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Text areas -->
+    <div class="form-section">
+      <div class="field-row">
+        <label class="field-label" for="field-notes">Notes</label>
+        <div class="field-control">
+          <textarea id="field-notes" rows="4">{{ prospect.Notes or '' }}</textarea>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tasks panel -->
+    <div class="form-section" id="tasks-section">
+      <div class="field-row" style="align-items:flex-start">
+        <span class="field-label" style="padding-top:2px">Tasks</span>
+        <div class="field-control">
+          <div id="tasks-list" style="margin-bottom:10px"></div>
+          <div id="add-task-form" style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end">
+            <input type="text" id="new-task-text" placeholder="Task description…" style="flex:1;min-width:180px">
+            <select id="new-task-owner" style="width:140px">
+              <option value="">Owner…</option>
+              {% for member in config.team %}
+              <option value="{{ member }}">{{ member }}</option>
+              {% endfor %}
+            </select>
+            <select id="new-task-priority" style="width:80px">
+              <option value="Hi">Hi</option>
+              <option value="Med" selected>Med</option>
+              <option value="Lo">Lo</option>
+            </select>
+            <button class="btn-add" onclick="addTask()" style="padding:8px 14px">Add</button>
+          </div>
+          <div id="show-done-toggle" style="margin-top:8px;font-size:12px;color:#64748b;cursor:pointer;display:none" onclick="toggleDoneTasks()">Show completed</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Last touch (read-only) -->
+    <div class="form-section">
+      <div class="field-row">
+        <span class="field-label">Last Touch</span>
+        <div class="field-control">
+          <div class="readonly-field">{{ prospect['Last Touch'] or '—' }}</div>
+          <div class="readonly-hint">Auto-updated to today on save</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="form-footer">
+      <button class="btn btn-danger" id="delete-btn" onclick="deleteProspect()">Delete Prospect</button>
+      <div style="flex:1"></div>
+      <button class="btn btn-cancel" onclick="window.location.href='/crm'">Cancel</button>
+      <button class="btn btn-save" id="save-btn" onclick="saveProspect()">Save</button>
+    </div>
+
+  </div>
+</div>
+
+<script>
+const ORG = {{ org | tojson }};
+const OFFERING = {{ offering | tojson }};
+
+function handleContactSelectChange(sel) {
+  const form = document.getElementById('add-contact-form');
+  if (sel.value === '__add_new__') {
+    form.classList.add('visible');
+    document.getElementById('new-contact-name').focus();
+  } else {
+    form.classList.remove('visible');
+  }
+}
+
+async function addNewContact() {
+  const name = document.getElementById('new-contact-name').value.trim();
+  const email = document.getElementById('new-contact-email').value.trim();
+  if (!name) {
+    document.getElementById('new-contact-name').focus();
+    return;
+  }
+
+  const resp = await fetch('/crm/api/contact', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name, org: ORG, email, role: '', type: 'LP Prospect' }),
+  });
+
+  if (resp.ok) {
+    const data = await resp.json();
+    const select = document.getElementById('field-primary_contact');
+    // Insert new option before the "add new" option
+    const addNewOpt = select.querySelector('option[value="__add_new__"]');
+    const opt = new Option(name, name, true, true);
+    select.insertBefore(opt, addNewOpt);
+    // Hide inline form
+    document.getElementById('add-contact-form').classList.remove('visible');
+    document.getElementById('new-contact-name').value = '';
+    document.getElementById('new-contact-email').value = '';
+  } else {
+    const err = await resp.json().catch(() => ({}));
+    showError(err.error || 'Failed to add contact.');
+  }
+}
+
+async function saveProspect() {
+  const btn = document.getElementById('save-btn');
+  btn.disabled = true;
+  btn.textContent = 'Saving…';
+
+  const primaryContact = document.getElementById('field-primary_contact').value;
+  const fields = {
+    stage:           document.getElementById('field-stage').value,
+    urgent:          document.getElementById('field-urgent').checked,
+    target:          document.getElementById('field-target').value,
+    closing:         document.getElementById('field-closing').value,
+    assigned_to:     document.getElementById('field-assigned_to').value,
+    primary_contact: primaryContact === '__add_new__' ? '' : primaryContact,
+    notes:           document.getElementById('field-notes').value,
+  };
+
+  const resp = await fetch('/crm/api/prospect/save', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ org: ORG, offering: OFFERING, fields }),
+  });
+
+  if (resp.ok) {
+    window.location.href = '/crm';
+  } else {
+    const err = await resp.json().catch(() => ({}));
+    showError(err.error || 'Save failed. Please try again.');
+    btn.disabled = false;
+    btn.textContent = 'Save';
+  }
+}
+
+function showError(msg) {
+  const banner = document.getElementById('error-banner');
+  banner.textContent = msg;
+  banner.style.display = '';
+  setTimeout(() => { banner.style.display = 'none'; }, 5000);
+}
+
+// ---------------------------------------------------------------------------
+// Tasks panel
+// ---------------------------------------------------------------------------
+
+let _tasks = [];
+
+async function loadTasks() {
+  const resp = await fetch(`/crm/api/tasks?org=${encodeURIComponent(ORG)}`);
+  if (!resp.ok) return;
+  _tasks = await resp.json();
+  renderTasks();
+}
+
+function renderTasks() {
+  const container = document.getElementById('tasks-list');
+  const open = _tasks.filter(t => t.status === 'open');
+  const done = _tasks.filter(t => t.status === 'done');
+
+  let html = '';
+  open.forEach((t, i) => {
+    const dotColor = t.priority === 'Hi' ? '#ef4444' : t.priority === 'Med' ? '#f59e0b' : '#94a3b8';
+    html += `<div style="display:flex;align-items:flex-start;gap:8px;padding:6px 0;border-bottom:1px solid #1e3a5f" data-task-idx="${i}">
+      <input type="checkbox" style="margin-top:3px;cursor:pointer;flex-shrink:0" onchange="completeTask(${i})">
+      <span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:${dotColor};flex-shrink:0;margin-top:6px"></span>
+      <div style="flex:1;min-width:0">
+        <span style="font-size:13px">${escHtml(t.text)}</span>
+        ${t.owner ? `<span style="font-size:11px;color:#64748b;margin-left:6px">${escHtml(t.owner)}</span>` : ''}
+      </div>
+    </div>`;
+  });
+
+  if (done.length) {
+    html += `<div id="done-tasks" style="display:none">`;
+    done.forEach(t => {
+      html += `<div style="display:flex;align-items:flex-start;gap:8px;padding:5px 0;opacity:0.5">
+        <input type="checkbox" checked disabled style="margin-top:3px;flex-shrink:0">
+        <span style="font-size:13px;text-decoration:line-through;color:#64748b">${escHtml(t.text)}</span>
+        ${t.owner ? `<span style="font-size:11px;color:#475569;margin-left:6px">${escHtml(t.owner)}</span>` : ''}
+      </div>`;
+    });
+    html += `</div>`;
+    const toggle = document.getElementById('show-done-toggle');
+    toggle.textContent = `Show ${done.length} completed`;
+    toggle.style.display = '';
+  } else {
+    document.getElementById('show-done-toggle').style.display = 'none';
+  }
+
+  container.innerHTML = html;
+}
+
+function toggleDoneTasks() {
+  const el = document.getElementById('done-tasks');
+  const toggle = document.getElementById('show-done-toggle');
+  if (!el) return;
+  if (el.style.display === 'none') {
+    el.style.display = '';
+    toggle.textContent = `Hide completed`;
+  } else {
+    el.style.display = 'none';
+    const done = _tasks.filter(t => t.status === 'done');
+    toggle.textContent = `Show ${done.length} completed`;
+  }
+}
+
+async function addTask() {
+  const text = document.getElementById('new-task-text').value.trim();
+  const owner = document.getElementById('new-task-owner').value;
+  const priority = document.getElementById('new-task-priority').value;
+  if (!text || !owner) {
+    if (!text) document.getElementById('new-task-text').focus();
+    else document.getElementById('new-task-owner').focus();
+    return;
+  }
+  const resp = await fetch('/crm/api/tasks', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ org: ORG, text, owner, priority, section: 'IR / Fundraising' }),
+  });
+  if (resp.ok) {
+    document.getElementById('new-task-text').value = '';
+    await loadTasks();
+  } else {
+    const err = await resp.json().catch(() => ({}));
+    showError(err.error || 'Failed to add task.');
+  }
+}
+
+async function completeTask(idx) {
+  const task = _tasks.filter(t => t.status === 'open')[idx];
+  if (!task) return;
+  const resp = await fetch('/crm/api/tasks/complete', {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ org: ORG, task_text: task.text }),
+  });
+  if (resp.ok) {
+    await loadTasks();
+  } else {
+    const err = await resp.json().catch(() => ({}));
+    showError(err.error || 'Failed to complete task.');
+  }
+}
+
+function escHtml(str) {
+  return String(str)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+// Enter key in add-task form
+document.getElementById('new-task-text').addEventListener('keydown', e => {
+  if (e.key === 'Enter') { e.preventDefault(); addTask(); }
+});
+
+loadTasks();
+
+async function deleteProspect() {
+  if (!confirm(`Delete ${ORG} from ${OFFERING}? This cannot be undone.`)) return;
+
+  const btn = document.getElementById('delete-btn');
+  btn.disabled = true;
+  btn.textContent = 'Deleting…';
+
+  const resp = await fetch('/crm/api/prospect', {
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ org: ORG, offering: OFFERING }),
+  });
+
+  if (resp.ok) {
+    window.location.href = '/crm';
+  } else {
+    const err = await resp.json().catch(() => ({}));
+    showError(err.error || 'Delete failed.');
+    btn.disabled = false;
+    btn.textContent = 'Delete Prospect';
+  }
+}
+</script>
+</body>
+</html>

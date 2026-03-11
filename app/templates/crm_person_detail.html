@@ -1,0 +1,1030 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ person.name }} | Overwatch</title>
+    <link rel="stylesheet" href="/static/crm.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --bg-primary: #0f172a;
+            --bg-secondary: #1e293b;
+            --bg-tertiary: #172032;
+            --border: #334155;
+            --text: #e2e8f0;
+            --muted: #94a3b8;
+            --accent: #2563eb;
+            --accent-hover: #1d4ed8;
+            --radius: 0.5rem;
+            --transition: all 0.2s ease-in-out;
+        }
+
+        html, body {
+            background: var(--bg-primary);
+            color: var(--text);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        .container { max-width: 900px; margin: 0 auto; padding: 2rem; }
+
+        /* HEADER */
+        .page-header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 2rem;
+            margin-bottom: 1.5rem;
+        }
+        .page-title { font-size: 1.75rem; font-weight: 700; margin-bottom: 0.25rem; }
+        .page-subtitle-link {
+            color: var(--accent);
+            text-decoration: none;
+            font-size: 0.95rem;
+            font-weight: 500;
+        }
+        .page-subtitle-link:hover { color: var(--accent-hover); }
+
+        /* BUTTONS */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            padding: 0.5rem 1rem;
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            font-size: 0.85rem;
+            font-weight: 500;
+            cursor: pointer;
+            text-decoration: none;
+            transition: var(--transition);
+            white-space: nowrap;
+            background: none;
+            color: var(--text);
+        }
+        .btn:hover { border-color: var(--accent); color: var(--accent); }
+
+        /* CARDS */
+        .card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 1.25rem 1.5rem;
+            margin-bottom: 1rem;
+        }
+
+        /* CONTACT CARD */
+        .contact-grid {
+            display: grid;
+            grid-template-columns: 120px 1fr;
+            gap: 0.75rem 1rem;
+            align-items: center;
+        }
+        .contact-label {
+            font-size: 0.75rem;
+            color: var(--muted);
+            text-align: right;
+            font-weight: 500;
+        }
+        .contact-value {
+            font-size: 0.95rem;
+            color: var(--text);
+        }
+        .contact-value a {
+            color: var(--accent);
+            text-decoration: none;
+        }
+        .contact-value a:hover {
+            color: var(--accent-hover);
+        }
+        .contact-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+        .contact-edit-form {
+            display: grid;
+            gap: 0.75rem;
+        }
+        .contact-field-row {
+            display: grid;
+            grid-template-columns: 120px 1fr;
+            gap: 0.5rem;
+            align-items: center;
+        }
+        .contact-field-row label {
+            font-size: 0.75rem;
+            color: var(--muted);
+            text-align: right;
+            font-weight: 500;
+        }
+        .contact-field-row input {
+            background: var(--bg-primary);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            color: var(--text);
+            padding: 0.5rem 0.75rem;
+            font-size: 0.9rem;
+            font-family: inherit;
+        }
+        .contact-field-row input:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+        .contact-actions {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 0.5rem;
+        }
+        .no-contact-info {
+            color: var(--muted);
+            font-size: 0.9rem;
+            font-style: italic;
+        }
+
+        /* PERSON CARD FIELDS */
+        .person-fields {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1rem 2rem;
+        }
+        .field-group { }
+        .field-label {
+            font-size: 0.72rem;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            font-weight: 500;
+            margin-bottom: 0.25rem;
+        }
+        .field-value { font-size: 0.95rem; font-weight: 500; }
+        .field-value a { color: var(--accent); text-decoration: none; }
+        .field-value a:hover { color: var(--accent-hover); }
+
+        /* Prospect connections */
+        .connections-list { list-style: none; margin-top: 0.4rem; }
+        .connection-item { padding: 3px 0; font-size: 13px; display: flex; align-items: baseline; gap: 6px; }
+        .connection-link { color: var(--accent); text-decoration: none; }
+        .connection-link:hover { color: var(--accent-hover); }
+        .connection-role { color: var(--muted); font-size: 12px; }
+
+        /* SECTION TITLES */
+        .section-title {
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 0.07em;
+            text-transform: uppercase;
+            color: var(--muted);
+            border-left: 3px solid var(--accent);
+            padding-left: 8px;
+            margin: 0;
+        }
+        .section-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1rem;
+        }
+        .section-count {
+            background: #374151;
+            color: #9ca3af;
+            font-size: 11px;
+            padding: 1px 7px;
+            border-radius: 10px;
+        }
+
+        /* PERSON BRIEF */
+        .brief-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1rem;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+        .brief-actions { display: flex; gap: 0.5rem; align-items: center; }
+        .brief-narrative {
+            color: var(--text);
+            line-height: 1.7;
+            font-size: 14px;
+        }
+        .brief-narrative p { margin-bottom: 0.85rem; }
+        .brief-narrative p:last-child { margin-bottom: 0; }
+        .brief-ts {
+            font-size: 11px;
+            color: var(--muted);
+            font-weight: 400;
+            margin-left: 6px;
+            opacity: 0.7;
+        }
+        .brief-loading {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: var(--muted);
+            padding: 1.5rem 0;
+            font-size: 13px;
+        }
+        .loading-pulse {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--accent);
+            animation: pulse 1.2s ease-in-out infinite;
+            flex-shrink: 0;
+        }
+        @keyframes pulse { 0%, 100% { opacity: 0.3; } 50% { opacity: 1; } }
+
+        .btn-sm {
+            background: none;
+            border: 1px solid #475569;
+            color: var(--muted);
+            font-size: 12px;
+            padding: 3px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+        .btn-sm:hover { border-color: var(--accent); color: var(--accent); }
+
+        /* UPDATE INPUT */
+        .update-area { margin-top: 1rem; display: none; }
+        .update-area.visible { display: block; }
+        .update-textarea {
+            width: 100%;
+            background: #0f172a;
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            color: var(--text);
+            font-family: inherit;
+            font-size: 13px;
+            padding: 0.75rem;
+            resize: vertical;
+            min-height: 80px;
+            outline: none;
+        }
+        .update-textarea:focus { border-color: var(--accent); }
+        .update-submit-row { display: flex; gap: 0.5rem; margin-top: 0.5rem; align-items: center; }
+        .btn-primary { background: var(--accent); color: white; border-color: var(--accent); }
+        .btn-primary:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
+        .update-status { font-size: 12px; color: var(--muted); }
+
+        /* INTERACTIONS */
+        .interaction-row {
+            display: grid;
+            grid-template-columns: 90px 80px 1fr;
+            gap: 8px;
+            padding: 6px 0;
+            border-bottom: 1px solid #1e293b;
+            font-size: 13px;
+            align-items: start;
+        }
+        .interaction-row:last-child { border-bottom: none; }
+        .ix-date { color: var(--muted); font-variant-numeric: tabular-nums; }
+        .ix-summary { color: #cbd5e1; }
+        .ix-type {
+            display: inline-block;
+            font-size: 11px;
+            font-weight: 500;
+            padding: 1px 6px;
+            border-radius: 3px;
+            text-align: center;
+        }
+        .badge-meeting  { background: #1e3a5f; color: #93c5fd; }
+        .badge-email    { background: #374151; color: #d1d5db; }
+        .badge-call     { background: #14532d; color: #86efac; }
+        .badge-note     { background: #3b0764; color: #d8b4fe; }
+        .badge-doc      { background: #422006; color: #fcd34d; }
+        .badge-default  { background: #374151; color: #9ca3af; }
+
+        /* COLLAPSIBLE SECTIONS */
+        .collapsible-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: pointer;
+            padding: 0.75rem 0;
+            user-select: none;
+        }
+        .collapsible-header:hover .section-title { color: #cbd5e1; }
+        .collapsible-toggle { font-size: 11px; color: var(--muted); }
+        .collapsible-body {
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+        }
+        .collapsible-body.collapsed { max-height: 0 !important; }
+
+        /* MEETING SUMMARIES */
+        .meeting-item { padding-bottom: 1rem; margin-bottom: 1rem; border-bottom: 1px solid #1e293b; }
+        .meeting-item:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+        .meeting-date-title { font-weight: 600; font-size: 13px; margin-bottom: 0.5rem; color: var(--text); }
+        .meeting-content-wrap { position: relative; }
+        .meeting-content {
+            color: var(--muted);
+            font-size: 13px;
+            line-height: 1.6;
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+        }
+        .meeting-content.collapsed { max-height: 80px; }
+        .meeting-fade {
+            position: absolute;
+            bottom: 0; left: 0; right: 0;
+            height: 40px;
+            background: linear-gradient(transparent, var(--bg-secondary));
+            pointer-events: none;
+        }
+        .meeting-fade.hidden { display: none; }
+        .show-more-btn {
+            background: none;
+            border: none;
+            color: var(--accent);
+            cursor: pointer;
+            font-size: 12px;
+            padding: 0.25rem 0;
+            display: block;
+            margin-top: 4px;
+        }
+        .show-more-btn:hover { color: var(--accent-hover); }
+
+        /* EMAIL HISTORY */
+        .email-row {
+            display: grid;
+            grid-template-columns: 90px 1fr 150px;
+            gap: 8px;
+            padding: 7px 0;
+            border-bottom: 1px solid #1e293b;
+            font-size: 13px;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+        .email-row:last-child { border-bottom: none; }
+        .email-row:hover { background: rgba(37,99,235,.05); }
+        .email-date-col { color: var(--muted); font-variant-numeric: tabular-nums; }
+        .email-subject-col { color: #60a5fa; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .email-from-col { color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .email-detail-row { display: none; padding: 0.75rem 0; border-bottom: 1px solid #1e293b; }
+        .email-detail-row.open { display: block; }
+        .email-detail-row .detail-summary { color: var(--text); font-size: 13px; line-height: 1.6; margin-bottom: 0.5rem; }
+        .email-view-link { color: var(--accent); font-size: 12px; text-decoration: none; }
+        .email-view-link:hover { color: var(--accent-hover); }
+
+        .hidden { display: none !important; }
+
+        @media (max-width: 640px) {
+            .contact-grid { grid-template-columns: 100px 1fr; }
+            .contact-field-row { grid-template-columns: 100px 1fr; }
+            .person-fields { grid-template-columns: 1fr; }
+            .interaction-row { grid-template-columns: 75px 1fr; }
+            .ix-type { display: none; }
+            .email-row { grid-template-columns: 75px 1fr; }
+            .email-from-col { display: none; }
+        }
+    </style>
+</head>
+<body>
+{% set active_tab = 'people' %}
+{% include '_nav.html' %}
+
+<div class="container">
+    <!-- Breadcrumb + Header -->
+    <a href="/crm/people" class="breadcrumb-back">← People</a>
+
+    <div class="page-header">
+        <div>
+            <div class="page-title">{{ person.name }}</div>
+            {% if person.org %}
+            <a href="/crm/org/{{ person.org | urlencode }}" class="page-subtitle-link">{{ person.org }}</a>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Contact Info Box (hidden until data loads; shown by renderPersonCard if content exists) -->
+    <div class="card hidden" id="person-card">
+        <div class="section-header">
+            <div class="section-title">Contact Info</div>
+            <button class="btn-sm" id="contact-edit-btn" onclick="showProfileEdit()">Edit</button>
+        </div>
+        <div id="person-fields"></div>
+    </div>
+
+    <!-- Person Brief -->
+    <div class="card" id="brief-card">
+        <div id="person-brief">
+            <div class="brief-header">
+                <div class="section-title">Person Brief</div>
+            </div>
+            <div class="brief-loading">
+                <div class="loading-pulse"></div>
+                <span>Synthesizing intelligence...</span>
+            </div>
+        </div>
+        <!-- Update textarea (hidden until Update clicked) -->
+        <div class="update-area" id="update-area">
+            <textarea class="update-textarea" id="update-input"
+                placeholder="Type context about this person — a call you had, something they said, changes to their role, or anything worth capturing..."
+                rows="3"></textarea>
+            <div class="update-submit-row">
+                <button class="btn btn-primary btn-sm" onclick="submitPersonUpdate()">Submit</button>
+                <button class="btn btn-sm" onclick="cancelUpdate()">Cancel</button>
+                <span class="update-status" id="update-status"></span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Interaction History (collapsible, starts expanded) -->
+    <div class="card hidden" id="interactions-card">
+        <div class="collapsible-header" onclick="toggleSection('interactions')">
+            <div style="display:flex;align-items:center;gap:8px;">
+                <div class="section-title">Interaction History</div>
+                <span class="section-count" id="interactions-count"></span>
+            </div>
+            <span class="collapsible-toggle" id="interactions-toggle">▲</span>
+        </div>
+        <div class="collapsible-body" id="interactions-body"></div>
+    </div>
+
+    <!-- Meeting Summaries (collapsible, starts expanded) -->
+    <div class="card hidden" id="meetings-card">
+        <div class="collapsible-header" onclick="toggleSection('meetings')">
+            <div style="display:flex;align-items:center;gap:8px;">
+                <div class="section-title">Meeting Summaries</div>
+                <span class="section-count" id="meetings-count"></span>
+            </div>
+            <span class="collapsible-toggle" id="meetings-toggle">▲</span>
+        </div>
+        <div class="collapsible-body" id="meetings-body"></div>
+    </div>
+
+    <!-- Email History (collapsible, starts collapsed) -->
+    <div class="card hidden" id="emails-card">
+        <div class="collapsible-header" onclick="toggleSection('emails')">
+            <div style="display:flex;align-items:center;gap:8px;">
+                <div class="section-title">Email History</div>
+                <span class="section-count" id="emails-count"></span>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;">
+                <button class="btn-sm" id="email-refresh-btn"
+                    onclick="event.stopPropagation(); refreshEmailHistory()">⟳ Refresh</button>
+                <span class="collapsible-toggle" id="emails-toggle">▼</span>
+            </div>
+        </div>
+        <div class="collapsible-body collapsed" id="emails-body"></div>
+    </div>
+
+    <!-- Delete Person -->
+    <div style="margin-top: 2rem; padding-bottom: 2rem; text-align: right;">
+        <button class="btn" id="delete-person-btn"
+            style="border-color:#ef444433;color:#ef4444;"
+            onclick="deletePerson()">
+            Delete Person
+        </button>
+    </div>
+</div>
+
+<script>
+// ============================================
+// CONSTANTS
+// ============================================
+const PERSON_NAME = {{ person.name | tojson }};
+const PERSON_SLUG = {{ slug | tojson }};
+const BRIEF_CACHE_PREFIX = 'arec_person_brief_v1_';
+const enc = encodeURIComponent;
+
+const TYPE_BADGE = {
+    'Meeting': 'badge-meeting',
+    'Email':   'badge-email',
+    'Call':    'badge-call',
+    'Note':    'badge-note',
+    'Document Sent':     'badge-doc',
+    'Document Received': 'badge-doc',
+};
+
+// ============================================
+// INIT
+// ============================================
+document.addEventListener('DOMContentLoaded', () => loadPersonDetail());
+
+// ============================================
+// PAGE DATA LOAD
+// ============================================
+async function loadPersonDetail() {
+    try {
+        const resp = await fetch(`/crm/api/person-data?name=${enc(PERSON_NAME)}`);
+        if (!resp.ok) throw new Error('Person data API failed');
+        const data = await resp.json();
+
+        renderPersonCard(data);
+        renderInteractions(data.interactions);
+        renderMeetings(data.meeting_summaries);
+        renderEmails(data.email_history);
+
+        await loadBrief(data);
+
+    } catch (err) {
+        console.error('Person detail load failed:', err);
+        showBriefError();
+    }
+}
+
+// ============================================
+// PROFILE EDIT
+// ============================================
+function showProfileEdit() {
+    Promise.all([
+        fetch(`/crm/api/person-data?name=${enc(PERSON_NAME)}`).then(r => r.json()),
+        fetch('/crm/api/orgs').then(r => r.json()),
+    ]).then(([data, orgs]) => {
+        const profile = data.profile || {};
+        const orgName = data.org_name || '';
+        const orgOptions = ['', ...orgs].map(o =>
+            `<option value="${esc(o)}"${o === orgName ? ' selected' : ''}>${esc(o) || '— None —'}</option>`
+        ).join('');
+        document.getElementById('person-fields').innerHTML = `
+            <div class="contact-edit-form">
+                <div class="contact-field-row">
+                    <label>Organization</label>
+                    <select id="edit-org" style="background:var(--bg-primary);border:1px solid var(--border);border-radius:4px;color:var(--text);padding:0.5rem 0.75rem;font-size:0.9rem;font-family:inherit;">
+                        ${orgOptions}
+                    </select>
+                </div>
+                <div class="contact-field-row">
+                    <label>Title</label>
+                    <input type="text" id="edit-title" value="${esc(profile.title || '')}">
+                </div>
+                <div class="contact-field-row">
+                    <label>Email</label>
+                    <input type="email" id="edit-email" value="${esc(profile.email || '')}">
+                </div>
+                <div class="contact-field-row">
+                    <label>Phone</label>
+                    <input type="text" id="edit-phone" value="${esc(profile.phone || '')}">
+                </div>
+                <div class="contact-actions">
+                    <button class="btn btn-primary btn-sm" onclick="saveProfileEdit()">Save</button>
+                    <button class="btn btn-sm" onclick="loadPersonDetail()">Cancel</button>
+                </div>
+            </div>
+        `;
+    });
+}
+
+async function saveProfileEdit() {
+    const saveBtn = document.querySelector('#person-fields .btn-primary');
+    if (saveBtn) { saveBtn.textContent = 'Saving...'; saveBtn.disabled = true; }
+
+    const payload = {
+        company: document.getElementById('edit-org').value.trim(),
+        title: document.getElementById('edit-title').value.trim(),
+        email: document.getElementById('edit-email').value.trim(),
+        phone: document.getElementById('edit-phone').value.trim(),
+    };
+
+    try {
+        const resp = await fetch(`/crm/people/api/${PERSON_SLUG}/contact`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+        });
+
+        if (!resp.ok) throw new Error('Update failed');
+        await loadPersonDetail();
+        // Brief green flash to confirm save
+        const card = document.getElementById('person-card');
+        card.style.borderColor = '#22c55e';
+        setTimeout(() => { card.style.borderColor = ''; }, 1200);
+    } catch (err) {
+        if (saveBtn) { saveBtn.textContent = 'Save'; saveBtn.disabled = false; }
+        const actions = document.querySelector('#person-fields .contact-actions');
+        if (actions) {
+            const errEl = document.createElement('div');
+            errEl.style.cssText = 'color:#ef4444;font-size:12px;margin-top:0.5rem;';
+            errEl.textContent = 'Failed to save. Please try again.';
+            actions.appendChild(errEl);
+        }
+        console.error(err);
+    }
+}
+
+// ============================================
+// PERSON CARD
+// ============================================
+function renderPersonCard(data) {
+    const profile = data.profile || {};
+    const prospects = data.prospects || [];
+    const orgName = data.org_name || profile.company || '';
+    const card = document.getElementById('person-card');
+
+    // Contact rows — only populated fields are rendered
+    const contactRows = [];
+    if (orgName) {
+        contactRows.push(
+            `<span class="contact-label">Organization</span>` +
+            `<span class="contact-value"><a href="/crm/org/${enc(orgName)}" class="page-subtitle-link">${esc(orgName)}</a></span>`
+        );
+    }
+    if (profile.title) {
+        contactRows.push(
+            `<span class="contact-label">Title</span>` +
+            `<span class="contact-value">${esc(profile.title)}</span>`
+        );
+    }
+    if (profile.email) {
+        contactRows.push(
+            `<span class="contact-label">Email</span>` +
+            `<span class="contact-value"><a href="mailto:${esc(profile.email)}">${esc(profile.email)}</a></span>`
+        );
+    }
+    if (profile.phone) {
+        contactRows.push(
+            `<span class="contact-label">Phone</span>` +
+            `<span class="contact-value"><a href="tel:${esc(profile.phone)}">${esc(profile.phone)}</a></span>`
+        );
+    }
+
+    // Prospect connections
+    let connectionsHtml = '';
+    if (prospects.length) {
+        const items = prospects.map(p => {
+            const isPrimary = (p['Primary Contact'] || '').toLowerCase() === PERSON_NAME.toLowerCase();
+            const roleLabel = isPrimary ? '(primary contact)' : '(org contact)';
+            const offering = p.offering || '';
+            const stage = p.Stage || '';
+            const target = p.Target && p.Target !== '$0' ? p.Target : '';
+            const label = [offering, stage, target].filter(Boolean).join(' — ');
+            const url = `/crm/prospect/${enc(offering)}/${enc(orgName)}/detail`;
+            return `<li class="connection-item">
+                <a href="${url}" class="connection-link">${esc(label)}</a>
+                <span class="connection-role">${roleLabel}</span>
+            </li>`;
+        }).join('');
+        connectionsHtml = `
+            <div style="margin-top:1rem">
+                <div class="field-label">Prospect Connections</div>
+                <ul class="connections-list">${items}</ul>
+            </div>`;
+    }
+
+    if (contactRows.length === 0 && !prospects.length) {
+        card.classList.add('hidden');
+        document.getElementById('person-fields').innerHTML = '';
+        return;
+    }
+
+    card.classList.remove('hidden');
+    let html = '';
+    if (contactRows.length > 0) {
+        html += `<div class="contact-grid">${contactRows.join('')}</div>`;
+    }
+    html += connectionsHtml;
+    document.getElementById('person-fields').innerHTML = html;
+}
+
+// ============================================
+// BRIEF: SERVER-PERSISTED CACHE
+// ============================================
+async function loadBrief(rawData) {
+    const contentHash = rawData.content_hash;
+    const saved = rawData.saved_brief;
+
+    // Use server-persisted brief if hash matches current data
+    if (saved && saved.content_hash === contentHash) {
+        renderPersonBrief(saved.narrative, saved.generated_at);
+        return;
+    }
+
+    // No saved brief or stale — auto-synthesize
+    showBriefLoading();
+    await _synthesizePersonBrief();
+}
+
+async function refreshBrief() {
+    showBriefLoading();
+    await _synthesizePersonBrief();
+}
+
+async function _synthesizePersonBrief() {
+    try {
+        const resp = await fetch('/crm/api/synthesize-person-brief', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name: PERSON_NAME }),
+        });
+        if (!resp.ok) throw new Error('Synthesis failed');
+        const synth = await resp.json();
+        renderPersonBrief(synth.narrative);
+    } catch (err) {
+        showBriefError();
+    }
+}
+
+function narrativeToHtml(text) {
+    if (!text) return '';
+    return text.trim()
+        .split(/\n\n+/)
+        .filter(p => p.trim())
+        .map(p => `<p>${esc(p.trim().replace(/\n/g, ' '))}</p>`)
+        .join('');
+}
+
+function renderPersonBrief(narrative, generatedAt) {
+    const tsHtml = generatedAt
+        ? `<span class="brief-ts" title="Generated ${generatedAt}">
+             ${new Date(generatedAt).toLocaleDateString('en-US', {month:'short', day:'numeric'})}
+           </span>`
+        : '';
+    document.getElementById('person-brief').innerHTML = `
+        <div class="brief-header">
+            <div class="section-title">Person Brief ${tsHtml}</div>
+            <div class="brief-actions">
+                <button class="btn-sm" onclick="showUpdateInput()">Update</button>
+                <button class="btn-sm" onclick="refreshBrief()">⟳ Refresh</button>
+            </div>
+        </div>
+        <div class="brief-narrative">${narrativeToHtml(narrative)}</div>
+    `;
+}
+
+function showBriefLoading() {
+    document.getElementById('person-brief').innerHTML = `
+        <div class="brief-header">
+            <div class="section-title">Person Brief</div>
+        </div>
+        <div class="brief-loading">
+            <div class="loading-pulse"></div>
+            <span>Synthesizing intelligence...</span>
+        </div>
+    `;
+}
+
+function showBriefError() {
+    document.getElementById('person-brief').innerHTML = `
+        <div class="brief-header">
+            <div class="section-title">Person Brief</div>
+            <div class="brief-actions">
+                <button class="btn-sm" onclick="showUpdateInput()">Update</button>
+                <button class="btn-sm" onclick="refreshBrief()">Retry</button>
+            </div>
+        </div>
+        <div style="color:var(--muted);font-size:13px;padding:1rem 0;">
+            Brief generation unavailable. See reference sections below for full context.
+        </div>
+    `;
+}
+
+// ============================================
+// UPDATE BUTTON
+// ============================================
+function showUpdateInput() {
+    const area = document.getElementById('update-area');
+    area.classList.add('visible');
+    document.getElementById('update-input').focus();
+}
+
+function cancelUpdate() {
+    const area = document.getElementById('update-area');
+    area.classList.remove('visible');
+    document.getElementById('update-input').value = '';
+    document.getElementById('update-status').textContent = '';
+}
+
+async function submitPersonUpdate() {
+    const input = document.getElementById('update-input').value.trim();
+    if (!input) return;
+
+    const status = document.getElementById('update-status');
+    status.textContent = 'Saving...';
+
+    try {
+        const resp = await fetch('/crm/api/person-update', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name: PERSON_NAME, input }),
+        });
+        if (!resp.ok) throw new Error('Update failed');
+        const result = await resp.json();
+
+        const successCount = (result.actions || []).filter(a => a.status === 'success').length;
+        status.textContent = `Saved (${successCount} update${successCount !== 1 ? 's' : ''})`;
+
+        // Brief will auto-refresh on next loadPersonDetail (server hash will differ)
+        setTimeout(() => {
+            cancelUpdate();
+            loadPersonDetail();
+        }, 1200);
+    } catch (err) {
+        status.textContent = 'Error — please try again';
+    }
+}
+
+// ============================================
+// INTERACTION HISTORY
+// ============================================
+function renderInteractions(interactions) {
+    if (!interactions || interactions.length === 0) return;
+    const body = document.getElementById('interactions-body');
+    body.innerHTML = interactions.map(ix => {
+        const badgeCls = TYPE_BADGE[ix.type] || 'badge-default';
+        const summary = ix.summary || ix.subject || '';
+        return `<div class="interaction-row">
+            <span class="ix-date">${esc(ix.date || '')}</span>
+            <span class="ix-type ${badgeCls}">${esc(ix.type || '')}</span>
+            <span class="ix-summary">${esc(summary)}</span>
+        </div>`;
+    }).join('');
+    document.getElementById('interactions-count').textContent = interactions.length;
+    document.getElementById('interactions-card').classList.remove('hidden');
+    body.style.maxHeight = body.scrollHeight + 'px';
+}
+
+// ============================================
+// MEETING SUMMARIES
+// ============================================
+function renderMeetings(summaries) {
+    if (!summaries || summaries.length === 0) return;
+    const body = document.getElementById('meetings-body');
+    body.innerHTML = summaries.map((ms, i) => {
+        const title = parseFilenameToTitle(ms.filename);
+        const contentHtml = renderMarkdown(ms.content);
+        const id = `meeting-${i}`;
+        return `<div class="meeting-item">
+            <div class="meeting-date-title">${esc(title)}</div>
+            <div class="meeting-content-wrap" id="wrap-${id}">
+                <div class="meeting-content collapsed" id="${id}">${contentHtml}</div>
+                <div class="meeting-fade" id="fade-${id}"></div>
+            </div>
+            <button class="show-more-btn" id="btn-${id}" onclick="toggleMeeting('${id}')">Show more</button>
+        </div>`;
+    }).join('');
+    document.getElementById('meetings-count').textContent = summaries.length;
+    document.getElementById('meetings-card').classList.remove('hidden');
+    body.style.maxHeight = body.scrollHeight + 'px';
+
+    summaries.forEach((_, i) => {
+        const id = `meeting-${i}`;
+        const el = document.getElementById(id);
+        if (el && el.scrollHeight <= 85) {
+            document.getElementById(`fade-${id}`).classList.add('hidden');
+            document.getElementById(`btn-${id}`).style.display = 'none';
+        }
+    });
+}
+
+function toggleMeeting(id) {
+    const el = document.getElementById(id);
+    const fade = document.getElementById(`fade-${id}`);
+    const btn = document.getElementById(`btn-${id}`);
+    const expanded = !el.classList.contains('collapsed');
+    el.classList.toggle('collapsed', expanded);
+    el.style.maxHeight = expanded ? '' : el.scrollHeight + 'px';
+    if (fade) fade.classList.toggle('hidden', !expanded);
+    btn.textContent = expanded ? 'Show more' : 'Show less';
+    const body = document.getElementById('meetings-body');
+    if (body) body.style.maxHeight = body.scrollHeight + 'px';
+}
+
+function parseFilenameToTitle(filename) {
+    if (!filename) return '';
+    const base = filename.replace(/\.md$/, '');
+    const m = base.match(/^(\d{4})-(\d{2})-(\d{2})-(.+)$/);
+    if (!m) return base;
+    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    const d = parseInt(m[3], 10);
+    const mo = months[parseInt(m[2], 10) - 1];
+    const yr = m[1];
+    const titleSlug = m[4].replace(/-/g, ' / ').replace(/\b\w/g, c => c.toUpperCase());
+    return `${mo} ${d}, ${yr} — ${titleSlug}`;
+}
+
+// ============================================
+// EMAIL HISTORY
+// ============================================
+function renderEmails(emails) {
+    if (!emails || emails.length === 0) return;
+    const body = document.getElementById('emails-body');
+    body.innerHTML = emails.map((e, i) => {
+        const detailId = `email-detail-${i}`;
+        return `<div class="email-row" onclick="toggleEmailDetail('${detailId}')">
+            <span class="email-date-col">${esc(e.date || '')}</span>
+            <span class="email-subject-col">${esc(e.subject || '')}</span>
+            <span class="email-from-col">${esc(e.fromName || e.from || '')}</span>
+        </div>
+        <div class="email-detail-row" id="${detailId}">
+            <div class="detail-summary">${esc(e.summary || '')}</div>
+            ${e.outlookUrl ? `<a href="${esc(e.outlookUrl)}" target="_blank" rel="noopener" class="email-view-link">View in Outlook →</a>` : ''}
+        </div>`;
+    }).join('');
+    document.getElementById('emails-count').textContent = emails.length;
+    document.getElementById('emails-card').classList.remove('hidden');
+}
+
+async function refreshEmailHistory() {
+    const btn = document.getElementById('email-refresh-btn');
+    const orig = btn.textContent;
+    btn.textContent = '...';
+    btn.disabled = true;
+    try {
+        const resp = await fetch(`/crm/api/person-data?name=${enc(PERSON_NAME)}`);
+        if (!resp.ok) throw new Error('fetch failed');
+        const data = await resp.json();
+        renderEmails(data.email_history);
+    } catch (err) {
+        console.error('Email refresh failed:', err);
+    } finally {
+        btn.textContent = orig;
+        btn.disabled = false;
+    }
+}
+
+function toggleEmailDetail(id) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.classList.toggle('open');
+    const body = document.getElementById('emails-body');
+    if (!body.classList.contains('collapsed') && body.style.maxHeight) {
+        body.style.maxHeight = body.scrollHeight + 'px';
+    }
+}
+
+// ============================================
+// COLLAPSIBLE SECTIONS
+// ============================================
+function toggleSection(name) {
+    const body = document.getElementById(`${name}-body`);
+    const toggle = document.getElementById(`${name}-toggle`);
+    const collapsed = body.classList.contains('collapsed');
+
+    if (collapsed) {
+        body.classList.remove('collapsed');
+        body.style.maxHeight = body.scrollHeight + 'px';
+        toggle.textContent = '▲';
+    } else {
+        body.style.maxHeight = body.scrollHeight + 'px';
+        requestAnimationFrame(() => {
+            body.style.maxHeight = body.scrollHeight + 'px';
+            requestAnimationFrame(() => {
+                body.classList.add('collapsed');
+                toggle.textContent = '▼';
+            });
+        });
+    }
+}
+
+// ============================================
+// MARKDOWN RENDERER
+// ============================================
+function renderMarkdown(text) {
+    if (!text) return '';
+    const lines = text.split('\n');
+    let html = '', inList = false;
+    for (const raw of lines) {
+        const line = raw.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+        if (/^### /.test(raw))     { if (inList){html+='</ul>';inList=false;} html+=`<strong>${line.replace(/^### /,'')}</strong><br>`; }
+        else if (/^## /.test(raw)) { if (inList){html+='</ul>';inList=false;} html+=`<strong>${line.replace(/^## /,'')}</strong><br>`; }
+        else if (/^# /.test(raw))  { if (inList){html+='</ul>';inList=false;} html+=`<strong>${line.replace(/^# /,'')}</strong><br>`; }
+        else if (/^- /.test(raw))  { if (!inList){html+='<ul>';inList=true;} html+=`<li>${applyInline(line.replace(/^- /,''))}</li>`; }
+        else if (/^---+$/.test(raw.trim())) { if (inList){html+='</ul>';inList=false;} html+='<hr style="border-color:#334155;margin:0.5rem 0">'; }
+        else if (raw.trim() === '') { if (inList){html+='</ul>';inList=false;} }
+        else                       { if (inList){html+='</ul>';inList=false;} html+=`<p style="margin-bottom:0.35rem;color:#94a3b8">${applyInline(line)}</p>`; }
+    }
+    if (inList) html += '</ul>';
+    return html;
+}
+
+function applyInline(t) {
+    return t
+        .replace(/\*\*([^*\n]+)\*\*/g, '<strong>$1</strong>')
+        .replace(/\*([^*\n]+)\*/g, '<em>$1</em>');
+}
+
+function esc(t) {
+    if (t == null) return '';
+    const map = {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'};
+    return String(t).replace(/[&<>"']/g, c => map[c]);
+}
+
+// ============================================
+// DELETE PERSON
+// ============================================
+async function deletePerson() {
+    if (!confirm(`Delete ${PERSON_NAME}? This cannot be undone.`)) return;
+    const btn = document.getElementById('delete-person-btn');
+    btn.disabled = true;
+    btn.textContent = 'Deleting...';
+    try {
+        const resp = await fetch(`/crm/people/${PERSON_SLUG}/delete`, { method: 'POST' });
+        if (!resp.ok) throw new Error('Delete failed');
+        window.location.href = '/crm/people';
+    } catch (err) {
+        btn.disabled = false;
+        btn.textContent = 'Delete Person';
+        alert('Failed to delete person. Please try again.');
+    }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,264 @@
+<style>
+.contacts-table-wrap { margin-top: 12px; }
+.contact-card { border: 1px solid #334155; border-radius: 6px; padding: 14px 16px; background: #334155; margin-bottom: 10px; }
+.contact-name { font-weight: 600; font-size: 14px; color: #cbd5e1; margin-bottom: 6px; }
+.contact-fields { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 8px; }
+.contact-field { font-size: 13px; }
+.contact-field .lbl { color: #94a3b8; font-size: 11px; text-transform: uppercase; font-weight: 600; }
+.contact-field .val { color: #cbd5e1; margin-top: 1px; }
+.add-contact-btn { background: #3b82f6; color: #fff; border: none; padding: 8px 16px; border-radius: 6px; font-size: 13px; font-weight: 500; cursor: pointer; margin-top: 10px; }
+.add-contact-btn:hover { background: #2563eb; }
+
+/* Add Contact Form Styles */
+.add-contact-form { margin-top: 12px; padding: 16px; background: #1e293b; border: 1px solid #334155; border-radius: 6px; }
+.add-contact-form.hidden { display: none; }
+.form-label { display: block; font-size: 12px; font-weight: 600; color: #94a3b8; margin-bottom: 6px; }
+.form-input { width: 100%; padding: 8px 10px; border: 1px solid #334155; border-radius: 4px; font-size: 14px; font-family: inherit; background: #0f172a; color: #e2e8f0; }
+.form-input:focus { outline: none; border-color: #3b82f6; }
+.form-row { margin-bottom: 12px; }
+.form-actions { display: flex; gap: 8px; margin-top: 14px; }
+.btn-cancel { background: #334155; border: 1px solid #475569; color: #cbd5e1; padding: 7px 14px; border-radius: 4px; font-size: 13px; cursor: pointer; }
+.btn-cancel:hover { border-color: #64748b; }
+.btn-save { background: #3b82f6; border: none; color: #fff; padding: 7px 14px; border-radius: 4px; font-size: 13px; font-weight: 500; cursor: pointer; }
+.btn-save:hover { background: #2563eb; }
+.btn-switch-mode { background: none; border: 1px solid #475569; color: #94a3b8; padding: 6px 12px; border-radius: 4px; font-size: 12px; cursor: pointer; margin-top: 8px; }
+.btn-switch-mode:hover { border-color: #3b82f6; color: #60a5fa; }
+
+/* Search Results Dropdown */
+.search-input-wrap { position: relative; }
+.search-results-dropdown { position: absolute; top: 100%; left: 0; right: 0; max-height: 200px; overflow-y: auto; background: #1e293b; border: 1px solid #334155; border-radius: 4px; margin-top: 2px; z-index: 10; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3); }
+.search-results-dropdown.hidden { display: none; }
+.search-result-item { padding: 10px 12px; font-size: 13px; color: #cbd5e1; cursor: pointer; border-bottom: 1px solid #334155; }
+.search-result-item:last-child { border-bottom: none; }
+.search-result-item:hover { background: #334155; }
+.search-result-name { font-weight: 600; color: #f1f5f9; }
+.search-result-meta { font-size: 11px; color: #94a3b8; margin-top: 2px; }
+.search-result-create { padding: 10px 12px; font-size: 13px; color: #60a5fa; font-weight: 500; text-align: center; cursor: pointer; border-top: 1px solid #334155; }
+.search-result-create:hover { background: rgba(59,130,246,.1); }
+</style>
+
+<div class="contacts-table-wrap" id="contacts-table-wrap">
+  {% if contacts %}
+    {% for contact in contacts %}
+    <div class="contact-card">
+      <div class="contact-name">
+        {% if contact.slug %}
+          <a href="/crm/people/{{ contact.slug }}" style="color:inherit;text-decoration:none;">{{ contact.name }}</a>
+        {% else %}
+          {{ contact.name }}
+        {% endif %}
+      </div>
+      <div class="contact-fields">
+        {% if contact.role or contact.title %}
+        <div class="contact-field">
+          <div class="lbl">Role</div>
+          <div class="val">{{ contact.role or contact.title }}</div>
+        </div>
+        {% endif %}
+        {% if contact.email %}
+        <div class="contact-field">
+          <div class="lbl">Email</div>
+          <div class="val">{{ contact.email }}</div>
+        </div>
+        {% endif %}
+        {% if contact.phone %}
+        <div class="contact-field">
+          <div class="lbl">Phone</div>
+          <div class="val">{{ contact.phone }}</div>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+    {% endfor %}
+  {% else %}
+    <p style="color:#94a3b8;font-size:14px;">No contacts linked yet.</p>
+  {% endif %}
+
+  <button class="add-contact-btn" id="btn-show-add-contact" onclick="showAddContactForm()">+ Add Contact</button>
+
+  <!-- Add Contact Form (hidden by default) -->
+  <div class="add-contact-form hidden" id="add-contact-form">
+    <!-- Search Existing Mode -->
+    <div id="search-mode">
+      <label class="form-label">Search for existing contact:</label>
+      <div class="search-input-wrap">
+        <input type="text"
+               id="contact-search-input"
+               class="form-input"
+               placeholder="Type name to search..."
+               autocomplete="off"
+               oninput="searchPeopleContacts(this.value)">
+        <div class="search-results-dropdown hidden" id="search-results"></div>
+      </div>
+      <button class="btn-switch-mode" onclick="switchToCreateMode()">Or create new contact</button>
+    </div>
+
+    <!-- Create New Mode (hidden by default) -->
+    <div id="create-mode" class="hidden">
+      <label class="form-label">Create new contact:</label>
+      <div class="form-row">
+        <input type="text" id="new-contact-name" class="form-input" placeholder="Name *" required>
+      </div>
+      <div class="form-row">
+        <input type="text" id="new-contact-title" class="form-input" placeholder="Title">
+      </div>
+      <div class="form-row">
+        <input type="email" id="new-contact-email" class="form-input" placeholder="Email">
+      </div>
+      <div class="form-row">
+        <input type="tel" id="new-contact-phone" class="form-input" placeholder="Phone">
+      </div>
+      <div class="form-actions">
+        <button class="btn-cancel" onclick="hideAddContactForm()">Cancel</button>
+        <button class="btn-save" onclick="submitNewContact()">Save</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const CONTACTS_ORG_NAME = {{ org_name | tojson }};
+let searchTimeoutContacts = null;
+
+function showAddContactForm() {
+  document.getElementById('btn-show-add-contact').classList.add('hidden');
+  document.getElementById('add-contact-form').classList.remove('hidden');
+  document.getElementById('search-mode').classList.remove('hidden');
+  document.getElementById('create-mode').classList.add('hidden');
+  document.getElementById('contact-search-input').focus();
+}
+
+function hideAddContactForm() {
+  document.getElementById('add-contact-form').classList.add('hidden');
+  document.getElementById('btn-show-add-contact').classList.remove('hidden');
+  // Reset form
+  document.getElementById('contact-search-input').value = '';
+  document.getElementById('search-results').classList.add('hidden');
+  document.getElementById('search-mode').classList.remove('hidden');
+  document.getElementById('create-mode').classList.add('hidden');
+  // Clear create form fields
+  document.getElementById('new-contact-name').value = '';
+  document.getElementById('new-contact-title').value = '';
+  document.getElementById('new-contact-email').value = '';
+  document.getElementById('new-contact-phone').value = '';
+}
+
+function switchToCreateMode() {
+  document.getElementById('search-mode').classList.add('hidden');
+  document.getElementById('create-mode').classList.remove('hidden');
+  document.getElementById('new-contact-name').focus();
+}
+
+async function searchPeopleContacts(query) {
+  const resultsEl = document.getElementById('search-results');
+
+  if (!query.trim()) {
+    resultsEl.classList.add('hidden');
+    return;
+  }
+
+  // Debounce
+  if (searchTimeoutContacts) clearTimeout(searchTimeoutContacts);
+  searchTimeoutContacts = setTimeout(async () => {
+    try {
+      const resp = await fetch(`/crm/api/people/search?q=${encodeURIComponent(query)}`);
+      const people = await resp.json();
+
+      if (people.length === 0) {
+        resultsEl.innerHTML = '<div class="search-result-item" style="cursor:default;">No matches found</div><div class="search-result-create" onclick="switchToCreateMode()">+ Create New Contact</div>';
+      } else {
+        resultsEl.innerHTML = people.map(p => {
+          const meta = [p.title, p.email].filter(Boolean).join(' · ');
+          return `<div class="search-result-item" onclick='selectExistingPerson(${JSON.stringify(p)})'>
+            <div class="search-result-name">${escapeHtmlContacts(p.name)}</div>
+            ${meta ? `<div class="search-result-meta">${escapeHtmlContacts(meta)}</div>` : ''}
+          </div>`;
+        }).join('') + '<div class="search-result-create" onclick="switchToCreateMode()">+ Create New Contact</div>';
+      }
+      resultsEl.classList.remove('hidden');
+    } catch (err) {
+      console.error('Search failed:', err);
+    }
+  }, 300);
+}
+
+async function selectExistingPerson(person) {
+  // Hide dropdown
+  document.getElementById('search-results').classList.add('hidden');
+
+  try {
+    const resp = await fetch(`/crm/api/org/${encodeURIComponent(CONTACTS_ORG_NAME)}/contacts`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name: person.name,
+        title: person.title || '',
+        email: person.email || '',
+        phone: person.phone || '',
+        is_new: false
+      })
+    });
+
+    if (!resp.ok) {
+      const err = await resp.json().catch(() => ({}));
+      throw new Error(err.error || 'Failed to add contact');
+    }
+
+    // Reload page to show new contact
+    window.location.reload();
+  } catch (err) {
+    alert('Failed to add contact: ' + err.message);
+  }
+}
+
+async function submitNewContact() {
+  const name = document.getElementById('new-contact-name').value.trim();
+  const title = document.getElementById('new-contact-title').value.trim();
+  const email = document.getElementById('new-contact-email').value.trim();
+  const phone = document.getElementById('new-contact-phone').value.trim();
+
+  if (!name) {
+    alert('Name is required');
+    document.getElementById('new-contact-name').focus();
+    return;
+  }
+
+  try {
+    const resp = await fetch(`/crm/api/org/${encodeURIComponent(CONTACTS_ORG_NAME)}/contacts`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name: name,
+        title: title,
+        email: email,
+        phone: phone,
+        is_new: true
+      })
+    });
+
+    if (!resp.ok) {
+      const err = await resp.json().catch(() => ({}));
+      throw new Error(err.error || 'Failed to create contact');
+    }
+
+    // Reload page to show new contact
+    window.location.reload();
+  } catch (err) {
+    alert('Failed to create contact: ' + err.message);
+  }
+}
+
+function escapeHtmlContacts(text) {
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
+
+// Close dropdown when clicking outside
+document.addEventListener('click', function(e) {
+  const searchWrap = document.querySelector('.search-input-wrap');
+  if (searchWrap && !searchWrap.contains(e.target)) {
+    document.getElementById('search-results').classList.add('hidden');
+  }
+});
+</script>
