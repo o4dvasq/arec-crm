@@ -34,6 +34,7 @@ jobs:
           app/ \
           scripts/ \
           startup.sh \
+          requirements.txt \
           -x "*.pyc" \
           -x "**/__pycache__/*" \
           -x "**/tests/*" \
