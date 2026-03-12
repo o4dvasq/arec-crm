@@ -20,7 +20,7 @@ sys.path.insert(0, os.path.join(PROJECT_ROOT, "app"))
 PROSPECTS_PATH = os.path.join(PROJECT_ROOT, "crm", "prospects.md")
 TASKS_PATH = os.path.join(PROJECT_ROOT, "TASKS.md")
 
-from sources.crm_reader import load_prospects, write_prospect, get_prospect
+from sources.crm_db import load_prospects, write_prospect, get_prospect
 
 
 # ---------------------------------------------------------------------------

@@ -362,3 +362,146 @@
 - `app/templates/_nav.html` (user display name + logout link)
 - `scripts/create_schema.py` (seed 8 users with placeholder IDs)
 
+
+## 2026-03-12 — Overwatch Segregation + PostgreSQL-Only Multi-User CRM
+
+**Decision:** Split arec-crm into two projects: (1) Overwatch — personal productivity (tasks, meetings, memory, calendar) running locally on port 3001, and (2) AREC CRM — multi-user fundraising platform with PostgreSQL backend, Entra ID SSO, and graph API polling. All personal productivity features moved to Overwatch. AREC CRM root route redirects to `/crm`.
+
+**Key implementation choices:**
+
+1. **Two independent projects, not monorepo** — Overwatch at `~/Dropbox/projects/overwatch/`, AREC CRM at `~/Dropbox/projects/arec-crm/`. Zero imports between them. Shared modules (graph_auth, ms_graph) copied to both.
+
+2. **PostgreSQL-only for CRM** — Deleted `crm_reader.py`. All imports switched to `crm_db.py`. No markdown fallback. Local dev uses local Postgres or Azure dev DB.
+
+3. **Morning briefing removed entirely** — `app/main.py`, `generator.py`, `prompt_builder.py` moved to Overwatch but not scheduled. Morning briefing workflow deprecated. Brief synthesis (`brief_synthesizer.py`) stays in CRM for relationship briefs.
+
+4. **Root route redirect** — AREC CRM `/` redirects to `/crm` (pipeline view). No dashboard home page. Overwatch `/` shows dashboard with tasks + calendar + meetings.
+
+5. **Multi-user email attribution** — `crm_graph_sync.py` now takes `user_id` parameter. `email_scan_log` table has `scanned_by` FK. `graph_poller.py` iterates over users with `graph_consent_granted = True`.
+
+6. **User provisioning is manual** — New users seeded via `scripts/seed_user.py`. No self-service signup. Users must exist in Entra ID tenant + `users` table.
+
+7. **Merge stubs for compatibility** — `merge_organizations()` and `get_merge_preview()` added to `crm_db.py` as stubs (not implemented). `merge_organizations()` raises NotImplementedError.
+
+8. **Overwatch has no CRM config** — `tasks_blueprint.py` in Overwatch uses stub `load_crm_config()` that returns empty dicts. No dependency on CRM data.
+
+**Rationale:** 
+- Oscar's personal productivity (tasks, memory, meeting summaries) should not be in a multi-user fundraising platform.
+- Overwatch stays local (no Azure deployment), AREC CRM becomes team platform.
+- PostgreSQL-only simplifies deployment and testing (no dual backend complexity).
+- Morning briefing feature was deprecated; on-demand brief synthesis is the active workflow.
+
+**Rejected approaches:**
+- **Shared library for common code** — Creates coupling. Copying graph_auth and ms_graph is simpler.
+- **Keep markdown fallback in CRM** — Dual backend doubles testing surface. PostgreSQL-only is cleaner.
+- **Merge personal + team features** — Personal tasks/memory don't belong in team CRM. Clear separation is better.
+
+**For the next designer:**
+- Overwatch runs on port 3001, AREC CRM on port 8000 (Azure) or 3002 (local dev).
+- Graph API token cache (`~/.arec_briefing_token_cache.json`) is shared between both projects for local dev.
+- TASKS.md is in Overwatch only. CRM tasks use `prospect_tasks` table.
+- `memory/people/*.md` stays in AREC CRM (canonical contact intel). Overwatch has separate `people/` directory (empty initially).
+
+**Impact:**
+- Created `~/Dropbox/projects/overwatch/` (22 files moved + 3 new)
+- Deleted from arec-crm: 18+ files (tasks, meetings, memory, briefing orchestrator)
+- Modified in arec-crm: 6 files (dashboard, crm_blueprint, crm_graph_sync, crm_db, relationship_brief, CLAUDE.md)
+- New in arec-crm: 5 files (migration scripts, graph_poller, access_denied template)
+
+---
+
+## 2026-03-12 — Overwatch Dashboard Testing and Static Asset Strategy
+
+**Decision:** During Overwatch testing, discovered missing `_nav.html` template and undefined `config` variable. Fixed by creating minimal nav template and adding config stub to dashboard route. Static assets (CSS/JS) copied from arec-crm rather than creating Overwatch-specific styles.
+
+**Key fixes applied:**
+
+1. **Created `_nav.html` for Overwatch** — Minimal navigation bar with project branding and user display. No CRM tabs, no global search. Single-user display ("Oscar Vasquez") hardcoded.
+
+2. **Config stub in dashboard route** — Dashboard template expects `config.team` and `config.team_map` for task modal. Added stub return: `config = {'team': [], 'team_map': []}`. Single-user mode doesn't need team assignment.
+
+3. **Removed CRM API dependency** — Dashboard template had `fetch('/crm/api/orgs')` to populate task modal org dropdown. Replaced with local stub: `window.TASK_MODAL_PROSPECT_ORGS = []`. Overwatch has no CRM orgs.
+
+4. **Static asset reuse** — Copied `crm.css`, `crm.js`, `task-edit-modal.css`, `task-edit-modal.js` from arec-crm to Overwatch. Both projects share dark theme and task modal UI.
+
+**Testing results:**
+- ✓ Dashboard imports successfully
+- ✓ Server starts on port 3001
+- ✓ Root route returns HTTP 200
+- ✓ Template renders (67KB response)
+- ✓ Static assets served correctly
+
+**Rationale:**
+- Overwatch is a single-user local app. No need for multi-user nav, team assignment, or org dropdowns.
+- Reusing static assets avoids duplicating 10KB+ of CSS/JS. Both projects use same dark theme.
+- Nav template kept minimal — may evolve later if Overwatch adds more sections.
+
+**Rejected approaches:**
+- **Creating Overwatch-specific styles** — Unnecessary duplication. Dark theme works for both projects.
+- **Removing task modal** — Tasks are core to Overwatch. Modal provides full CRUD UI.
+- **Keeping CRM API calls** — Would fail at runtime. Local stub prevents fetch errors.
+
+**For the next designer:**
+- If Overwatch UI diverges significantly, consider splitting static assets.
+- Task modal org links (`/crm/org/...`) are harmless in Overwatch but non-functional. Could be removed if task format changes.
+- `_nav.html` is minimal. If more pages added (reports, analytics), extend nav accordingly.
+
+**Impact:**
+- `overwatch/app/templates/_nav.html` (new)
+- `overwatch/app/delivery/dashboard.py` (config stub added)
+- `overwatch/app/templates/dashboard.html` (CRM API call removed)
+- `overwatch/app/static/` (4 files copied)
+
+---
+
+## 2026-03-12 — Local PostgreSQL Setup and Schema Script Fixes
+
+**Decision:** Set up local PostgreSQL 14 for development instead of immediately using Azure database. Fixed schema creation scripts to load from `.env` instead of `.env.azure`.
+
+**Key implementation choices:**
+
+1. **PostgreSQL 14 via Homebrew** — Used `brew install postgresql@14` rather than Docker or Postgres.app. Homebrew service management (`brew services start`) ensures automatic startup.
+
+2. **Database name: `arec_crm`** — Simple, matches project name. No special characters or versioning suffix. Created with default UTF-8 encoding.
+
+3. **Local connection string** — `postgresql://localhost/arec_crm` (no username/password). Uses peer authentication (macOS user = Postgres user). Simpler for local dev.
+
+4. **Fixed `.env` loading in scripts** — `create_schema.py` was hardcoded to load `.env.azure`. Changed to `.env` for local dev. `.env.azure` remains as deployment template.
+
+5. **Added SQLAlchemy text() wrappers** — `migrate_add_graph_columns.py` failed with raw SQL strings. SQLAlchemy 2.0 requires explicit `text()` wrapper for all raw SQL. Applied to all `session.execute()` calls.
+
+6. **Flask config added to .env** — Added `FLASK_SECRET_KEY`, `DASHBOARD_PORT=8000`, `FLASK_DEBUG=false` to match production conventions. Port 8000 (not 3001) to avoid conflict with Overwatch.
+
+7. **Schema creation seeds users immediately** — `create_schema.py` seeds 8 team members with placeholder Entra IDs on first run. Avoids chicken-egg problem with foreign keys.
+
+**Testing results:**
+- ✓ PostgreSQL service running
+- ✓ Database created
+- ✓ Schema creation successful (14 tables)
+- ✓ Users seeded (8 team members)
+- ✓ Graph columns migration successful
+- ✓ Dashboard functional (HTTP 200 on /crm)
+
+**Rationale:**
+- Local PostgreSQL avoids Azure costs during development and testing.
+- Peer authentication simplifies local setup (no password management).
+- Immediate user seeding prevents foreign key constraint failures when creating test data.
+- Port 8000 standard for production-like local dev (matches Azure).
+
+**Rejected approaches:**
+- **Docker PostgreSQL** — Extra complexity, slower startup. Homebrew service is simpler.
+- **SQLite for local dev** — Would require maintaining two SQL dialects. PostgreSQL-only is cleaner.
+- **Azure database for local dev** — Slower, costs money, requires VPN/firewall rules.
+
+**For the next designer:**
+- All scripts now assume `.env` exists with `DATABASE_URL`. If switching to Azure, update `.env` (don't change scripts).
+- `brew services start postgresql@14` must run on every machine. Add to setup docs.
+- User placeholder IDs (`placeholder-oscar`, etc.) get replaced on first SSO login. See `entra_auth.py` callback.
+
+**Impact:**
+- `app/.env` (added DATABASE_URL + Flask config)
+- `scripts/create_schema.py` (load `.env` instead of `.env.azure`)
+- `scripts/migrate_add_graph_columns.py` (added init_db, dotenv loading, text() wrappers)
+- PostgreSQL 14 installed and running as system service
+
+---

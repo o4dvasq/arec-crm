@@ -192,7 +192,7 @@ RULES:
 def collect_relationship_data(org, offering, base_dir=None):
     """Collect all knowledge base data for an org/offering.
     Returns structured dict with all 8 sources."""
-    from sources.crm_reader import (
+    from sources.crm_db import (
         get_prospect, get_organization, get_contacts_for_org,
         load_interactions, get_emails_for_org,
     )
@@ -229,7 +229,7 @@ def collect_relationship_data(org, offering, base_dir=None):
     email_history = get_emails_for_org(org) or []
 
     # Source 9: Freeform notes log (phone calls, manual entries)
-    from sources.crm_reader import load_prospect_notes, load_prospect_meetings
+    from sources.crm_db import load_prospect_notes, load_prospect_meetings
     notes_log = load_prospect_notes(org, offering) or []
 
     # Source 10: Upcoming meetings
@@ -605,7 +605,7 @@ def find_meeting_summaries_for_person(person_name, org_name='', base_dir=None):
 
 def get_email_history_for_person(email, org_name=''):
     """Get emails to/from a specific email address, filtered from org email log."""
-    from sources.crm_reader import get_emails_for_org
+    from sources.crm_db import get_emails_for_org
 
     if not email or not org_name:
         return []
@@ -660,7 +660,7 @@ def _build_person_profile(person_name, people_intel, org_name):
 
 def collect_person_data(person_name, base_dir=None):
     """Collect all knowledge base data about a person across all sources."""
-    from sources.crm_reader import (
+    from sources.crm_db import (
         get_organization, get_prospects_for_org, load_interactions,
     )
 
@@ -849,7 +849,7 @@ def build_person_fallback_summary(raw_data):
 
 def execute_person_updates(person_name, org_name, updates, base_dir=None):
     """Execute AI-routed updates for a person record."""
-    from sources.crm_reader import (
+    from sources.crm_db import (
         update_contact_fields, get_prospects_for_org,
         update_prospect_field, append_interaction,
     )

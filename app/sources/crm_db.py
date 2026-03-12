@@ -1740,3 +1740,35 @@ def resolve_primary_contact(org: str, contact_name: str) -> dict | None:
         if person.get('name', '').lower() == contact_name.lower():
             return person
     return None
+
+
+# ---------------------------------------------------------------------------
+# Organization merge (stub implementation for PostgreSQL backend)
+# ---------------------------------------------------------------------------
+
+def get_merge_preview(source: str, target: str) -> dict:
+    """Preview what will be merged when merging source into target."""
+    # TODO: Implement PostgreSQL-backed merge preview
+    return {
+        'source_org': get_organization(source),
+        'target_org': get_organization(target),
+        'source_contacts': get_contacts_for_org(source),
+        'target_contacts': get_contacts_for_org(target),
+        'source_prospects': get_prospects_for_org(source),
+        'target_prospects': get_prospects_for_org(target),
+        'message': 'Merge preview (PostgreSQL backend)',
+    }
+
+
+def merge_organizations(source: str, target: str) -> dict:
+    """Merge source org into target org."""
+    # TODO: Implement PostgreSQL-backed organization merge
+    # This should:
+    # 1. Move all contacts from source to target
+    # 2. Move all prospects from source to target (handle conflicts)
+    # 3. Move all interactions from source to target
+    # 4. Delete source org
+    raise NotImplementedError(
+        "Organization merge not yet implemented for PostgreSQL backend. "
+        "Please manually move contacts/prospects and delete source org."
+    )

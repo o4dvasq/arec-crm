@@ -37,7 +37,6 @@ from sources.crm_db import (
     load_interactions, append_interaction,
     save_brief, load_saved_brief, load_all_briefs,
     load_prospect_notes, save_prospect_note,
-    load_prospect_meetings, save_prospect_meeting, delete_prospect_meeting,
     append_person_email_history, append_org_email_history,
     discover_and_enrich_contact_emails, enrich_org_domain,
     find_person_by_email,
@@ -648,27 +647,9 @@ def api_add_prospect_note(offering, org):
 # Upcoming Meetings API
 # ---------------------------------------------------------------------------
 
-@crm_bp.route('/api/prospect/<offering>/<path:org>/add-meeting', methods=['POST'])
-def api_add_prospect_meeting(offering, org):
-    data = request.get_json(force=True)
-    meeting_date = (data.get('meeting_date') or '').strip()
-    meeting_time = (data.get('meeting_time') or '').strip()
-    attendees = (data.get('attendees') or '').strip()
-    purpose = (data.get('purpose') or '').strip()
-    if not meeting_date:
-        return jsonify({'error': 'meeting_date is required'}), 400
-    entry = save_prospect_meeting(org, offering, meeting_date, meeting_time, attendees, purpose)
-    return jsonify({'ok': True, 'entry': entry})
-
-
-@crm_bp.route('/api/prospect/<offering>/<path:org>/delete-meeting', methods=['POST'])
-def api_delete_prospect_meeting(offering, org):
-    data = request.get_json(force=True)
-    meeting_id = (data.get('id') or '').strip()
-    if not meeting_id:
-        return jsonify({'error': 'id is required'}), 400
-    removed = delete_prospect_meeting(org, offering, meeting_id)
-    return jsonify({'ok': removed})
+# Prospect upcoming meetings API removed — feature moved to calendar integration
+# @crm_bp.route('/api/prospect/<offering>/<path:org>/add-meeting', methods=['POST'])
+# @crm_bp.route('/api/prospect/<offering>/<path:org>/delete-meeting', methods=['POST'])
 
 
 # ---------------------------------------------------------------------------
@@ -1583,41 +1564,5 @@ def api_org_merge():
         return jsonify({'error': str(e)}), 500
 
 
-@crm_bp.route('/api/followup', methods=['POST'])
-def api_followup_create():
-    data = request.get_json(force=True)
-    org = data.get('org', '').strip()
-    description = data.get('description', '').strip()
-    priority = data.get('priority', 'Med').strip()
-    assignee = data.get('assignee', '').strip()
-    if not org or not description:
-        return jsonify({'error': 'org and description required'}), 400
-    if not assignee:
-        return jsonify({'error': 'assignee is required'}), 400
-
-    from sources.memory_reader import append_task_to_section
-
-    # Find short name from team_map
-    config = load_crm_config()
-    team_map = config.get('team_map', [])
-    short_name = None
-    for member in team_map:
-        if member['full'] == assignee:
-            short_name = member['short']
-            break
-
-    if not short_name:
-        # Fallback: use first name
-        short_name = assignee.split()[0] if assignee else 'Me'
-
-    # Format task line with assignee tag
-    task_line = f'- [ ] **[{priority}]** **@{short_name}** {description} ({org})'
-
-    # Determine section based on assignee
-    # For now, use "Fundraising - {FirstName}" pattern
-    section = f'Fundraising - {short_name}'
-
-    success = append_task_to_section(section, task_line)
-    if not success:
-        return jsonify({'error': 'Failed to write task'}), 500
-    return jsonify({'ok': True}), 201
+# /api/followup endpoint removed — use /crm/api/tasks POST instead
+# Tasks are now managed in prospect_tasks table, not TASKS.md

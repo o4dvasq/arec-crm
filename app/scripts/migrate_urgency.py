@@ -14,7 +14,7 @@ import os
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
 
-from app.sources.crm_reader import load_prospects, write_prospect
+from app.sources.crm_db import load_prospects, write_prospect
 
 
 def migrate():

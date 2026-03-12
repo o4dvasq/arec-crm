@@ -12,7 +12,7 @@ APP_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__)
 sys.path.insert(0, APP_DIR)
 
 from dotenv import load_dotenv
-load_dotenv(os.path.join(APP_DIR, '.env.azure'))
+load_dotenv(os.path.join(APP_DIR, '.env'))
 
 from models import Base, PipelineStage, User, BriefingScope
 from db import init_db, session_scope

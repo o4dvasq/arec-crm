@@ -125,10 +125,14 @@ def _is_high_urgency(org: str) -> bool:
     return False
 
 
-def run_auto_capture(token: str) -> dict:
+def run_auto_capture(token: str, user_id: int = None) -> dict:
     """
     Scan last 24h of email + calendar. Match participants to CRM orgs.
     Log matched interactions; queue unmatched for review.
+
+    Args:
+        token: MS Graph access token
+        user_id: User ID for multi-user attribution (optional, for background polling)
 
     Returns: {'matched': N, 'unmatched': N, 'skipped_dedup': N, 'pending_interviews_added': N}
     """

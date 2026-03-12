@@ -131,7 +131,8 @@ def migrate_contacts(session):
             print(f"  ⚠ Org not found for contacts: {org_name} (base: {base_org})")
             continue
 
-        for slug in slugs:
+        # Deduplicate slugs (contacts_index.md has some duplicates)
+        for slug in list(dict.fromkeys(slugs)):
             person = load_person(slug)
             if not person:
                 print(f"  ⚠ Person file not found: {slug}")

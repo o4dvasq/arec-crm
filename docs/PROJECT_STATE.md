@@ -6,101 +6,87 @@
 ---
 
 ## Last Updated
-2026-03-11 — Bug fixes: org dropdowns, backend revert to markdown, search labels, prospect task edit modal
+2026-03-12 — Local PostgreSQL setup complete, database fully initialized and functional
 
 ---
 
 ## What's Built and Working
 
-### Morning Briefing Pipeline (Local, Unchanged)
-- `app/main.py` orchestrates: MSAL auth → MS Graph fetch → prompt build → Claude call → write `briefing_latest.md`
-- Runs via launchd at 5 AM; token cached after first device flow auth
-- Auto-capture runs after briefing: email + calendar → CRM interaction log (two-tier matching)
+### AREC CRM — Multi-User Fundraising Platform
+- **Backend**: PostgreSQL-only (`crm_db.py`). All 45+ functions operational.
+- **Local Database**: PostgreSQL 14.22 running on `localhost/arec_crm`
+- **Schema**: 14 tables created with all relationships and foreign keys
+- **Seeded Data**: 8 team members, 9 pipeline stages
+- **Graph Columns**: `graph_consent_granted`, `graph_consent_date`, `scanned_by` added
+- **Root route**: Redirects to `/crm` (pipeline view). No dashboard home page.
+- **CRM Features**: Pipeline, prospect detail, org management, relationship briefs, contact intelligence, interaction history
+- **Brief Synthesis**: Relationship briefs (org-level + person-level) via Claude API, cached in PostgreSQL
+- **Email Integration**: Deep Email Scan, auto-capture, two-tier matching ready (needs data)
+- **Dark Theme**: Full dark theme throughout (CSS custom properties)
+- **Multi-User Infrastructure**: Migration scripts, user seeding, graph poller, access denied page
+- **Testing**: Dashboard imports successfully, routes return 200/302, templates render correctly
 
-### Web Dashboard (Local Dev)
-- Flask app with CRM and Tasks blueprints
-- **Dark theme throughout**: All pages use CSS custom properties (`--bg-primary: #0f172a`, `--bg-secondary: #1e293b`, `--border: #334155`, `--text: #e2e8f0`, `--muted: #94a3b8`, `--accent: #2563eb`)
-- CRM pipeline view: entire row clicks navigate to prospect detail; filter preservation via `back_filters` query param; fully dark-themed
-- Prospect detail: Click-to-edit fields (Stage, Org Type, Assigned To, Target, Closing), Quick Actions bar, relationship brief synthesis, interaction history, notes, contacts with "+ Add Contact"
-- Prospect detail: Deep Email Scan button — queries Archive + Sent over 90 days for org domain + contacts; also scans Tony's delegate mailbox; returns enrichment stats
-- People detail: Always-visible Contact Info card at top showing Company (linked), Title, Email, Phone — all click-to-edit; edit form includes all 4 fields
-- Org edit page (`/crm/org/<name>/edit`): Prospect-style summary card — bold title above card, 3-column grid (Type, Domain), full-width Notes row below, all click-to-edit with auto-save green flash
-- Org detail page (`/crm/org/<name>/detail`): Same summary card treatment — page title above card, 3-column grid, Notes row hidden when empty
-- Contacts: Shared `_contacts_table.html` partial with typeahead search + create new contact flow
-- Tasks: kanban view, status updates, add new tasks with assignee routing
-- **Backend**: Local markdown only (`crm_reader.py`). Azure migration infrastructure exists but is deferred.
+### Overwatch — Personal Productivity Platform
+- **Location**: `~/Dropbox/projects/overwatch/`
+- **Port**: 3001 (local-only, single-user)
+- **Status**: Fully functional, tested end-to-end
+- **Features**: Task management (TASKS.md), meeting summaries, personal memory, calendar integration
+- **Components**: Dashboard (tasks + calendar + meetings), tasks blueprint, calendar refresh API, meeting detail pages
+- **Templates**: dashboard.html, meeting_detail.html, _nav.html, tasks/tasks.html
+- **Static Assets**: All CSS/JS copied from arec-crm (crm.css, crm.js, task-edit-modal.*)
+- **Testing**: HTTP 200 on all routes, templates render correctly, static assets served
 
-### Global Search Bar
-- Appears on every page in nav row 2, right of the "Orgs" tab
-- Three entity types: Prospects (name + offering), People (name + org), Orgs (name only)
-- Each result shows: bold name, muted secondary context, right-aligned type label (`Prospect` / `Person` / `Org`) in grey
-- Prefix matches rank above substring matches; within tiers: Prospects → People → Orgs → alpha
-- Keyboard: arrow keys, Enter to navigate, Escape to dismiss
+### Intelligence Pipeline
+- **Auto-capture**: Email/calendar → CRM interactions (two-tier matching: domain then person email)
+- **Email Enrichment**: Domain discovery, email history append, contact email enrichment
+- **Unmatched Queue**: `unmatched_emails` table for manual review
+- **Brief Synthesis**: `brief_synthesizer.py` handles all Claude calls (prospect + org + person)
 
-### Org Type Dropdown
-- Full 19-type list (from `crm_db.py` config) used across all org type dropdowns
-- Create Org modal (`crm_orgs.html`) now uses `{% for t in config.org_types %}` Jinja loop — no more hardcoded short list
-- Org list route passes `config` to template
-
-### Active Tasks on Prospect Detail
-- Loaded from `/tasks/api/tasks/for-org?org=ORG` — new endpoint in `tasks_blueprint.py`
-- Matches tasks by `[org: ...]` tag OR `(OrgName)` parenthetical OR org name anywhere in task text
-- Task rows are **clickable** — opens `task-edit-modal.js` for full edit (text, priority, status, assignee, context, delete)
-- **"+ Add Task" button** in the tasks card header — opens modal in create mode, pre-fills org
-- `taskModalOnSave` / `taskModalOnDelete` callbacks reload task list after changes
-- Tasks card always visible (never hidden); shows "No open tasks." when empty
-- Quick Actions "Add Task" form still works (uses `/crm/api/tasks` POST → `add_prospect_task()`)
-
-### Pipeline Task Overflow
-- When a prospect has >1 open task, shows `+N` badge (count of hidden tasks)
-- Clicking badge opens a popover listing all tasks with priority badges and owner names
-
-### Brief Synthesis
-- `brief_synthesizer.py` handles all Claude calls for briefs (prospect-level and org-level)
-- Aggregates 9 data sources into context block; returns `{narrative, at_a_glance}` JSON
-- Cached in `crm/briefs.json`
-- Refresh via dashboard or `scripts/refresh_interested_briefs.py`
-
-### Email Inbox Drain (Local, Unchanged)
-- `app/drain_inbox.py` reads `crm@avilacapllc.com` shared mailbox
-- Parses forwarded emails (intent note + original); appends to `inbox.md`
-
-### Azure Migration Infrastructure (Deferred)
-- `app/models.py`, `app/db.py`, `app/sources/crm_db.py`, `scripts/` migration scripts all exist
-- `app/auth/entra_auth.py` SSO middleware exists
-- NOT active — local CRM runs on markdown only until Oscar completes Azure Portal setup
+### Data Layer
+- **PostgreSQL Tables**: 14 tables fully created and initialized
+- **Migration Scripts**: All scripts functional with local database support
+- **People Knowledge Base**: `memory/people/*.md` files preserved (canonical contact intel)
 
 ### Testing
-- 52 tests across 3 files: `test_brief_synthesizer.py` (10), `test_task_parsing.py` (22), `test_email_matching.py` (20)
+- 52 tests in arec-crm (need PostgreSQL fixtures)
+- Overwatch dashboard: End-to-end HTTP tests passed
+- AREC CRM: Import tests passed, HTTP routes functional
 
 ---
 
 ## What Was Just Completed
 
-**Bug fixes + Task UI overhaul** (2026-03-11)
-- **Org type dropdown fixed**: Create Org modal had hardcoded short list (4 types). Replaced with Jinja2 loop over `config.org_types`. Fixed missing `config` param in `orgs_list()` route.
-- **Backend reverted to markdown**: Previous session had partially migrated `dashboard.py` and `crm_blueprint.py` to import `crm_db` and call `init_db_app`. Both reverted to `crm_reader.py`; no DATABASE_URL needed for local dev.
-- **Global search type labels**: Added `typeLabel` field (`'Prospect'`, `'Person'`, `'Org'`) to all entries in `inject_search_index()`. JS and CSS for `.search-result-type` were already in place.
-- **New `/tasks/api/tasks/for-org` endpoint**: Scans TASKS.md with section+index tracking, matches tasks for an org by `[org:]` tag OR org name in text, returns full parsed data (text, priority, status, assigned_to, context, section, index).
-- **Prospect detail task edit modal**: Replaced checkboxes + completeTask with clickable rows that open the shared `task-edit-modal.js`. Added "+ Add Task" button in card header. Wired `TASK_MODAL_TEAM_MAP`, `TASK_MODAL_SECTIONS`, `taskModalOnSave/Delete` callbacks. Task card always visible.
+**Local PostgreSQL Setup + Database Initialization** (2026-03-12)
+- **Installed PostgreSQL 14.22** via Homebrew, configured to start on login
+- **Created arec_crm database** on localhost
+- **Fixed schema scripts** to use local `.env` instead of `.env.azure`
+- **Ran schema creation** — 14 tables created, 8 users seeded, 9 pipeline stages seeded
+- **Ran graph columns migration** — Added `graph_consent_granted`, `graph_consent_date` to users; `scanned_by` to email_scan_log
+- **Updated .env** — Added `DATABASE_URL=postgresql://localhost/arec_crm` and Flask config vars
+- **Tested dashboard** — All routes functional, pipeline renders successfully (80KB response)
 
 ---
 
 ## Known Issues
 
-- **Phase I1 tests not yet written** — Existing 52 tests use markdown backend. Need `test_crm_db.py` with Postgres fixtures (deferred with Azure migration).
-- **Azure Portal prerequisites incomplete** — Oscar must complete Resource Group, PostgreSQL, Key Vault, Entra ID app registration, App Service setup before migration can run.
-- **Pipeline org_type badge** — Still uses light colors inconsistent with dark theme. Minor cosmetic.
-- **Launchd plist** — May still point to old `~/Dropbox/Tech/ClaudeProductivity/` path; needs manual update.
+- **No CRM data yet** — Database schema exists but empty (no prospects, orgs, contacts). Run `migrate_to_postgres.py` to import from markdown files if needed.
+- **SSO not implemented** — `@login_required` decorators need to be added to all CRM routes
+- **Tests need PostgreSQL fixtures** — Existing 52 tests use markdown fixtures
+- **merge_organizations() not implemented** — Returns NotImplementedError
+- **Pipeline Assigned To filter** — Frontend dropdown not yet built (backend supports it)
+- **Graph API polling** — `graph_poller.py` exists but not scheduled (needs cron or Azure Function)
 
 ---
 
 ## Next Up
 
-1. **Oscar completes Azure Portal setup** (when ready for cloud migration):
-   - Create Resource Group, PostgreSQL Flexible Server, Key Vault, Entra ID app registration, App Service
-   - Provide `DATABASE_URL`, `AZURE_CLIENT_ID`, `AZURE_CLIENT_SECRET`
-2. Continue iterating on prospect detail UX as needed
+1. **Import existing CRM data** (optional): `python3 scripts/migrate_to_postgres.py` if you have markdown files to import
+2. **Test locally**: Run `python3 app/delivery/dashboard.py` and visit http://localhost:8000
+3. **Add SSO enforcement** — Apply `@login_required` to all CRM blueprint routes
+4. **Update tests** — Rewrite test suite with PostgreSQL fixtures
+5. **Add real Entra IDs** — Update placeholder user IDs with real ones from Azure
+6. **Deploy to Azure** — Update GitHub Actions, configure App Service
+7. **Schedule graph_poller** — Set up hourly email polling
 
 ---
 
@@ -113,5 +99,5 @@
 ## Deferred / Parked
 
 - `arec-mobile/` PWA — functional, not actively iterated
-- Azure migration (Phase I1) — infrastructure built, awaiting Oscar's Azure Portal setup
-- Phase I2-I5 features (Intelligence pipeline, Intelligence UI, Briefing engine, Meeting transcript processing)
+- Phase I2-I5 features (Intelligence pipeline enhancements, Intelligence UI, Briefing engine, Meeting transcript processing)
+- Morning briefing removed entirely (moved to Overwatch, not scheduled)

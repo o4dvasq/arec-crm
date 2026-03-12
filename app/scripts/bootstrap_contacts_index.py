@@ -12,7 +12,7 @@ import re
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from sources.crm_reader import load_prospects, add_contact_to_index
+from sources.crm_db import load_prospects, add_contact_to_index
 
 _PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 PEOPLE_DIR = os.path.join(_PROJECT_ROOT, 'memory', 'people')
