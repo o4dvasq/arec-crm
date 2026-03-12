@@ -38,15 +38,18 @@ python3 app/drain_inbox.py                        # Drain crm@avilacapllc.com sh
 |------|---------|
 | `app/sources/crm_db.py` | PostgreSQL CRM data layer — single source of truth (2000+ lines, 45+ functions) |
 | `app/delivery/crm_blueprint.py` | CRM routes + relationship brief synthesis endpoints |
+| `app/delivery/admin_blueprint.py` | Admin routes (user management at `/admin/users`) |
 | `app/delivery/dashboard.py` | Flask app factory (DB init → auth init → blueprint registration) |
-| `app/models.py` | SQLAlchemy ORM models (14 tables) |
+| `app/models.py` | SQLAlchemy ORM models (14 tables, including User with role field) |
 | `app/db.py` | Database engine/session management |
-| `app/auth/entra_auth.py` | Entra ID SSO (MSAL confidential client) |
+| `app/auth/entra_auth.py` | Entra ID SSO (MSAL OAuth), auto-provisioning, DEV_USER support |
+| `app/auth/decorators.py` | `@require_admin` decorator for admin-only routes |
 | `app/briefing/brief_synthesizer.py` | Claude API caller for relationship brief generation |
 | `app/graph_poller.py` | Multi-user Graph API email polling (not yet scheduled) |
 | `.github/workflows/azure-deploy.yml` | CI/CD: tests → deploy to Azure |
 | `startup.sh` | Azure App Service startup (dependency install + DB check + gunicorn) |
 | `scripts/seed_user.py` | Add new users to users table |
+| `scripts/migrate_add_auth_columns.py` | Migration: adds role, display_name, last_login_at, created_at columns |
 | `app/tests/conftest.py` | Test fixtures (SQLite in-memory, seed data) |
 
 ---
@@ -54,7 +57,7 @@ python3 app/drain_inbox.py                        # Drain crm@avilacapllc.com sh
 ## Non-Obvious Conventions
 
 - **PostgreSQL-only**: No markdown CRM files. All data reads/writes go through `crm_db.py`. No `crm_reader.py` imports allowed anywhere.
-- **Multi-user authentication**: Entra ID SSO required for all routes. Only `@avilacapllc.com` accounts. Users must be seeded in `users` table before first login.
+- **Multi-user authentication**: Entra ID SSO (MSAL OAuth flow) for production. DEV_USER env var for local dev. Auto-provisions users on first login. Oscar Vasquez auto-promoted to admin role.
 - **Initialization order in dashboard.py**: `db.init_app(app)` → `init_auth_routes(app)` → `app.register_blueprint(crm_bp)`. Auth routes query the users table, so DB must init first.
 - **Two-tier email matching**: Domain match first (Tier 1), then person email lookup (Tier 2). Unmatched → `unmatched_emails` table.
 - **Brief synthesis JSON contract**: Claude must return `{narrative, at_a_glance}`. `brief_synthesizer.py` handles parse fallbacks.
@@ -64,6 +67,15 @@ python3 app/drain_inbox.py                        # Drain crm@avilacapllc.com sh
 
 ---
 
+## Authentication & User Management
+
+- **DEV_USER for local dev**: Set `DEV_USER=oscar@avilacapllc.com` in `app/.env` to bypass OAuth during local development. Warning logged at startup.
+- **Auto-provisioning**: New `@avilacapllc.com` users are auto-created on first login with role=`user` (except oscar@avilacapllc.com → `admin`).
+- **Role-based access**: `users.role` column with values `admin` or `user`. Admin role gates `/admin/*` routes via `@require_admin` decorator.
+- **Admin page**: `/admin/users` allows admins to view all users and change roles. Cannot demote yourself.
+- **g.user available everywhere**: Flask `before_request` hook populates `g.user` with full user record (id, email, display_name, role, last_login_at).
+- **Production uses Entra ID SSO**: Azure App Service handles OAuth redirect. Flask reads MSAL token and manages sessions.
+
 ## Active Constraints
 
 - **Organization field is always a dropdown**: The Organization/Company field on People Detail edit must use a `<select>` from `/crm/api/orgs`. Never render a free-text input.
@@ -71,7 +83,7 @@ python3 app/drain_inbox.py                        # Drain crm@avilacapllc.com sh
 - **Root route redirects to CRM**: `/` redirects to `/crm` (pipeline view). No dashboard home page.
 - **Assigned To filter on pipeline**: Pipeline view has dropdown to filter prospects by `assigned_to` field.
 - **No markdown fallback**: App assumes PostgreSQL is available. No `crm_reader.py` imports allowed.
-- **User provisioning is manual**: New users added to Entra ID tenant + seeded in `users` table via `scripts/seed_user.py`.
+- **User provisioning is automatic**: Users auto-created on first login. No manual seeding required. oscar@avilacapllc.com promoted to admin on first login.
 - **Tests use SQLite in-memory**: `conftest.py` defaults to `sqlite:///:memory:` when `TEST_DATABASE_URL` not set. All 99 tests run this way in CI.
 
 ---

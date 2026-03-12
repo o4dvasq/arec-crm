@@ -66,6 +66,7 @@ class User(Base):
     entra_id = Column(String(255), unique=True, nullable=False)
     email = Column(String(255), unique=True, nullable=False)
     display_name = Column(String(255), nullable=False)
+    role = Column(String(20), nullable=False, default='user')
     is_active = Column(Boolean, default=True)
     briefing_enabled = Column(Boolean, default=True)
     briefing_scope = Column(Enum(BriefingScope), default=BriefingScope.standard)

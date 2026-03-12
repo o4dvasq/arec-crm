@@ -25,7 +25,7 @@ arec-crm is a multi-user fundraising CRM platform for the AREC team deployed on 
 
 1. **Web Dashboard** — Flask app on Azure App Service (port 8000). Full dark theme. CI/CD via GitHub Actions.
 2. **PostgreSQL Backend** — Azure Flexible Server. All CRM data in PostgreSQL. No markdown fallback. No `crm_reader.py`.
-3. **Multi-User Auth** — Entra ID SSO (MSAL confidential client). Only `@avilacapllc.com` accounts.
+3. **Multi-User Auth** — Entra ID SSO (MSAL confidential client). Auto-provisioning on first login. Admin/user roles. DEV_USER bypass for local dev.
 4. **Email Integration** — Graph API email polling (hourly background job, not yet scheduled), auto-capture, deep scan, two-tier matching.
 5. **Intelligence** — Relationship briefs (org + person) via Claude API, cached in PostgreSQL.
 
@@ -54,11 +54,12 @@ arec-crm/                        (~/Dropbox/projects/arec-crm/)
 │   ├── .env.example           ← Template for .env
 │   ├── drain_inbox.py         ← Shared mailbox email drain
 │   ├── graph_poller.py        ← Hourly email polling (multi-user)
-│   ├── models.py              ← SQLAlchemy ORM models (14 tables)
+│   ├── models.py              ← SQLAlchemy ORM models (14 tables, User has role field)
 │   ├── db.py                  ← Database connection + session management
 │   ├── auth/
 │   │   ├── graph_auth.py      ← MSAL device flow (local dev only)
-│   │   └── entra_auth.py      ← MSAL confidential client (Azure SSO)
+│   │   ├── entra_auth.py      ← MSAL confidential client (Azure SSO, auto-provisioning)
+│   │   └── decorators.py      ← @require_admin decorator
 │   ├── briefing/
 │   │   └── brief_synthesizer.py  ← Claude API call + JSON parsing + task extraction
 │   ├── sources/
@@ -68,7 +69,8 @@ arec-crm/                        (~/Dropbox/projects/arec-crm/)
 │   │   └── relationship_brief.py  ← Context aggregation for briefs
 │   ├── delivery/
 │   │   ├── dashboard.py       ← Flask main app
-│   │   └── crm_blueprint.py   ← CRM routes + brief synthesis endpoints
+│   │   ├── crm_blueprint.py   ← CRM routes + brief synthesis endpoints
+│   │   └── admin_blueprint.py ← Admin routes (/admin/users)
 │   ├── templates/
 │   │   ├── crm_pipeline.html
 │   │   ├── crm_prospect_detail.html
@@ -77,7 +79,9 @@ arec-crm/                        (~/Dropbox/projects/arec-crm/)
 │   │   ├── crm_person_detail.html
 │   │   ├── access_denied.html      ← Unauthorized user page
 │   │   ├── _contacts_table.html    ← Contacts partial
-│   │   └── _nav.html               ← Navigation partial
+│   │   ├── _nav.html               ← Navigation partial (includes admin badge)
+│   │   └── admin/
+│   │       └── users.html          ← Admin user management page
 │   ├── static/
 │   │   ├── crm.css
 │   │   ├── crm.js
@@ -94,6 +98,7 @@ arec-crm/                        (~/Dropbox/projects/arec-crm/)
 │   ├── migrate_to_postgres.py     ← Parse markdown → insert into Postgres
 │   ├── verify_migration.py        ← Validate migration
 │   ├── migrate_add_graph_columns.py  ← Add graph consent columns
+│   ├── migrate_add_auth_columns.py   ← Add role, display_name, last_login_at columns
 │   ├── seed_user.py               ← Add new user to users table
 │   └── refresh_interested_briefs.py  ← Bulk brief refresh CLI
 │
@@ -230,9 +235,10 @@ All variables live in `app/.env` (local) or Azure Key Vault (production).
 | `ANTHROPIC_API_KEY` | Claude API authentication |
 | `AZURE_CLIENT_ID` | Entra ID app registration |
 | `AZURE_CLIENT_SECRET` | Client secret for SSO |
-| `AZURE_TENANT_ID` | Avila Capital LLC tenant (064d6342-5dc5-424e-802f-53ff17bc02be) |
+| `AZURE_TENANT_ID` | Avila Capital LLC tenant (ebd42ab2-7f1c-4d40-8b44-f5ecc51d2659) |
 | `DATABASE_URL` | PostgreSQL connection string |
 | `FLASK_SECRET_KEY` | Flask session signing key |
+| `DEV_USER` | Local dev only — bypasses OAuth, auto-provisions user |
 | `AI_INBOX_EMAIL` | Shared mailbox (`crm@avilacapllc.com`) |
 
 ---

@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Team Members — AREC CRM Admin</title>
+  <link rel="stylesheet" href="/static/crm.css">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0f172a; color: #e2e8f0; min-height: 100vh; }
+
+    .page { padding: 24px; max-width: 900px; margin: 0 auto; }
+
+    .back-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 14px;
+      color: #94a3b8;
+      text-decoration: none;
+      margin-bottom: 20px;
+    }
+    .back-link:hover { color: #3b82f6; }
+
+    .page-header { margin-bottom: 20px; }
+    .page-title { font-size: 20px; font-weight: 700; color: #f1f5f9; }
+
+    .users-table {
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    thead {
+      background: #0f172a;
+    }
+
+    th {
+      text-align: left;
+      padding: 12px 16px;
+      font-size: 12px;
+      font-weight: 600;
+      color: #94a3b8;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    td {
+      padding: 14px 16px;
+      border-top: 1px solid #334155;
+      font-size: 14px;
+    }
+
+    .user-name { font-weight: 600; color: #f1f5f9; }
+    .user-email { color: #94a3b8; font-size: 13px; }
+
+    .role-select {
+      padding: 4px 8px;
+      border: 1px solid #334155;
+      border-radius: 4px;
+      background: #0f172a;
+      color: #e2e8f0;
+      font-size: 13px;
+      outline: none;
+      cursor: pointer;
+    }
+    .role-select:hover { border-color: #3b82f6; }
+    .role-select:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .role-admin { color: #fbbf24; font-weight: 600; }
+    .role-user { color: #94a3b8; }
+
+    .last-login { color: #94a3b8; font-size: 13px; }
+
+    .empty-state {
+      padding: 40px 20px;
+      text-align: center;
+      color: #94a3b8;
+      font-size: 14px;
+    }
+
+    .flash {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      padding: 12px 20px;
+      background: #22c55e;
+      color: white;
+      border-radius: 6px;
+      font-size: 14px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+      z-index: 1000;
+      animation: slideIn 0.3s ease-out;
+    }
+
+    @keyframes slideIn {
+      from { transform: translateX(400px); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+  </style>
+</head>
+<body>
+
+{% set active_tab = 'admin' %}
+{% include '_nav.html' %}
+
+<div class="page">
+  <a href="/crm" class="back-link">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M19 12H5M12 19l-7-7 7-7"/>
+    </svg>
+    Back to Pipeline
+  </a>
+
+  <div class="page-header">
+    <span class="page-title">Team Members</span>
+  </div>
+
+  <div class="users-table">
+    {% if users %}
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Email</th>
+          <th>Role</th>
+          <th>Last Login</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for user in users %}
+        <tr>
+          <td class="user-name">{{ user.display_name }}</td>
+          <td class="user-email">{{ user.email }}</td>
+          <td>
+            <select
+              class="role-select"
+              data-user-id="{{ user.id }}"
+              onchange="updateRole(this)"
+              {{ 'disabled' if user.is_current_user else '' }}
+            >
+              <option value="admin" {{ 'selected' if user.role == 'admin' else '' }}>Admin</option>
+              <option value="user" {{ 'selected' if user.role == 'user' else '' }}>User</option>
+            </select>
+          </td>
+          <td class="last-login">{{ user.last_login }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div class="empty-state">No other team members have logged in yet.</div>
+    {% endif %}
+  </div>
+</div>
+
+<script>
+async function updateRole(select) {
+  const userId = select.dataset.userId;
+  const newRole = select.value;
+
+  try {
+    const res = await fetch(`/admin/users/${userId}/role`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ role: newRole })
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      throw new Error(data.error || 'Failed to update role');
+    }
+
+    // Show success message
+    showFlash('Role updated successfully');
+  } catch (err) {
+    console.error('Failed to update role:', err);
+    alert('Error: ' + err.message);
+    // Reload page to reset the dropdown
+    location.reload();
+  }
+}
+
+function showFlash(message) {
+  const flash = document.createElement('div');
+  flash.className = 'flash';
+  flash.textContent = message;
+  document.body.appendChild(flash);
+
+  setTimeout(() => {
+    flash.remove();
+  }, 3000);
+}
+</script>
+
+</body>
+</html>

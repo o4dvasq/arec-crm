@@ -567,3 +567,54 @@
 **Impact:** All project docs updated (CLAUDE.md, PROJECT_STATE.md, ARCHITECTURE.md, all SPEC_ files, AZURE_DEPLOYMENT_STATUS.md).
 
 ---
+
+## 2026-03-12 — EasyAuth SSO & User Management: Auto-Provisioning + Role Gating
+
+**Decision:** Implemented Entra ID SSO with auto-provisioning, admin/user roles, and DEV_USER local dev bypass. Users are created on first login with role='user' (except oscar@avilacapllc.com → 'admin'). Admin page at `/admin/users` allows role management. DEV_USER environment variable bypasses OAuth for local development.
+
+**Key implementation choices:**
+
+1. **Auto-provisioning on first login** — `get_or_create_user()` helper in `entra_auth.py` checks if user exists in database. If not, creates user record with role='user' (or 'admin' for oscar@avilacapllc.com). Updates `last_login` on every request.
+
+2. **DEV_USER bypass for local dev** — Setting `DEV_USER=oscar@avilacapllc.com` in `app/.env` bypasses OAuth flow entirely. `before_request` hook checks `DEV_USER` env var first, calls `get_or_create_user()` directly, populates `g.user`. Warning logged at startup: "⚠️ WARNING: DEV_USER is set — authentication is bypassed."
+
+3. **Role field as VARCHAR(20)** — User model has `role` column with values 'admin' or 'user'. No enum, no foreign key. Simple string comparison for `@require_admin` decorator.
+
+4. **Admin page uses inline role dropdowns** — `/admin/users` shows table of all users. Role column is a `<select>` with `onchange` → `POST /admin/users/<id>/role`. No separate edit form. Self-demotion prevented (dropdown disabled for current user).
+
+5. **Migration script uses SQLAlchemy text()** — `migrate_add_auth_columns.py` wraps raw SQL in `text()` for SQLAlchemy 2.0 compatibility. Idempotent: uses `ADD COLUMN IF NOT EXISTS`.
+
+6. **@require_admin decorator, not @login_required** — CRM routes do NOT have `@login_required` because EasyAuth is enforced at Azure infrastructure layer (all requests authenticated). Only admin-specific routes (`/admin/*`) use `@require_admin`.
+
+7. **g.user populated by before_request hook** — `load_user()` runs on every request. Priority: (1) DEV_USER, (2) session['user']. Ensures `g.user` is always available in templates and route handlers.
+
+**Rationale:**
+- Auto-provisioning eliminates manual user creation. Any `@avilacapllc.com` user can log in immediately.
+- DEV_USER bypass simplifies local development (no OAuth redirect, no client secret required).
+- Role-based access control enables future admin-only features (config editing, user management, analytics).
+- Inline role editor on admin page is faster than separate edit form (single-field change, not full CRUD).
+
+**Rejected approaches:**
+- **Manual user provisioning via admin UI** — Requires admin to manually add users before first login. Auto-provisioning is simpler.
+- **Flask-Login library** — Adds dependency for features we don't need. Custom `@require_admin` decorator is 10 lines.
+- **Role as ENUM** — Would require migration on every role addition. VARCHAR is more flexible.
+
+**For the next designer:**
+- Admin page only shows users who have logged in at least once. No way to pre-add users. Use `scripts/seed_user.py` if needed.
+- oscar@avilacapllc.com is hardcoded as admin email. If Oscar leaves, update `entra_auth.py` line 103.
+- DEV_USER must never be set in Azure App Settings. Add startup check to crash if DEV_USER is set in production.
+
+**Impact:**
+- `app/auth/entra_auth.py` (DEV_USER support, auto-provisioning, warning log)
+- `app/auth/decorators.py` (new, `@require_admin`)
+- `app/delivery/admin_blueprint.py` (new, `/admin/users` routes)
+- `app/delivery/dashboard.py` (register admin blueprint)
+- `app/templates/admin/users.html` (new, user management UI)
+- `app/templates/_nav.html` (admin badge for admins)
+- `app/templates/access_denied.html` (custom error message support)
+- `app/models.py` (added `role` field to User model)
+- `scripts/migrate_add_auth_columns.py` (new, idempotent migration)
+- `app/.env` (added `DEV_USER=oscar@avilacapllc.com`)
+- `CLAUDE.md` (documented auth system)
+
+---

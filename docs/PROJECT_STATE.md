@@ -6,7 +6,7 @@
 ---
 
 ## Last Updated
-2026-03-12 — Azure deployment complete, all features synced, 99 tests passing
+2026-03-12 — EasyAuth SSO & user management implemented, admin page live, auto-provisioning active
 
 ---
 
@@ -18,7 +18,8 @@
 - **Database**: Azure PostgreSQL Flexible Server (`arec-crm-db`, centralus, Burstable B1ms)
 - **Local Database**: PostgreSQL 14 on localhost for dev (`postgresql://localhost/arec_crm`)
 - **Schema**: 14 tables with all relationships and foreign keys
-- **Authentication**: Entra ID SSO (MSAL confidential client). Only `@avilacapllc.com` accounts.
+- **Authentication**: Entra ID SSO (MSAL confidential client). Auto-provisioning on first login. DEV_USER bypass for local dev.
+- **User Management**: Admin page at `/admin/users` with role management. oscar@avilacapllc.com auto-promoted to admin.
 - **CI/CD**: GitHub Actions — push to `azure-migration` → 99 tests → auto-deploy to Azure
 - **CRM Features**: Pipeline, prospect detail, org management, relationship briefs, contact intelligence, interaction history
 - **Brief Synthesis**: Relationship briefs (org + person) via Claude API, cached in PostgreSQL
@@ -36,12 +37,11 @@
 
 ## What Was Just Completed (March 12, 2026)
 
-1. **Azure deployment fully operational** — App live, SSO working, pipeline rendering, inline editing functional
-2. **99 tests passing in CI** — All `crm_db.py` functions tested, brief synthesizer tests, email matching tests
-3. **Overwatch segregation committed** — 66 files removed (tasks, meetings, briefings moved to Overwatch)
-4. **Feature work synced to Azure** — graph_poller.py, seed_user.py, CRM refinements all deployed
-5. **Entra client secret rotated** — Old exposed secret replaced with new one
-6. **Data migrated** — 146 orgs, 126 prospects, 137 contacts, 59 briefs in Azure Postgres
+1. **EasyAuth SSO & User Management** — Auto-provisioning on first login, admin/user roles, oscar@avilacapllc.com promoted to admin
+2. **Admin page implemented** — `/admin/users` shows team members, inline role editor, self-demotion prevention
+3. **DEV_USER local dev bypass** — Set `DEV_USER=oscar@avilacapllc.com` in `.env` to skip OAuth, auto-provision user, log warning at startup
+4. **Database migration for auth** — Added `role`, `display_name`, `last_login_at`, `created_at` columns to users table
+5. **Navigation improvements** — Admin badge in header for admin users, current user display with logout link
 
 ---
 
@@ -62,9 +62,8 @@
 
 ## Known Issues
 
-- **`@login_required` not enforced on all routes** — SSO works but not all CRM endpoints require auth
-- **`merge_organizations()` not implemented** — Returns NotImplementedError (stub only)
 - **Graph API polling not scheduled** — `graph_poller.py` exists but no Azure Function or cron job
+- **`merge_organizations()` not implemented** — Returns NotImplementedError (stub only)
 - **57 orphaned contacts / 54 orphaned prospects** — Pre-existing data quality issues in markdown source, not migration bugs
 - **`main` branch is stale** — Contains old markdown-based code. Needs merge from `azure-migration` when ready
 
@@ -73,15 +72,13 @@
 ## Next Up
 
 1. **Schedule `graph_poller.py`** — Deploy as Azure Function or container job for hourly email polling
-2. **Enforce `@login_required`** — Apply to all CRM blueprint routes
-3. **Implement `merge_organizations()`** — Currently a stub
-4. **Merge `azure-migration` → `main`** — When confident production is stable
-5. **Feature specs ready for implementation** (see docs/specs/):
+2. **Implement `merge_organizations()`** — Currently a stub
+3. **Merge `azure-migration` → `main`** — When confident production is stable
+4. **Feature specs ready for implementation** (see docs/specs/):
    - SPEC_calendar-forward-scan.md — Auto-discovered prospect meetings
    - SPEC_merge-orgs.md — Organization merge tool
    - SPEC_org-aliases.md — Organization AKA names
-   - SPEC_easyauth-sso.md — Enhanced SSO
-   - SPEC_arec-crm-multi-user.md — Full multi-user platform
+   - SPEC_global-search-bar.md — Cross-entity search (already implemented, spec marked complete)
 
 ---
 

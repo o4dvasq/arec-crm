@@ -3,10 +3,14 @@ Microsoft Entra ID (Azure AD) SSO authentication for AREC CRM.
 
 Uses MSAL (Microsoft Authentication Library) for Python to authenticate
 users via OAuth 2.0 / OpenID Connect.
+
+Supports DEV_USER environment variable for local development.
 """
 
 import os
+import logging
 from functools import wraps
+from datetime import datetime
 from flask import session, redirect, request, url_for, g
 from msal import ConfidentialClientApplication
 
@@ -16,8 +20,11 @@ CLIENT_SECRET = os.environ.get('AZURE_CLIENT_SECRET') or os.environ.get('ENTRA_C
 TENANT_ID = os.environ.get('AZURE_TENANT_ID') or os.environ.get('ENTRA_TENANT_ID', '064d6342-5dc5-424e-802f-53ff17bc02be')
 AUTHORITY = os.environ.get('AZURE_AUTHORITY', f'https://login.microsoftonline.com/{TENANT_ID}')
 REDIRECT_URI = os.environ.get('AZURE_REDIRECT_URI', 'http://localhost:3001/.auth/login/aad/callback')
+DEV_USER = os.environ.get('DEV_USER')
 
 SCOPES = ['User.Read']  # OpenID Connect scopes
+
+logger = logging.getLogger(__name__)
 
 
 def init_msal_app():
@@ -73,6 +80,57 @@ def get_user_from_token(token_response: dict) -> dict:
     }
 
 
+def get_or_create_user(email: str, entra_id: str = None, display_name: str = None) -> dict:
+    """Get user from database or auto-provision if doesn't exist.
+
+    Args:
+        email: User's email address
+        entra_id: User's Entra ID object ID (optional)
+        display_name: User's display name (optional)
+
+    Returns:
+        dict with id, email, display_name, role, last_login_at
+    """
+    from models import User
+    from db import get_session
+
+    db_session = get_session()
+    try:
+        user = db_session.query(User).filter_by(email=email).first()
+
+        if not user:
+            # Auto-provision new user
+            role = 'admin' if email == 'oscar@avilacapllc.com' else 'user'
+            user = User(
+                entra_id=entra_id or f'dev-{email}',
+                email=email,
+                display_name=display_name or email.split('@')[0],
+                role=role,
+                created_at=datetime.now(),
+                last_login=datetime.now()
+            )
+            db_session.add(user)
+            db_session.commit()
+            logger.info(f"Auto-provisioned new user: {email} (role={role})")
+        else:
+            # Update last login
+            user.last_login = datetime.now()
+            # Update entra_id if it's a placeholder or dev
+            if entra_id and (user.entra_id.startswith('placeholder-') or user.entra_id.startswith('dev-')):
+                user.entra_id = entra_id
+            db_session.commit()
+
+        return {
+            'id': user.id,
+            'email': user.email,
+            'display_name': user.display_name,
+            'role': user.role,
+            'last_login_at': user.last_login.isoformat() if user.last_login else None
+        }
+    finally:
+        db_session.close()
+
+
 def login_required(f):
     """Decorator to require authentication for a route.
 
@@ -94,11 +152,22 @@ def login_required(f):
     return decorated_function
 
 
+def log_dev_user_warning():
+    """Log warning if DEV_USER is set (dev mode active)."""
+    if DEV_USER:
+        logger.warning(
+            f"⚠️  WARNING: DEV_USER is set ({DEV_USER}) — authentication is bypassed. "
+            "Do not use in production."
+        )
+
+
 def init_auth_routes(app):
     """Register authentication routes on the Flask app.
 
     Call this from dashboard.py after app initialization.
     """
+    # Log warning if DEV_USER is set
+    log_dev_user_warning()
 
     @app.route('/.auth/login/aad')
     def login():
@@ -121,32 +190,19 @@ def init_auth_routes(app):
         if 'error' in token_response:
             return f"Authentication error: {token_response.get('error_description', 'Unknown error')}", 400
 
-        # Extract user info
+        # Extract user info from token
         user_info = get_user_from_token(token_response)
 
+        # Auto-provision or get existing user from database
+        user_record = get_or_create_user(
+            email=user_info['email'],
+            entra_id=user_info['entra_id'],
+            display_name=user_info['display_name']
+        )
+
         # Store user in session
-        session['user'] = user_info
+        session['user'] = user_record
         session['access_token'] = token_response.get('access_token')
-
-        # Update last_login in database
-        from models import User
-        from db import get_session
-        from datetime import datetime
-
-        db_session = get_session()
-        try:
-            user = db_session.query(User).filter_by(email=user_info['email']).first()
-            if user:
-                user.last_login = datetime.now()
-                # Update entra_id if it's a placeholder
-                if user.entra_id.startswith('placeholder-'):
-                    user.entra_id = user_info['entra_id']
-                db_session.commit()
-            else:
-                # User not found in database - should not happen (all 8 team members are seeded)
-                return f"User {user_info['email']} not authorized", 403
-        finally:
-            db_session.close()
 
         # Redirect to the originally requested page or dashboard
         next_url = session.pop('next', '/')
@@ -162,5 +218,16 @@ def init_auth_routes(app):
 
     @app.before_request
     def load_user():
-        """Make user available via g.user on every request."""
+        """Make user available via g.user on every request.
+
+        Priority:
+        1. DEV_USER environment variable (local dev only)
+        2. Session user (after OAuth login)
+        """
+        # DEV_USER bypass for local development
+        if DEV_USER:
+            g.user = get_or_create_user(email=DEV_USER)
+            return
+
+        # Load user from session (set during OAuth callback)
         g.user = session.get('user')

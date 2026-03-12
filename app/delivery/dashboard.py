@@ -20,6 +20,7 @@ load_dotenv(os.path.join(APP_DIR, ".env"))
 from flask import Flask, redirect, url_for
 
 from delivery.crm_blueprint import crm_bp
+from delivery.admin_blueprint import admin_bp
 from db import init_app
 from auth.entra_auth import init_auth_routes
 
@@ -37,10 +38,12 @@ app.secret_key = os.environ.get('FLASK_SECRET_KEY', os.urandom(32).hex())
 # Initialize database
 init_app(app)
 
-# Initialize authentication routes
+# Initialize authentication routes (logs DEV_USER warning if set)
 init_auth_routes(app)
 
+# Register blueprints
 app.register_blueprint(crm_bp)
+app.register_blueprint(admin_bp)
 
 
 # ---------------------------------------------------------------------------

@@ -10,7 +10,10 @@
         </div>
         {% if g.user %}
         <div style="display: flex; align-items: center; gap: 12px; font-size: 13px; color: #64748b;">
-            <span>{{ g.user.display_name }}</span>
+            <span>{{ g.user.display_name or g.user.email }}</span>
+            {% if g.user.role == 'admin' %}
+            <a href="/admin/users" style="color: #fbbf24; text-decoration: none; font-weight: 600; hover: color: #f59e0b;">Admin</a>
+            {% endif %}
             <a href="/.auth/logout" style="color: #94a3b8; text-decoration: none; hover: color: #475569;">Logout</a>
         </div>
         {% endif %}
