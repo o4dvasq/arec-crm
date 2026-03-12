@@ -49,9 +49,9 @@
 
 ## Active Branch: `azure-migration`
 
-**⚠️ ALL WORK HAPPENS ON `azure-migration`. DO NOT USE `main`.**
+**⚠️ ALL WORK HAPPENS ON `azure-migration`. DO NOT USE `deprecated-markdown`.**
 
-`main` branch has stale markdown-based code from before the migration. It should not be modified until a deliberate merge is done.
+`main` was renamed to `deprecated-markdown`. A pre-push hook blocks pushes to it. If the hook is missing, run `bash scripts/install-hooks.sh`.
 
 **Development workflow:**
 1. `git checkout azure-migration`
@@ -68,7 +68,7 @@
 - **Auto-provisioning still enabled** — All `@avilacapllc.com` users auto-created on first login. Access denied page only applies if auto-provisioning is disabled.
 - **`merge_organizations()` not implemented** — Returns NotImplementedError (stub only)
 - **57 orphaned contacts / 54 orphaned prospects** — Pre-existing data quality issues in markdown source, not migration bugs
-- **`main` branch is stale** — Contains old markdown-based code. Needs merge from `azure-migration` when ready
+- **`deprecated-markdown` branch is stale** — Contains old markdown-based code. Pre-push hook blocks pushes to it.
 
 ---
 
@@ -78,8 +78,7 @@
 2. **Schedule `graph_poller.py`** — Deploy as Azure Function or container job for hourly email polling
 3. **Test multi-user email attribution** — Set `graph_consent_granted=True` for test users, verify `scanned_by` records
 4. **Implement `merge_organizations()`** — Currently a stub (SPEC_merge-orgs.md ready)
-5. **Merge `azure-migration` → `main`** — When confident production is stable
-6. **Feature specs ready for implementation** (see docs/specs/):
+5. **Feature specs ready for implementation** (see docs/specs/):
    - SPEC_calendar-forward-scan.md — Auto-discovered prospect meetings
    - SPEC_org-aliases.md — Organization AKA names
 
