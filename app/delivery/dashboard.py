@@ -27,6 +27,7 @@ from flask import Flask, jsonify, request, render_template, abort
 from sources.crm_reader import load_crm_config
 from delivery.crm_blueprint import crm_bp
 from delivery.tasks_blueprint import tasks_bp, _parse_task_line
+import db
 
 PROJECT_ROOT = os.path.dirname(APP_DIR)
 TASKS_PATH = os.path.join(PROJECT_ROOT, "TASKS.md")
@@ -41,6 +42,9 @@ app = Flask(
 
 app.register_blueprint(crm_bp)
 app.register_blueprint(tasks_bp)
+
+# Initialize database (PostgreSQL backend)
+db.init_app(app)
 
 
 # ---------------------------------------------------------------------------

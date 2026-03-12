@@ -6,7 +6,7 @@ import os
 import re
 from datetime import date, timedelta
 
-from sources.crm_reader import load_interactions, load_prospects
+from sources.crm_db import load_interactions, load_prospects
 
 _APP_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))  # .../app
 PRODUCTIVITY_ROOT = os.path.dirname(_APP_ROOT)  # project root (works in any location)
@@ -57,7 +57,7 @@ def _matches_event(prospect: dict, event: dict) -> bool:
 
     # Check attendee emails/names
     try:
-        from sources.crm_reader import find_person_by_email, get_contacts_for_org
+        from sources.crm_db import find_person_by_email, get_contacts_for_org
         contacts = get_contacts_for_org(prospect.get("org", ""))
         contact_emails = {c.get("email", "").lower() for c in contacts if c.get("email")}
 

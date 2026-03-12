@@ -9,7 +9,7 @@ import os
 import yaml
 from datetime import date, datetime
 
-from sources.crm_reader import (
+from sources.crm_db import (
     add_pending_interview,
     add_unmatched,
     append_interaction,
@@ -198,7 +198,7 @@ def run_auto_capture(token: str) -> dict:
                 "source": "auto-graph",
             }
             # Check dedup before appending
-            from sources.crm_reader import load_interactions
+            from sources.crm_db import load_interactions
             existing = load_interactions(org=match["org"])
             is_dup = any(
                 i.get("date") == received_date and i.get("type", "").lower() == "email"
@@ -256,7 +256,7 @@ def run_auto_capture(token: str) -> dict:
                     "summary": f"Auto-captured: {att_name} meeting — {subject}",
                     "source": "auto-graph",
                 }
-                from sources.crm_reader import load_interactions
+                from sources.crm_db import load_interactions
                 existing = load_interactions(org=match["org"])
                 is_dup = any(
                     i.get("date") == event_date and i.get("type", "").lower() == "meeting"

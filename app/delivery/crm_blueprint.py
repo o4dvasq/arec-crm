@@ -23,7 +23,7 @@ if _APP_DIR not in sys.path:
 PROJECT_ROOT = os.path.dirname(_APP_DIR)
 TASKS_PATH = os.path.join(PROJECT_ROOT, "TASKS.md")
 
-from sources.crm_reader import (
+from sources.crm_db import (
     load_prospects, load_offerings, get_fund_summary, get_fund_summary_all,
     load_crm_config, get_organization, write_organization, load_organizations,
     get_contacts_for_org, create_person_file, update_contact_fields,
@@ -41,6 +41,7 @@ from sources.crm_reader import (
     append_person_email_history, append_org_email_history,
     discover_and_enrich_contact_emails, enrich_org_domain,
     find_person_by_email,
+    merge_organizations, get_merge_preview,
 )
 from sources.relationship_brief import (
     find_people_files, find_glossary_entry, find_meeting_summaries, find_org_tasks,
@@ -78,7 +79,7 @@ def inject_search_index():
         for org in load_organizations():
             entries.append({
                 'name': org['name'],
-                'secondary': '',
+                'secondary': org.get('Aliases', ''),
                 'type': 'org',
                 'typeLabel': 'Org',
                 'url': f"/crm/org/{urlquote(org['name'], safe='')}",
@@ -441,7 +442,7 @@ def api_prospect_email_scan(offering, org):
     """
     from auth.graph_auth import get_access_token
     from sources.ms_graph import search_emails_deep
-    from sources.crm_reader import get_org_domains, add_emails_to_log
+    from sources.crm_db import get_org_domains, add_emails_to_log
 
     org_domains = get_org_domains()
     domain = ''
@@ -1007,6 +1008,8 @@ def api_org_patch(name):
         payload['Type'] = data['type']
     if 'domain' in data:
         payload['Domain'] = data['domain']
+    if 'aliases' in data:
+        payload['Aliases'] = data['aliases']
     if 'notes' in data:
         payload['Notes'] = data['notes']
     if not payload:
@@ -1544,6 +1547,40 @@ def api_org_meeting_add(name):
         notion_url=data.get('notion_url', ''),
     )
     return jsonify({'ok': True})
+
+
+@crm_bp.route('/api/org/<path:source>/merge-preview', methods=['GET'])
+def api_org_merge_preview(source):
+    """Preview what will be merged when merging source into target."""
+    target = request.args.get('target', '').strip()
+    if not target:
+        return jsonify({'error': 'target parameter required'}), 400
+
+    try:
+        preview = get_merge_preview(source, target)
+        return jsonify(preview)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@crm_bp.route('/api/org/merge', methods=['POST'])
+def api_org_merge():
+    """Merge source org into target org."""
+    data = request.get_json(force=True)
+    source = data.get('source', '').strip()
+    target = data.get('target', '').strip()
+
+    if not source or not target:
+        return jsonify({'error': 'source and target required'}), 400
+
+    if source.lower() == target.lower():
+        return jsonify({'error': 'Cannot merge an org into itself'}), 400
+
+    try:
+        result = merge_organizations(source, target)
+        return jsonify(result)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 
 @crm_bp.route('/api/followup', methods=['POST'])
