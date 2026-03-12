@@ -2,21 +2,61 @@
 # Azure App Service startup script for AREC CRM
 # This runs when the container starts on Azure App Service
 
+set -x  # Enable debug output
+
 echo "Starting AREC CRM on Azure App Service..."
 
-# Navigate to app directory
-cd /home/site/wwwroot/app
+# Navigate to project root
+cd /home/site/wwwroot
 
-# Run database migrations (idempotent schema creation)
-# Note: Only needed on first deploy or schema changes
-# python3 /home/site/wwwroot/scripts/create_schema.py
+# Check if database needs initialization
+echo "Checking database status..."
+DB_INITIALIZED=$(python3 -c "
+import os
+import sys
+sys.path.insert(0, '/home/site/wwwroot/app')
+from dotenv import load_dotenv
+load_dotenv()
+try:
+    from sqlalchemy import create_engine, text
+    engine = create_engine(os.environ.get('DATABASE_URL'))
+    with engine.connect() as conn:
+        result = conn.execute(text('SELECT COUNT(*) FROM organizations'))
+        count = result.scalar()
+        print('initialized' if count >= 0 else 'empty')
+except Exception as e:
+    print('uninitialized')
+" 2>/dev/null)
+
+if [ "$DB_INITIALIZED" != "initialized" ]; then
+    echo "Database not initialized. Running initialization scripts..."
+
+    echo "Step 1: Creating schema..."
+    python3 scripts/create_schema.py
+    if [ $? -ne 0 ]; then
+        echo "ERROR: Schema creation failed. Starting app anyway to show error page."
+    else
+        echo "Step 2: Migrating data..."
+        python3 scripts/migrate_to_postgres.py
+        if [ $? -eq 0 ]; then
+            echo "✓ Database initialized successfully"
+        else
+            echo "ERROR: Migration failed. App may not work correctly."
+        fi
+    fi
+else
+    echo "✓ Database already initialized (found organizations table with data)"
+fi
 
 # Start gunicorn with 4 workers
 echo "Starting Gunicorn..."
+cd /home/site/wwwroot
+export PYTHONPATH=/home/site/wwwroot:$PYTHONPATH
 exec gunicorn \
     --bind=0.0.0.0:8000 \
     --workers=4 \
     --timeout=120 \
     --access-logfile=- \
     --error-logfile=- \
-    delivery.dashboard:app
+    --log-level=debug \
+    app.delivery.dashboard:app
