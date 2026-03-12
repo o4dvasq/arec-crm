@@ -10,10 +10,10 @@ from functools import wraps
 from flask import session, redirect, request, url_for, g
 from msal import ConfidentialClientApplication
 
-# Configuration from environment
-CLIENT_ID = os.environ.get('AZURE_CLIENT_ID')
-CLIENT_SECRET = os.environ.get('AZURE_CLIENT_SECRET')
-TENANT_ID = os.environ.get('AZURE_TENANT_ID', '064d6342-5dc5-424e-802f-53ff17bc02be')
+# Configuration from environment (support both ENTRA_* and AZURE_* names)
+CLIENT_ID = os.environ.get('AZURE_CLIENT_ID') or os.environ.get('ENTRA_CLIENT_ID')
+CLIENT_SECRET = os.environ.get('AZURE_CLIENT_SECRET') or os.environ.get('ENTRA_CLIENT_SECRET')
+TENANT_ID = os.environ.get('AZURE_TENANT_ID') or os.environ.get('ENTRA_TENANT_ID', '064d6342-5dc5-424e-802f-53ff17bc02be')
 AUTHORITY = os.environ.get('AZURE_AUTHORITY', f'https://login.microsoftonline.com/{TENANT_ID}')
 REDIRECT_URI = os.environ.get('AZURE_REDIRECT_URI', 'http://localhost:3001/.auth/login/aad/callback')
 
