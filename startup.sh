@@ -68,8 +68,13 @@ fi
 echo "Starting Gunicorn..."
 cd /home/site/wwwroot
 export PYTHONPATH=/home/site/wwwroot:$PYTHONPATH
+
+# Azure App Service sets PORT environment variable
+PORT=${PORT:-8000}
+echo "Binding to port $PORT"
+
 exec gunicorn \
-    --bind=0.0.0.0:8000 \
+    --bind=0.0.0.0:$PORT \
     --workers=4 \
     --timeout=120 \
     --access-logfile=- \
