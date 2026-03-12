@@ -48,6 +48,22 @@ else
     echo "✓ Database already initialized (found organizations table with data)"
 fi
 
+# Install dependencies if not already installed
+echo "Checking Python dependencies..."
+if [ ! -f "/home/site/wwwroot/.deps_installed" ]; then
+    echo "Installing dependencies from app/requirements.txt..."
+    python3 -m pip install --no-cache-dir -r /home/site/wwwroot/app/requirements.txt
+    if [ $? -eq 0 ]; then
+        touch /home/site/wwwroot/.deps_installed
+        echo "✓ Dependencies installed successfully"
+    else
+        echo "ERROR: Failed to install dependencies"
+        exit 1
+    fi
+else
+    echo "✓ Dependencies already installed"
+fi
+
 # Start gunicorn with 4 workers
 echo "Starting Gunicorn..."
 cd /home/site/wwwroot
