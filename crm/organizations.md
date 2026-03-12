@@ -765,3 +765,54 @@ Cheers,
 ## ArchBridge
 - **Type:** Family Office
 - **Notes:** 
+## Doc Street Capital
+- **Type:** Asset Manager
+- **Notes:** Follow-up call with Greg scheduled 3/27. Robert Fichtner relationship.
+
+## KKCG Group
+- **Type:** HNWI / FO
+- **Notes:** $10B single family office based in New York. Introduced via Max Angeloni. Call scheduled in 2 weeks (late March 2026).
+
+## Marathon Asset Management
+- **Type:** Asset Manager
+- **Notes:** Potential partner for large co-invest tickets (not fund). Max Angeloni connection. Meeting with Oscar proposed 3/13 (breakfast 9am Pershing Square or 2pm Midtown).
+
+## CIGP (Compagnie d'Investissements et de Gestion Privé)
+- **Type:** Multi-Family Office / RIA
+- **Notes:** Multi-family office. Max meeting head of London office on Tuesday 3/17. May invest small tickets ($2M+) into family and friends vehicle.
+
+## Real Consulting (Benjamin Ruhl)
+- **Type:** INTRODUCER
+- **Notes:** Benjamin Ruhl introducing AREC to Macarora. Head of Macarora is ex-Blackstone Real Estate. Interested in co-invest. Meeting scheduled.
+
+## Clearstead Advisors
+- **Type:** Multi-Family Office / RIA
+- **Notes:** Cleveland-area multi-family office. Robert Fichtner connecting through former Glenmede colleague (portfolio manager). Interested in high yield and tax advantages. First call early April.
+
+## 1919 Investment Council
+- **Type:** Multi-Family Office / RIA
+- **Notes:** Robert Fichtner reaching out to former Glenmede colleague there. Early stage.
+
+## Hanwha
+- **Type:** Insurance
+- **Notes:** Korean conglomerate. Tony meeting at AREC Irvine office on Tuesday 3/17 afternoon.
+
+## Diamond Capital
+- **Type:** HNWI / FO
+- **Notes:** Contact: Alon. Max Angeloni connection. Paige coordinating meeting for Monday 3/16 (Tony + Alon). Two emails sent with availability, no response yet.
+
+## IPGL (Michael Spencer Family Office)
+- **Type:** HNWI / FO
+- **Notes:** Contact: Agnes. Max had lunch with her 3/12. She likes the strategy but unsure if principal will approve. Wants data room access. Call scheduled 3/13.
+
+## Philippe Guggenheim
+- **Type:** HNWI / FO
+- **Notes:** Already has established platform. Potential partnership opportunity rather than starting from scratch. Loves the strategy. Oscar recommends moving from tentative to hot and exploring partnership alignment.
+
+## Josh Rhodes (Renaissance Technologies FO)
+- **Type:** HNWI / FO
+- **Notes:** Head of investments at Renaissance Technologies family office. Max met at London family office conference. Meeting next week.
+
+## Tomlinson Family Office (Justin Roberts)
+- **Type:** HNWI / FO
+- **Notes:** See Justin Roberts prospect entry. Justin Roberts is primary contact (justin@tomlinson.ch).
