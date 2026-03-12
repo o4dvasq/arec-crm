@@ -72,6 +72,8 @@ class User(Base):
     briefing_scope = Column(Enum(BriefingScope), default=BriefingScope.standard)
     created_at = Column(TIMESTAMP, default=datetime.now)
     last_login = Column(TIMESTAMP, nullable=True)
+    graph_consent_granted = Column(Boolean, default=False)
+    graph_consent_date = Column(TIMESTAMP, nullable=True)
 
     # Relationships
     prospects_assigned = relationship('Prospect', foreign_keys='Prospect.assigned_to', back_populates='assignee')
@@ -226,6 +228,7 @@ class EmailScanLog(Base):
     snippet = Column(Text, default='')
     outlook_url = Column(Text, default='')
     scanned_at = Column(TIMESTAMP, default=datetime.now)
+    scanned_by = Column(Integer, ForeignKey('users.id'), nullable=True)
 
     __table_args__ = (
         Index('idx_email_scan_msg', 'message_id'),

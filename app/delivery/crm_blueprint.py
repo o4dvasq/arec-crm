@@ -20,6 +20,8 @@ _APP_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if _APP_DIR not in sys.path:
     sys.path.insert(0, _APP_DIR)
 
+from auth.entra_auth import login_required
+
 PROJECT_ROOT = os.path.dirname(_APP_DIR)
 TASKS_PATH = os.path.join(PROJECT_ROOT, "TASKS.md")
 
@@ -147,6 +149,7 @@ def parse_kb_person_file(path: str) -> dict:
 # ---------------------------------------------------------------------------
 
 @crm_bp.route('/api/kb-people')
+@login_required
 def api_kb_people():
     q = request.args.get('q', '').lower().strip()
     config = load_crm_config()
@@ -169,6 +172,7 @@ def api_kb_people():
 
 
 @crm_bp.route('/api/people/search')
+@login_required
 def api_people_search():
     """Alias for /api/kb-people for spec compliance."""
     return api_kb_people()
@@ -179,6 +183,7 @@ def api_people_search():
 # ---------------------------------------------------------------------------
 
 @crm_bp.route('/person/<slug>')
+@login_required
 def person_detail(slug):
     people_dir = os.path.join(PROJECT_ROOT, 'memory', 'people')
     path = os.path.join(people_dir, f'{slug}.md')
@@ -207,6 +212,7 @@ def person_detail(slug):
 
 @crm_bp.route('/')
 @crm_bp.route('')
+@login_required
 def pipeline():
     config = load_crm_config()
     offerings = load_offerings()
@@ -214,11 +220,13 @@ def pipeline():
 
 
 @crm_bp.route('/people')
+@login_required
 def people_list():
     return render_template('crm_people.html')
 
 
 @crm_bp.route('/people/<slug>')
+@login_required
 def people_person_detail(slug):
     return _render_person_detail(slug)
 
@@ -233,6 +241,7 @@ def _render_person_detail(slug):
 
 
 @crm_bp.route('/people/<slug>/delete', methods=['POST'])
+@login_required
 def delete_person(slug):
     people_dir = os.path.join(PROJECT_ROOT, 'memory', 'people')
     path = os.path.join(people_dir, f'{slug}.md')
@@ -253,11 +262,13 @@ def delete_person(slug):
 
 
 @crm_bp.route('/orgs')
+@login_required
 def orgs_list():
     return render_template('crm_orgs.html')
 
 
 @crm_bp.route('/org/<path:name>/edit')
+@login_required
 def org_edit(name):
     config = load_crm_config()
     offerings = load_offerings()
@@ -274,12 +285,14 @@ def org_edit(name):
 
 
 @crm_bp.route('/org/<path:name>')
+@login_required
 def org_detail(name):
     """Redirect to org edit page for backward compatibility."""
     return redirect(url_for('crm.org_edit', name=name))
 
 
 @crm_bp.route('/prospect/<offering>/<path:org>')
+@login_required
 def prospect_edit(offering, org):
     prospect = get_prospect(org, offering)
     if not prospect:
@@ -305,6 +318,7 @@ def prospect_edit(offering, org):
 
 
 @crm_bp.route('/prospect/<offering>/<path:org>/detail')
+@login_required
 def prospect_detail(offering, org):
     prospect = get_prospect(org, offering)
     if not prospect:
@@ -355,6 +369,7 @@ def _run_prospect_brief(org: str, offering: str, max_tokens: int = 1600,
 
 
 @crm_bp.route('/api/prospect/<offering>/<path:org>/brief', methods=['GET', 'POST'])
+@login_required
 def api_prospect_brief(offering, org):
     if request.method == 'GET':
         raw_data = collect_relationship_data(org, offering, base_dir=PROJECT_ROOT)
@@ -384,6 +399,7 @@ def api_prospect_brief(offering, org):
 
 
 @crm_bp.route('/api/synthesize-brief', methods=['POST'])
+@login_required
 def api_synthesize_brief():
     """Call Claude API to synthesize a narrative relationship brief from raw data."""
     data = request.get_json(force=True)
@@ -409,6 +425,7 @@ def api_synthesize_brief():
 # ---------------------------------------------------------------------------
 
 @crm_bp.route('/api/emails/<path:org>')
+@login_required
 def api_emails_for_org(org):
     """Return paginated emails for an org from email_log.json."""
     limit = request.args.get('limit', 20, type=int)
@@ -424,6 +441,7 @@ def api_emails_for_org(org):
 
 
 @crm_bp.route('/api/email/<path:message_id>')
+@login_required
 def api_email_detail(message_id):
     """Return a single email entry from the log."""
     email = find_email_by_message_id(message_id)
@@ -433,6 +451,7 @@ def api_email_detail(message_id):
 
 
 @crm_bp.route('/api/prospect/<offering>/<path:org>/email-scan', methods=['POST'])
+@login_required
 def api_prospect_email_scan(offering, org):
     """
     Deep email scan for a specific org — searches Archive + Sent Items over
@@ -633,6 +652,7 @@ def api_prospect_email_scan(offering, org):
 # ---------------------------------------------------------------------------
 
 @crm_bp.route('/api/prospect/<offering>/<path:org>/add-note', methods=['POST'])
+@login_required
 def api_add_prospect_note(offering, org):
     data = request.get_json(force=True)
     author = (data.get('author') or '').strip()
@@ -657,6 +677,7 @@ def api_add_prospect_note(offering, org):
 # ---------------------------------------------------------------------------
 
 @crm_bp.route('/api/person-data')
+@login_required
 def api_person_data():
     name = request.args.get('name', '').strip()
     if not name:
@@ -670,6 +691,7 @@ def api_person_data():
 
 
 @crm_bp.route('/api/synthesize-person-brief', methods=['POST'])
+@login_required
 def api_synthesize_person_brief():
     """Synthesize a person-focused AI narrative brief."""
     data = request.get_json(force=True)
@@ -698,6 +720,7 @@ def api_synthesize_person_brief():
 
 
 @crm_bp.route('/api/person-update', methods=['POST'])
+@login_required
 def api_person_update():
     """Accept free-text context about a person, AI routes updates to data stores."""
     data = request.get_json(force=True)
@@ -742,6 +765,7 @@ def api_person_update():
 
 
 @crm_bp.route('/people/api/<slug>/contact', methods=['PATCH'])
+@login_required
 def api_person_contact_update(slug):
     data = request.get_json(force=True)
     people_dir = os.path.join(PROJECT_ROOT, 'memory', 'people')
@@ -834,11 +858,13 @@ def api_person_contact_update(slug):
 # ---------------------------------------------------------------------------
 
 @crm_bp.route('/api/offerings')
+@login_required
 def api_offerings():
     return jsonify(load_offerings())
 
 
 @crm_bp.route('/api/prospects')
+@login_required
 def api_prospects():
     offering = request.args.get('offering', '')
     include_closed = request.args.get('include_closed', 'false').lower() == 'true'
@@ -876,6 +902,7 @@ def api_prospects():
 
 
 @crm_bp.route('/api/fund-summary')
+@login_required
 def api_fund_summary():
     offering = request.args.get('offering', '')
     if offering:
@@ -888,6 +915,7 @@ def api_fund_summary():
 # ---------------------------------------------------------------------------
 
 @crm_bp.route('/api/prospect/field', methods=['PATCH'])
+@login_required
 def api_patch_prospect_field():
     data = request.get_json(force=True)
     org = data.get('org', '').strip()
@@ -925,6 +953,7 @@ def api_patch_prospect_field():
 # ---------------------------------------------------------------------------
 
 @crm_bp.route('/api/tasks', methods=['GET'])
+@login_required
 def api_crm_tasks_list():
     org = request.args.get('org', '').strip()
     if not org:
@@ -933,6 +962,7 @@ def api_crm_tasks_list():
 
 
 @crm_bp.route('/api/tasks', methods=['POST'])
+@login_required
 def api_crm_tasks_create():
     data = request.get_json(force=True)
     org = data.get('org', '').strip()
@@ -949,6 +979,7 @@ def api_crm_tasks_create():
 
 
 @crm_bp.route('/api/tasks/complete', methods=['PATCH'])
+@login_required
 def api_crm_tasks_complete():
     data = request.get_json(force=True)
     org = data.get('org', '').strip()
@@ -966,6 +997,7 @@ def api_crm_tasks_complete():
 # ---------------------------------------------------------------------------
 
 @crm_bp.route('/api/org/<path:name>', methods=['GET'])
+@login_required
 def api_org_get(name):
     org = get_organization(name)
     if not org:
@@ -982,6 +1014,7 @@ def api_org_get(name):
 
 
 @crm_bp.route('/api/org/<path:name>', methods=['PATCH'])
+@login_required
 def api_org_patch(name):
     data = request.get_json(force=True)
     payload = {}
@@ -1005,6 +1038,7 @@ def api_org_patch(name):
 
 
 @crm_bp.route('/api/synthesize-org-brief', methods=['POST'])
+@login_required
 def api_synthesize_org_brief():
     """Synthesize an AI relationship brief for an organization."""
     data = request.get_json(force=True)
@@ -1077,6 +1111,7 @@ def api_synthesize_org_brief():
 # ---------------------------------------------------------------------------
 
 @crm_bp.route('/api/org/<path:org_name>/contacts', methods=['POST'])
+@login_required
 def api_org_add_contact(org_name):
     """Add a contact to an organization."""
     data = request.get_json(force=True)
@@ -1128,6 +1163,7 @@ def api_org_add_contact(org_name):
 
 
 @crm_bp.route('/api/contact', methods=['POST'])
+@login_required
 def api_contact_create():
     data = request.get_json(force=True)
     name = data.get('name', '').strip()
@@ -1143,6 +1179,7 @@ def api_contact_create():
 
 
 @crm_bp.route('/api/contact/<path:org_and_name>', methods=['PATCH'])
+@login_required
 def api_contact_patch(org_and_name):
     parts = org_and_name.rsplit('/', 1)
     if len(parts) != 2:
@@ -1164,6 +1201,7 @@ def api_contact_patch(org_and_name):
 # ---------------------------------------------------------------------------
 
 @crm_bp.route('/api/prospect/save', methods=['POST'])
+@login_required
 def api_prospect_save():
     data = request.get_json(force=True)
     org = data.get('org', '').strip()
@@ -1180,6 +1218,7 @@ def api_prospect_save():
 
 
 @crm_bp.route('/api/prospect', methods=['POST'])
+@login_required
 def api_prospect_create():
     data = request.get_json(force=True)
     org = data.get('org', '').strip()
@@ -1208,6 +1247,7 @@ def api_prospect_create():
 
 
 @crm_bp.route('/api/prospect', methods=['DELETE'])
+@login_required
 def api_prospect_delete():
     data = request.get_json(force=True)
     org = data.get('org', '').strip()
@@ -1226,11 +1266,13 @@ def api_prospect_delete():
 # ---------------------------------------------------------------------------
 
 @crm_bp.route('/api/unmatched', methods=['GET'])
+@login_required
 def api_unmatched_list():
     return jsonify(load_unmatched())
 
 
 @crm_bp.route('/api/unmatched/resolve', methods=['POST'])
+@login_required
 def api_unmatched_resolve():
     data = request.get_json(force=True)
     email = data.get('participant_email', '').strip()
@@ -1256,6 +1298,7 @@ def api_unmatched_resolve():
 
 
 @crm_bp.route('/api/unmatched/<path:email>', methods=['DELETE'])
+@login_required
 def api_unmatched_dismiss(email):
     remove_unmatched(email)
     return jsonify({'ok': True})
@@ -1266,6 +1309,7 @@ def api_unmatched_dismiss(email):
 # ---------------------------------------------------------------------------
 
 @crm_bp.route('/api/auto-capture', methods=['POST'])
+@login_required
 def api_auto_capture():
     try:
         from auth.graph_auth import get_access_token
@@ -1286,12 +1330,14 @@ def api_auto_capture():
 
 
 @crm_bp.route('/api/orgs')
+@login_required
 def api_orgs():
     orgs = load_organizations()
     return jsonify([o['name'] for o in orgs])
 
 
 @crm_bp.route('/api/export')
+@login_required
 def api_export_pipeline():
     import io
     from openpyxl import Workbook
@@ -1490,6 +1536,7 @@ def api_export_pipeline():
 
 
 @crm_bp.route('/api/org', methods=['POST'])
+@login_required
 def api_org_create():
     data = request.get_json(force=True)
     name = data.get('name', '').strip()
@@ -1511,12 +1558,14 @@ def api_org_create():
 # ---------------------------------------------------------------------------
 
 @crm_bp.route('/api/org/<path:name>/meetings', methods=['GET'])
+@login_required
 def api_org_meetings(name):
     meetings = load_meeting_history(name)
     return jsonify(meetings)
 
 
 @crm_bp.route('/api/org/<path:name>/meetings', methods=['POST'])
+@login_required
 def api_org_meeting_add(name):
     data = request.get_json(force=True)
     add_meeting_entry(
@@ -1531,6 +1580,7 @@ def api_org_meeting_add(name):
 
 
 @crm_bp.route('/api/org/<path:source>/merge-preview', methods=['GET'])
+@login_required
 def api_org_merge_preview(source):
     """Preview what will be merged when merging source into target."""
     target = request.args.get('target', '').strip()
@@ -1545,6 +1595,7 @@ def api_org_merge_preview(source):
 
 
 @crm_bp.route('/api/org/merge', methods=['POST'])
+@login_required
 def api_org_merge():
     """Merge source org into target org."""
     data = request.get_json(force=True)

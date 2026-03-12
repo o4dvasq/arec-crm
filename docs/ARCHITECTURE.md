@@ -5,7 +5,7 @@
 
 **Location:** `~/Dropbox/projects/arec-crm/`
 
-**Last audited:** 2026-03-12
+**Last audited:** 2026-03-12 (updated: multi-user auth enforcement, graph_poller)
 
 ---
 
@@ -53,8 +53,8 @@ arec-crm/                        (~/Dropbox/projects/arec-crm/)
 │   ├── .env.azure             ← Azure environment template
 │   ├── .env.example           ← Template for .env
 │   ├── drain_inbox.py         ← Shared mailbox email drain
-│   ├── graph_poller.py        ← Hourly email polling (multi-user)
-│   ├── models.py              ← SQLAlchemy ORM models (14 tables, User has role field)
+│   ├── graph_poller.py        ← Multi-user email polling (background job, not yet scheduled)
+│   ├── models.py              ← SQLAlchemy ORM models (14 tables, User has graph_consent columns)
 │   ├── db.py                  ← Database connection + session management
 │   ├── auth/
 │   │   ├── graph_auth.py      ← MSAL device flow (local dev only)
@@ -69,7 +69,7 @@ arec-crm/                        (~/Dropbox/projects/arec-crm/)
 │   │   └── relationship_brief.py  ← Context aggregation for briefs
 │   ├── delivery/
 │   │   ├── dashboard.py       ← Flask main app
-│   │   ├── crm_blueprint.py   ← CRM routes + brief synthesis endpoints
+│   │   ├── crm_blueprint.py   ← CRM routes (all 49 require @login_required) + brief synthesis endpoints
 │   │   └── admin_blueprint.py ← Admin routes (/admin/users)
 │   ├── templates/
 │   │   ├── crm_pipeline.html
@@ -97,7 +97,7 @@ arec-crm/                        (~/Dropbox/projects/arec-crm/)
 │   ├── create_schema.py           ← Create PostgreSQL schema, seed users
 │   ├── migrate_to_postgres.py     ← Parse markdown → insert into Postgres
 │   ├── verify_migration.py        ← Validate migration
-│   ├── migrate_add_graph_columns.py  ← Add graph consent columns
+│   ├── migrate_add_graph_columns.py  ← Add graph_consent_granted, graph_consent_date, scanned_by columns
 │   ├── migrate_add_auth_columns.py   ← Add role, display_name, last_login_at columns
 │   ├── seed_user.py               ← Add new user to users table
 │   └── refresh_interested_briefs.py  ← Bulk brief refresh CLI
@@ -156,15 +156,17 @@ User clicks "Refresh Brief" on person detail page
   → Parse JSON {narrative, at_a_glance}
 ```
 
-### Multi-User Email Polling (hourly, background)
+### Multi-User Email Polling (background, not yet scheduled)
 ```
-graph_poller.py (cron or Azure Function)
-  → Query users table WHERE graph_consent_granted = True
+graph_poller.py (executable script: python3 app/graph_poller.py)
+  → Query users table WHERE graph_consent_granted = True AND is_active = True
   → For each user:
       → Acquire Graph API token (application permissions)
       → call crm_graph_sync.run_auto_capture(token, user_id=user.id)
       → email_scan_log records get scanned_by = user.id
       → interactions records get created_by = user.id
+  → Returns statistics: users_scanned, emails_found, interactions_created, errors
+  → Can be scheduled via cron or deployed as Azure Function (timer trigger)
 ```
 
 ---
@@ -195,7 +197,9 @@ graph_poller.py (cron or Azure Function)
 
 **PostgreSQL-only backend** — All CRM data in PostgreSQL. `crm_db.py` is the single source of truth. No markdown fallback. `crm_reader.py` deleted.
 
-**Multi-user attribution** — All interactions, email scans, and auto-captures record the user who triggered them via `created_by` and `scanned_by` foreign keys.
+**Multi-user attribution** — All interactions, email scans, and auto-captures record the user who triggered them via `created_by` and `scanned_by` foreign keys. Graph consent opt-in via `graph_consent_granted` column.
+
+**Authentication enforcement** — All 49 CRM routes require `@login_required` decorator. Unauthenticated requests redirect to Entra ID login.
 
 **Segregated productivity layer** — Tasks, briefings, meetings, personal memory moved to `~/Dropbox/projects/overwatch/` (separate project). AREC CRM is fundraising-only.
 

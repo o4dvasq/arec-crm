@@ -1,69 +1,118 @@
 """
-Graph API email poller for multi-user CRM.
+Multi-user Graph API email polling for AREC CRM.
 
-Runs hourly (via Azure Function timer trigger or cron job).
-Iterates over users where graph_consent_granted = True,
-acquires a token for each, and calls run_auto_capture() with user_id.
+This module implements background email polling that:
+1. Iterates over users with graph_consent_granted=True
+2. Acquires Graph API tokens for each user
+3. Calls crm_graph_sync.run_auto_capture() with user_id parameter
+4. Records scanned_by attribution in email_scan_log
+
+Usage:
+    python3 app/graph_poller.py              # Run once
+    
+    # Or schedule via cron (hourly):
+    0 * * * * cd /path/to/arec-crm && python3 app/graph_poller.py
 """
 
 import os
 import sys
+import logging
 from datetime import datetime
 
-# Add app/ to path
+# Add app directory to path
 APP_DIR = os.path.dirname(os.path.abspath(__file__))
 if APP_DIR not in sys.path:
     sys.path.insert(0, APP_DIR)
 
 from dotenv import load_dotenv
-load_dotenv(os.path.join(APP_DIR, ".env"))
+load_dotenv(os.path.join(APP_DIR, '.env'))
 
 from db import get_session
 from models import User
-from auth.graph_auth import get_access_token
 from sources.crm_graph_sync import run_auto_capture
+from auth.graph_auth import get_access_token
+
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
 
 
 def poll_all_users():
-    """Poll email for all users with graph_consent_granted = True."""
-    session = get_session()
+    """
+    Poll emails for all users who have granted graph consent.
+    
+    Returns:
+        dict: Statistics about the polling run (users scanned, emails found, etc.)
+    """
+    db_session = get_session()
+    stats = {
+        'users_scanned': 0,
+        'users_skipped': 0,
+        'total_emails_found': 0,
+        'total_interactions_created': 0,
+        'errors': []
+    }
+    
     try:
-        users = session.query(User).filter(User.graph_consent_granted == True).all()
-
-        if not users:
-            print("[graph_poller] No users with graph consent granted")
-            return
-
-        print(f"[graph_poller] Polling {len(users)} user(s)...")
-
+        # Get all users with graph consent granted
+        users = db_session.query(User).filter(
+            User.graph_consent_granted == True,
+            User.is_active == True
+        ).all()
+        
+        logger.info(f"Found {len(users)} users with graph consent granted")
+        
         for user in users:
-            print(f"[graph_poller] Processing {user.display_name} ({user.email})...")
             try:
-                # Acquire token for this user
-                # NOTE: In production, this would use application permissions (Mail.Read)
-                # with client credentials flow. For Phase 1, we use delegated permissions
-                # with cached tokens.
+                logger.info(f"Polling emails for user: {user.email}")
+                
+                # Acquire Graph API token for this user
+                # Note: This requires the user to have previously authenticated
+                # and their refresh token to be stored/available
                 token = get_access_token(allow_device_flow=False)
-
-                # Run auto-capture with user_id attribution
-                stats = run_auto_capture(token, user_id=user.id)
-
-                print(f"[graph_poller] {user.display_name}: {stats.get('matched', 0)} matched, "
-                      f"{stats.get('unmatched', 0)} unmatched, "
-                      f"{stats.get('skipped_dedup', 0)} skipped")
-
+                
+                # Run auto-capture for this user
+                user_stats = run_auto_capture(token, user_id=user.id)
+                
+                stats['users_scanned'] += 1
+                stats['total_emails_found'] += user_stats.get('emails_found', 0)
+                stats['total_interactions_created'] += user_stats.get('interactions_created', 0)
+                
+                logger.info(f"Completed polling for {user.email}: "
+                          f"{user_stats.get('emails_found', 0)} emails, "
+                          f"{user_stats.get('interactions_created', 0)} interactions")
+                
             except Exception as e:
-                print(f"[graph_poller] Error processing {user.email}: {e}")
-                continue
-
-        print("[graph_poller] Polling complete")
-
-    except Exception as e:
-        print(f"[graph_poller] Fatal error: {e}")
-        raise
+                logger.error(f"Error polling emails for {user.email}: {e}")
+                stats['errors'].append(f"{user.email}: {str(e)}")
+                stats['users_skipped'] += 1
+        
+        logger.info(f"Polling complete. Stats: {stats}")
+        return stats
+        
     finally:
-        session.close()
+        db_session.close()
+
+
+def main():
+    """Main entry point for graph poller."""
+    logger.info("Starting multi-user email polling...")
+    stats = poll_all_users()
+    
+    print("\n" + "="*60)
+    print("AREC CRM Multi-User Email Polling - Complete")
+    print("="*60)
+    print(f"Users scanned: {stats['users_scanned']}")
+    print(f"Users skipped: {stats['users_skipped']}")
+    print(f"Total emails found: {stats['total_emails_found']}")
+    print(f"Total interactions created: {stats['total_interactions_created']}")
+    
+    if stats['errors']:
+        print(f"\nErrors ({len(stats['errors'])}):")
+        for error in stats['errors']:
+            print(f"  - {error}")
+    
+    print("="*60 + "\n")
 
 
 if __name__ == '__main__':
-    poll_all_users()
+    main()

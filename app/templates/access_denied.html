@@ -2,65 +2,141 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Access Denied - AREC CRM</title>
     <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-            color: #e0e0e0;
-            margin: 0;
-            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #0f172a;
+            color: #e2e8f0;
+            min-height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
-            height: 100vh;
+            padding: 20px;
         }
+
         .container {
-            text-align: center;
             max-width: 500px;
-            padding: 40px;
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: 12px;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            text-align: center;
         }
+
+        .icon {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 24px;
+            border-radius: 50%;
+            background: rgba(239, 68, 68, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .icon svg {
+            width: 40px;
+            height: 40px;
+            stroke: #ef4444;
+            stroke-width: 2;
+        }
+
         h1 {
-            font-size: 48px;
-            margin: 0 0 20px 0;
-            color: #ef4444;
+            font-size: 28px;
+            font-weight: 700;
+            color: #f1f5f9;
+            margin-bottom: 12px;
         }
-        h2 {
-            font-size: 24px;
-            margin: 0 0 20px 0;
-            font-weight: 500;
-        }
+
         p {
-            font-size: 16px;
+            font-size: 15px;
             line-height: 1.6;
-            margin: 0 0 30px 0;
-            color: #b0b0b0;
+            color: #94a3b8;
+            margin-bottom: 24px;
         }
-        a {
+
+        .details {
+            background: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 24px;
+            text-align: left;
+        }
+
+        .details h3 {
+            font-size: 13px;
+            font-weight: 600;
+            color: #cbd5e1;
+            margin-bottom: 8px;
+        }
+
+        .details ul {
+            list-style: none;
+            padding: 0;
+            font-size: 13px;
+            color: #94a3b8;
+        }
+
+        .details li {
+            padding: 4px 0;
+        }
+
+        .details li::before {
+            content: "• ";
+            color: #64748b;
+            margin-right: 8px;
+        }
+
+        .btn {
             display: inline-block;
-            padding: 12px 24px;
-            background: #3b82f6;
-            color: white;
-            text-decoration: none;
+            padding: 10px 20px;
+            font-size: 14px;
+            font-weight: 600;
+            color: #e2e8f0;
+            background: #334155;
+            border: 1px solid #475569;
             border-radius: 6px;
-            font-weight: 500;
+            text-decoration: none;
+            cursor: pointer;
             transition: background 0.2s;
         }
-        a:hover {
-            background: #2563eb;
+
+        .btn:hover {
+            background: #475569;
+        }
+
+        .email {
+            color: #3b82f6;
+            font-weight: 600;
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>403</h1>
-        <h2>Access Denied</h2>
-        <p>{{ message or "Your account has not been provisioned for AREC CRM access. Please contact your administrator to set up your account." }}</p>
-        <a href="/">Go to Pipeline</a>
+        <div class="icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"/>
+                <line x1="12" y1="8" x2="12" y2="12"/>
+                <line x1="12" y1="16" x2="12.01" y2="16"/>
+            </svg>
+        </div>
+
+        <h1>Access Denied</h1>
+
+        <p>
+            Your account <span class="email">{{ email }}</span> has not been provisioned for AREC CRM access.
+        </p>
+
+        <div class="details">
+            <h3>To request access:</h3>
+            <ul>
+                <li>Contact your AREC administrator</li>
+                <li>Request that your account be added to the users table</li>
+                <li>Once provisioned, try signing in again</li>
+            </ul>
+        </div>
+
+        <a href="/.auth/logout" class="btn">Return to Login</a>
     </div>
 </body>
 </html>

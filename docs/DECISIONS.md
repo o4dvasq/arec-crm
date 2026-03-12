@@ -618,3 +618,50 @@
 - `CLAUDE.md` (documented auth system)
 
 ---
+## 2026-03-12 — Multi-User Platform: @login_required Enforcement + Background Email Polling
+
+**Decision:** Enforced authentication on all CRM routes by adding `@login_required` decorator to 49 route handlers. Created `graph_poller.py` for multi-user background email polling. Added `graph_consent_granted`, `graph_consent_date` columns to User model and `scanned_by` column to EmailScanLog model.
+
+**Key implementation choices:**
+
+1. **Import-and-decorate pattern** — Added `from auth.entra_auth import login_required` to top of `crm_blueprint.py`, then applied `@login_required` decorator to all 49 route handlers (both page routes and API endpoints). Used Python regex script to apply systematically.
+
+2. **Graph consent columns for opt-in** — Added `graph_consent_granted` (Boolean, default False) and `graph_consent_date` (TIMESTAMP) to User model. Users must explicitly opt in to email scanning. `graph_poller.py` only scans users where `graph_consent_granted=True`.
+
+3. **scanned_by attribution** — Added `scanned_by` (Integer FK to users.id) to EmailScanLog model. When `graph_poller.py` calls `run_auto_capture(token, user_id=user.id)`, all email_scan_log records created during that scan get `scanned_by=user.id`.
+
+4. **Standalone graph_poller.py** — Created as executable script (`python3 app/graph_poller.py`) that iterates over consented users, acquires tokens, calls `run_auto_capture()` per user, returns statistics. Can be scheduled via cron or deployed as Azure Function.
+
+5. **Migration script with text() wrappers** — `migrate_add_graph_columns.py` uses SQLAlchemy `text()` wrapper for all raw SQL (SQLAlchemy 2.0 requirement). Idempotent: safe to re-run.
+
+6. **Access denied template created** — `access_denied.html` shows when authenticated user is not in users table. Currently unused since auto-provisioning is enabled, but ready if provisioning mode changes.
+
+7. **User menu already existed** — `_nav.html` already had user display name, admin badge, and logout link from previous session (EasyAuth SSO). No changes needed.
+
+**Rationale:**
+- Authentication enforcement is required for multi-user platform (SPEC_arec-crm-multi-user.md acceptance criteria).
+- Graph consent opt-in prevents scanning mailboxes without permission.
+- `scanned_by` attribution enables per-user email ownership and debugging.
+- Standalone poller script allows flexible deployment (cron, Azure Function, container job).
+
+**Rejected approaches:**
+- **Blueprint-level decorator** — Considered `@crm_bp.before_request` to apply auth to all routes at once. Rejected: explicit per-route decorators are clearer and allow route-by-route exceptions if needed later.
+- **Automatic graph consent** — Considered auto-granting consent on first login. Rejected: email scanning is sensitive, opt-in is safer.
+- **Modifying crm_graph_sync.py signature** — `run_auto_capture()` already took optional `user_id` parameter (forward-looking design from previous session). No signature changes needed.
+
+**For the next designer:**
+- `graph_poller.py` depends on Graph API application permissions (`Mail.Read` scope). Requires admin consent in Entra ID app registration.
+- If scheduling via cron, run from project root: `cd ~/Dropbox/projects/arec-crm && python3 app/graph_poller.py`
+- If deploying as Azure Function, use timer trigger with `0 0 * * * *` (hourly). Set `DATABASE_URL` and `ANTHROPIC_API_KEY` in function app settings.
+- Migration must run on Azure database before deploying: `python3 scripts/migrate_add_graph_columns.py` (set `DATABASE_URL` to Azure connection string first).
+
+**Impact:**
+- `app/delivery/crm_blueprint.py` — Added `@login_required` to 49 routes
+- `app/models.py` — Added 3 columns (graph_consent_granted, graph_consent_date, scanned_by)
+- `app/graph_poller.py` — NEW: Multi-user background email polling (150 lines)
+- `scripts/migrate_add_graph_columns.py` — NEW: Database migration script (75 lines)
+- `app/templates/access_denied.html` — NEW: Unapprovisioned user error page
+- `app/templates/tasks/` — DELETED: Task templates moved to Overwatch
+
+---
+
