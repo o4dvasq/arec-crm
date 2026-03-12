@@ -9,7 +9,7 @@ Multi-user CRM and fundraising platform for the AREC team. Manages investor pipe
 
 ## ⚠️ CRITICAL: Development Rules
 
-1. **ALL work on `azure-migration` branch.** Run `git checkout azure-migration` before doing anything. NEVER modify `main` — it has stale markdown-based code.
+1. **ALL work on `azure-migration` branch.** Run `git checkout azure-migration` before doing anything. NEVER modify `deprecated-markdown` — it has stale markdown-based code. A pre-push hook blocks pushes to it. If the hook is missing, run `bash scripts/install-hooks.sh`.
 2. **No local-only features.** Everything must deploy to Azure. If it doesn't work on Azure, it doesn't ship.
 3. **No markdown backend.** The app uses PostgreSQL only. `crm_reader.py` is deleted. Do NOT import it. All data goes through `crm_db.py`.
 4. **Test before pushing.** Run `python -m pytest app/tests/ -v --tb=short` (99 tests). CI runs tests on every push — failures block deployment.

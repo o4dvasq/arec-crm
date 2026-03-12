@@ -7,6 +7,8 @@
 - New projects: use bootstrap.sh which auto-ignores .git
 
 ## Multi-Machine Workflow
-- Before leaving a machine: /switch-machine (commits and pushes)
-- After arriving at other machine: git pull in the project directory
+- Before leaving a machine: `/leave-machine` (stages, commits WIP, pushes)
+- After arriving at other machine: `/start-coding` (pulls latest, checks branch, shows project state)
+- `/switch-machine` is deprecated — use `/leave-machine` + `/start-coding` instead
 - One-time setup per project per machine: init git, add remote, fetch, checkout, xattr ignore .git
+- After cloning or setting up a new machine, run `bash scripts/install-hooks.sh` to install git guardrails
