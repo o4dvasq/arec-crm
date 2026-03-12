@@ -1,7 +1,7 @@
 SPEC: Overwatch Segregation
 Project: arec-crm → overwatch (new project)
 Date: 2026-03-11
-Status: Ready for implementation
+Status: ✅ COMPLETE — Segregated March 12, 2026. Overwatch at ~/Dropbox/projects/overwatch/
 
 ---
 

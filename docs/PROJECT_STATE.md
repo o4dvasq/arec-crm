@@ -6,93 +6,82 @@
 ---
 
 ## Last Updated
-2026-03-12 — Local PostgreSQL setup complete, database fully initialized and functional
+2026-03-12 — Azure deployment complete, all features synced, 99 tests passing
 
 ---
 
 ## What's Built and Working
 
-### AREC CRM — Multi-User Fundraising Platform
-- **Backend**: PostgreSQL-only (`crm_db.py`). All 45+ functions operational.
-- **Local Database**: PostgreSQL 14.22 running on `localhost/arec_crm`
-- **Schema**: 14 tables created with all relationships and foreign keys
-- **Seeded Data**: 8 team members, 9 pipeline stages
-- **Graph Columns**: `graph_consent_granted`, `graph_consent_date`, `scanned_by` added
-- **Root route**: Redirects to `/crm` (pipeline view). No dashboard home page.
+### AREC CRM — Multi-User Fundraising Platform (PRODUCTION)
+- **Production URL**: https://arec-crm-app.azurewebsites.net/crm
+- **Backend**: PostgreSQL-only (`crm_db.py`). All 45+ functions operational. No markdown fallback.
+- **Database**: Azure PostgreSQL Flexible Server (`arec-crm-db`, centralus, Burstable B1ms)
+- **Local Database**: PostgreSQL 14 on localhost for dev (`postgresql://localhost/arec_crm`)
+- **Schema**: 14 tables with all relationships and foreign keys
+- **Authentication**: Entra ID SSO (MSAL confidential client). Only `@avilacapllc.com` accounts.
+- **CI/CD**: GitHub Actions — push to `azure-migration` → 99 tests → auto-deploy to Azure
 - **CRM Features**: Pipeline, prospect detail, org management, relationship briefs, contact intelligence, interaction history
-- **Brief Synthesis**: Relationship briefs (org-level + person-level) via Claude API, cached in PostgreSQL
-- **Email Integration**: Deep Email Scan, auto-capture, two-tier matching ready (needs data)
-- **Dark Theme**: Full dark theme throughout (CSS custom properties)
-- **Multi-User Infrastructure**: Migration scripts, user seeding, graph poller, access denied page
-- **Testing**: Dashboard imports successfully, routes return 200/302, templates render correctly
+- **Brief Synthesis**: Relationship briefs (org + person) via Claude API, cached in PostgreSQL
+- **Email Integration**: Graph API poller ready (not yet scheduled), auto-capture, two-tier matching
+- **Dark Theme**: Full dark theme throughout
+- **Multi-User**: 8 team members seeded, graph consent columns, user attribution on all interactions
 
-### Overwatch — Personal Productivity Platform
+### Overwatch — Personal Productivity Platform (LOCAL ONLY)
 - **Location**: `~/Dropbox/projects/overwatch/`
-- **Port**: 3001 (local-only, single-user)
-- **Status**: Fully functional, tested end-to-end
+- **Port**: 3001 (local-only, single-user, no Azure deployment)
 - **Features**: Task management (TASKS.md), meeting summaries, personal memory, calendar integration
-- **Components**: Dashboard (tasks + calendar + meetings), tasks blueprint, calendar refresh API, meeting detail pages
-- **Templates**: dashboard.html, meeting_detail.html, _nav.html, tasks/tasks.html
-- **Static Assets**: All CSS/JS copied from arec-crm (crm.css, crm.js, task-edit-modal.*)
-- **Testing**: HTTP 200 on all routes, templates render correctly, static assets served
-
-### Intelligence Pipeline
-- **Auto-capture**: Email/calendar → CRM interactions (two-tier matching: domain then person email)
-- **Email Enrichment**: Domain discovery, email history append, contact email enrichment
-- **Unmatched Queue**: `unmatched_emails` table for manual review
-- **Brief Synthesis**: `brief_synthesizer.py` handles all Claude calls (prospect + org + person)
-
-### Data Layer
-- **PostgreSQL Tables**: 14 tables fully created and initialized
-- **Migration Scripts**: All scripts functional with local database support
-- **People Knowledge Base**: `memory/people/*.md` files preserved (canonical contact intel)
-
-### Testing
-- 52 tests in arec-crm (need PostgreSQL fixtures)
-- Overwatch dashboard: End-to-end HTTP tests passed
-- AREC CRM: Import tests passed, HTTP routes functional
+- **Independence**: Zero imports from arec-crm
 
 ---
 
-## What Was Just Completed
+## What Was Just Completed (March 12, 2026)
 
-**Local PostgreSQL Setup + Database Initialization** (2026-03-12)
-- **Installed PostgreSQL 14.22** via Homebrew, configured to start on login
-- **Created arec_crm database** on localhost
-- **Fixed schema scripts** to use local `.env` instead of `.env.azure`
-- **Ran schema creation** — 14 tables created, 8 users seeded, 9 pipeline stages seeded
-- **Ran graph columns migration** — Added `graph_consent_granted`, `graph_consent_date` to users; `scanned_by` to email_scan_log
-- **Updated .env** — Added `DATABASE_URL=postgresql://localhost/arec_crm` and Flask config vars
-- **Tested dashboard** — All routes functional, pipeline renders successfully (80KB response)
+1. **Azure deployment fully operational** — App live, SSO working, pipeline rendering, inline editing functional
+2. **99 tests passing in CI** — All `crm_db.py` functions tested, brief synthesizer tests, email matching tests
+3. **Overwatch segregation committed** — 66 files removed (tasks, meetings, briefings moved to Overwatch)
+4. **Feature work synced to Azure** — graph_poller.py, seed_user.py, CRM refinements all deployed
+5. **Entra client secret rotated** — Old exposed secret replaced with new one
+6. **Data migrated** — 146 orgs, 126 prospects, 137 contacts, 59 briefs in Azure Postgres
+
+---
+
+## Active Branch: `azure-migration`
+
+**⚠️ ALL WORK HAPPENS ON `azure-migration`. DO NOT USE `main`.**
+
+`main` branch has stale markdown-based code from before the migration. It should not be modified until a deliberate merge is done.
+
+**Development workflow:**
+1. `git checkout azure-migration`
+2. Make changes
+3. `python -m pytest app/tests/ -v --tb=short`
+4. Commit and push → CI auto-deploys to Azure
+5. Verify at https://arec-crm-app.azurewebsites.net/crm
 
 ---
 
 ## Known Issues
 
-- **No CRM data yet** — Database schema exists but empty (no prospects, orgs, contacts). Run `migrate_to_postgres.py` to import from markdown files if needed.
-- **SSO not implemented** — `@login_required` decorators need to be added to all CRM routes
-- **Tests need PostgreSQL fixtures** — Existing 52 tests use markdown fixtures
-- **merge_organizations() not implemented** — Returns NotImplementedError
-- **Pipeline Assigned To filter** — Frontend dropdown not yet built (backend supports it)
-- **Graph API polling** — `graph_poller.py` exists but not scheduled (needs cron or Azure Function)
+- **`@login_required` not enforced on all routes** — SSO works but not all CRM endpoints require auth
+- **`merge_organizations()` not implemented** — Returns NotImplementedError (stub only)
+- **Graph API polling not scheduled** — `graph_poller.py` exists but no Azure Function or cron job
+- **57 orphaned contacts / 54 orphaned prospects** — Pre-existing data quality issues in markdown source, not migration bugs
+- **`main` branch is stale** — Contains old markdown-based code. Needs merge from `azure-migration` when ready
 
 ---
 
 ## Next Up
 
-1. **Import existing CRM data** (optional): `python3 scripts/migrate_to_postgres.py` if you have markdown files to import
-2. **Test locally**: Run `python3 app/delivery/dashboard.py` and visit http://localhost:8000
-3. **Add SSO enforcement** — Apply `@login_required` to all CRM blueprint routes
-4. **Update tests** — Rewrite test suite with PostgreSQL fixtures
-5. **Add real Entra IDs** — Update placeholder user IDs with real ones from Azure
-6. **Deploy to Azure** — Update GitHub Actions, configure App Service
-7. **Schedule graph_poller** — Set up hourly email polling
-
----
-
-## Open Design Questions
-
-<!-- None at this time -->
+1. **Schedule `graph_poller.py`** — Deploy as Azure Function or container job for hourly email polling
+2. **Enforce `@login_required`** — Apply to all CRM blueprint routes
+3. **Implement `merge_organizations()`** — Currently a stub
+4. **Merge `azure-migration` → `main`** — When confident production is stable
+5. **Feature specs ready for implementation** (see docs/specs/):
+   - SPEC_calendar-forward-scan.md — Auto-discovered prospect meetings
+   - SPEC_merge-orgs.md — Organization merge tool
+   - SPEC_org-aliases.md — Organization AKA names
+   - SPEC_easyauth-sso.md — Enhanced SSO
+   - SPEC_arec-crm-multi-user.md — Full multi-user platform
 
 ---
 
@@ -100,4 +89,5 @@
 
 - `arec-mobile/` PWA — functional, not actively iterated
 - Phase I2-I5 features (Intelligence pipeline enhancements, Intelligence UI, Briefing engine, Meeting transcript processing)
-- Morning briefing removed entirely (moved to Overwatch, not scheduled)
+- Morning briefing removed entirely (moved to Overwatch, deprecated)
+- Data cleanup for orphaned contacts/prospects

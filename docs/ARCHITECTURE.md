@@ -9,16 +9,24 @@
 
 ---
 
+## ⚠️ Development Rules
+
+**ALL work on `azure-migration` branch. NEVER modify `main`.** Push to `azure-migration` auto-deploys via GitHub Actions.
+
+---
+
 ## System Overview
 
-arec-crm is a multi-user fundraising CRM platform for the AREC team. Personal productivity features (tasks, briefings, meetings, memory) were segregated into a separate `overwatch/` project on 2026-03-12.
+arec-crm is a multi-user fundraising CRM platform for the AREC team deployed on Azure. Personal productivity features (tasks, briefings, meetings, memory) were segregated into a separate `overwatch/` project on 2026-03-12.
+
+**Production URL:** https://arec-crm-app.azurewebsites.net/crm
 
 **Core layers:**
 
-1. **Web Dashboard** — Flask app (port 8000 on Azure, 3002 local) for CRM, relationship brief synthesis, contact intelligence. Full dark theme.
-2. **PostgreSQL Backend** — All CRM data in PostgreSQL. No markdown fallback.
-3. **Multi-User Auth** — Entra ID SSO (planned). Users provisioned in `users` table.
-4. **Email Integration** — Graph API email polling (hourly background job), auto-capture, deep scan, two-tier matching.
+1. **Web Dashboard** — Flask app on Azure App Service (port 8000). Full dark theme. CI/CD via GitHub Actions.
+2. **PostgreSQL Backend** — Azure Flexible Server. All CRM data in PostgreSQL. No markdown fallback. No `crm_reader.py`.
+3. **Multi-User Auth** — Entra ID SSO (MSAL confidential client). Only `@avilacapllc.com` accounts.
+4. **Email Integration** — Graph API email polling (hourly background job, not yet scheduled), auto-capture, deep scan, two-tier matching.
 5. **Intelligence** — Relationship briefs (org + person) via Claude API, cached in PostgreSQL.
 
 ---
@@ -74,10 +82,11 @@ arec-crm/                        (~/Dropbox/projects/arec-crm/)
 │   │   ├── crm.css
 │   │   ├── crm.js
 │   │   └── icons.js
-│   ├── tests/                 ← 52 unit tests (need PostgreSQL updates)
-│   │   ├── conftest.py
-│   │   ├── test_brief_synthesizer.py
-│   │   └── test_email_matching.py
+│   ├── tests/                 ← 99 unit tests (SQLite in-memory, CI green)
+│   │   ├── conftest.py        ← Fixtures: seed users, orgs, contacts, prospects
+│   │   ├── test_crm_db.py     ← 69 tests for all crm_db.py functions
+│   │   ├── test_brief_synthesizer.py  ← 10 tests
+│   │   └── test_email_matching.py     ← 20 tests
 │   └── requirements.txt
 │
 ├── scripts/
@@ -91,8 +100,8 @@ arec-crm/                        (~/Dropbox/projects/arec-crm/)
 ├── startup.sh                 ← Azure App Service startup script
 ├── DEPLOYMENT.md              ← Azure deployment guide
 │
-├── crm/                       ← Legacy markdown files (archived post-migration)
-│   └── meeting_history.md     ← Meeting records (not migrated)
+├── crm/                       ← Legacy markdown files (LOCAL ONLY — not deployed, not used by app)
+│   └── *.md                   ← Historical data, read once by migration script
 │
 └── memory/                    ← Canonical people knowledge base
     └── people/{name}.md       ← Individual profiles (20+ files)
@@ -162,7 +171,7 @@ graph_poller.py (cron or Azure Function)
 | Microsoft Graph | `msal`, `requests` | Calendar, email, shared mailbox |
 | Claude API | `anthropic` | Brief synthesis, person briefs |
 | PostgreSQL | `sqlalchemy`, `psycopg2` | All CRM data storage |
-| Entra ID | `msal` | Multi-user SSO (planned) |
+| Entra ID | `msal` | Multi-user SSO (live) |
 
 ### Graph API Auth
 - MSAL device flow for local dev (single user, cached at `~/.arec_briefing_token_cache.json`)
@@ -256,9 +265,10 @@ All variables live in `app/.env` (local) or Azure Key Vault (production).
 3. `verify_migration.py` — Count validation + spot checks
 4. `migrate_add_graph_columns.py` — Add graph consent columns
 
-### What Stays Local
-- `memory/people/*.md` — Canonical people intelligence files
-- `crm/meeting_history.md` — Meeting records (not migrated)
+### What Stays Local (not deployed to Azure)
+- `memory/people/*.md` — Canonical people intelligence files (referenced by brief synthesis)
+- `crm/*.md` — Legacy markdown data files. Not used by app. Historical/backup only.
+- `crm/meeting_history.md` — Meeting records (not migrated to Postgres)
 
 ---
 

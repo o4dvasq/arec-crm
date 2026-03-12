@@ -1,7 +1,9 @@
 SPEC: AREC CRM Multi-User Platform
 Project: arec-crm
 Date: 2026-03-11
-Status: Ready for implementation
+Status: Partially complete — PostgreSQL migration, SSO, Overwatch segregation all done. Remaining: @login_required enforcement, graph_poller scheduling, Tony's EA onboarding.
+
+> **⚠️ MIGRATION NOTE (March 12, 2026):** This spec was written before the Azure migration. Many items are now COMPLETE: PostgreSQL backend is live, `crm_reader.py` is deleted, Overwatch is segregated, SSO is operational. When implementing remaining items, work on the `azure-migration` branch. All `crm_reader.py` references below should be read as `crm_db.py`. Do NOT create or import `crm_reader.py`.
 
 ---
 

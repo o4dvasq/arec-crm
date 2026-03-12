@@ -505,3 +505,65 @@
 - PostgreSQL 14 installed and running as system service
 
 ---
+
+## 2026-03-12 — Azure Deployment Fix: Database Initialization and Environment Variables
+
+**Decision:** Fixed four critical initialization issues preventing Azure deployment: (1) added `db.init_app(app)` call in `dashboard.py`, (2) updated `entra_auth.py` to support both `ENTRA_*` and `AZURE_*` environment variable names, (3) added Flask secret key configuration, (4) added `init_auth_routes(app)` call.
+
+**Rationale:**
+
+1. **Database initialization** — `dashboard.py` created the Flask app and registered blueprints, but never called `db.init_app(app)` or `db.init_db()`. Every database operation would crash with "Database not initialized" error. The `crm_blueprint.py` imports 40+ functions from `crm_db.py`, all requiring `db.SessionLocal` to be initialized.
+
+2. **Environment variable mismatch** — Azure App Settings used both `ENTRA_CLIENT_ID` and `AZURE_CLIENT_ID` conventions (set during different deployment phases). The `entra_auth.py` code only read `AZURE_*` names. Added fallback pattern: `os.environ.get('AZURE_CLIENT_ID') or os.environ.get('ENTRA_CLIENT_ID')` to support both.
+
+3. **Flask secret key** — MSAL authentication requires Flask sessions, which require `app.secret_key`. Without it, session operations fail silently. Added `app.secret_key = os.environ.get('FLASK_SECRET_KEY', os.urandom(32).hex())`.
+
+4. **Auth routes registration** — SSO endpoints (`/.auth/login/aad`, `/.auth/login/aad/callback`, `/.auth/logout`) were defined in `entra_auth.py` but never registered on the Flask app. Added `init_auth_routes(app)` call.
+
+**Deployment flow:**
+- Code changes pushed to `azure-migration` branch
+- GitHub Actions workflow triggered automatically
+- Tests passed (121 tests)
+- Deployment package built and deployed to Azure App Service
+- App verified responding with HTTP 200
+
+**Rejected approaches:**
+- **Renaming all Azure App Settings to AZURE_*** — Would require coordinating deployment config changes with code changes. Fallback pattern is safer.
+- **Lazy database initialization** — Considered initializing DB on first request. Flask `init_app` pattern is standard and avoids race conditions.
+
+**For the next designer:**
+- The initialization order matters: `init_app(app)` must happen before `init_auth_routes(app)` (auth routes query the users table).
+- Both must happen before `app.register_blueprint(crm_bp)` (blueprint routes use DB and auth).
+- If adding new blueprints, follow the same pattern: DB init → auth init → blueprints.
+
+**Impact:**
+- `app/delivery/dashboard.py` (added 3 imports, 3 function calls, secret key config)
+- `app/auth/entra_auth.py` (added fallback env var support with `or` pattern)
+- Azure deployment now functional at https://arec-crm-app.azurewebsites.net
+
+---
+
+## 2026-03-12 — Azure Production Cutover Complete
+
+**Decision:** AREC CRM is now a production Azure application. All development happens on `azure-migration` branch with CI/CD auto-deploy. `main` branch is frozen (stale markdown-based code). No local-only features allowed.
+
+**What changed:**
+1. App live at https://arec-crm-app.azurewebsites.net/crm with PostgreSQL backend
+2. 99 tests passing in CI (GitHub Actions), auto-deploy on push to `azure-migration`
+3. Data migrated: 146 orgs, 126 prospects, 137 contacts, 59 briefs in Azure Postgres
+4. Entra ID SSO operational, client secret rotated
+5. Overwatch segregation committed (66 files removed from arec-crm)
+6. Feature work synced (graph_poller, seed_user, CRM refinements)
+
+**Rationale:** All infrastructure provisioned, tested, and verified. Smoke tests passed. No reason to continue running locally against markdown files.
+
+**Rules going forward:**
+- `git checkout azure-migration` before any work
+- `main` is NOT the production branch — do not use it
+- Everything must work on Azure. No local-only code.
+- `crm_reader.py` is deleted. No markdown backend imports.
+- Push deploys automatically. Test locally first.
+
+**Impact:** All project docs updated (CLAUDE.md, PROJECT_STATE.md, ARCHITECTURE.md, all SPEC_ files, AZURE_DEPLOYMENT_STATUS.md).
+
+---

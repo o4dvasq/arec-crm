@@ -3,6 +3,8 @@ Project: arec-crm
 Date: 2026-03-11
 Status: Ready for implementation
 
+> **⚠️ MIGRATION NOTE (March 12, 2026):** This spec was written before the Azure migration. The app now runs on PostgreSQL only — `crm_reader.py` is deleted. All references to `crm_reader.py` below should be read as `crm_db.py`. Do NOT create or import `crm_reader.py`. Do NOT implement "both markdown and PostgreSQL modes" — PostgreSQL only. Work on `azure-migration` branch.
+
 ---
 
 ## 1. Objective

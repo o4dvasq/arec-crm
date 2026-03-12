@@ -1,7 +1,7 @@
 SPEC: Remove Morning Briefing — Fold Remaining Functionality into /update Workflow
 Project: arec-crm
 Date: 2026-03-12
-Status: Ready for implementation
+Status: ✅ COMPLETE — Morning briefing removed, moved to Overwatch (March 12, 2026)
 
 ---
 

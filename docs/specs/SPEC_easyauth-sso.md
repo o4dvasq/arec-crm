@@ -2,7 +2,7 @@
 
 **Project:** arec-crm
 **Date:** March 12, 2026
-**Status:** Ready for implementation
+**Status:** Partially implemented — Basic SSO works (login, logout, session). `@login_required` not enforced on all routes. Review spec for remaining items.
 
 ---
 

@@ -4,6 +4,8 @@
 **Date:** March 11, 2026
 **Status:** Ready for implementation
 
+> **⚠️ MIGRATION NOTE (March 12, 2026):** This spec was written before the Azure migration. The app now runs on PostgreSQL only — `crm_reader.py` is deleted. All references to `crm_reader.py` below should be read as `crm_db.py`. The `organizations` table in PostgreSQL has an `aliases` column (TEXT, nullable). Implement alias functions in `crm_db.py`. Do NOT create or import `crm_reader.py`. Work on `azure-migration` branch.
+
 ---
 
 ## 1. Objective
