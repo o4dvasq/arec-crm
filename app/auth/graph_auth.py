@@ -20,6 +20,8 @@ DELEGATED_SCOPES = [
     "https://graph.microsoft.com/Mail.Read.Shared",
     "https://graph.microsoft.com/Calendars.Read",
     "https://graph.microsoft.com/Chat.Read",
+    "https://graph.microsoft.com/TeamsActivity.Read",
+    "https://graph.microsoft.com/ChannelMessage.Read.All",
     "https://graph.microsoft.com/User.Read",
     "https://graph.microsoft.com/Contacts.Read",
 ]
