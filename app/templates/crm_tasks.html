@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Tasks — AREC CRM</title>
   <link rel="stylesheet" href="/static/crm.css">
+  <link rel="stylesheet" href="/static/task-edit-modal.css">
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0f172a; color: #e2e8f0; min-height: 100vh; }
@@ -189,7 +190,8 @@
         {% if team_tasks %}
           {% for task in team_tasks %}
           <tr data-prospect="{{ task.org | lower }}"
-              onclick="window.location.href='{{ task.detail_url }}'">
+              onclick="openTaskModal({id: {{ task.id }}, text: {{ task.text | tojson }}, org: {{ task.org | tojson }}, owner: {{ task.owner | tojson }}, priority: {{ task.priority | tojson }}, status: {{ task.status | tojson }}, created_at: {{ task.created_at.isoformat() | tojson if task.created_at else 'null' }}, detail_url: {{ task.detail_url | tojson }}})"
+              style="cursor:pointer;">
             <td>{{ pri_badge(task.priority) }}</td>
             <td><span class="task-text task-text-trunc">{{ task.text | striptags }}</span></td>
             <td>
@@ -199,7 +201,11 @@
             <td class="right">{{ task.target_display }}</td>
             <td>
               {% if task.owner %}
-                <span class="assignee-pill">{{ task.owner.split()[0][0] }}{{ task.owner.split()[-1][0] if task.owner.split() | length > 1 else '' }}</span>
+                {% if task.owner.split() | length == 1 %}
+                  <span class="assignee-pill">{{ task.owner.split()[0][:3].upper() }}</span>
+                {% else %}
+                  <span class="assignee-pill">{{ task.owner.split()[0][0] }}{{ task.owner.split()[-1][0] }}</span>
+                {% endif %}
               {% else %}
                 <span style="color:#64748b">—</span>
               {% endif %}
@@ -256,7 +262,20 @@ function filterTasks(query) {
   filterTable('my-tasks-body', 'my-tasks-count', 5, 'No matching tasks.');
   filterTable('team-tasks-body', 'team-tasks-count', 6, 'No matching tasks.');
 }
+
+// Setup task modal globals
+window.TASK_MODAL_TEAM = []; // Will be populated from config if needed
+window.TASK_MODAL_TEAM_MAP = [];
+window.taskModalOnSave = function() {
+  // Reload page or refresh task list
+  window.location.reload();
+};
+window.taskModalOnDelete = function() {
+  // Reload page or refresh task list
+  window.location.reload();
+};
 </script>
+<script src="/static/task-edit-modal.js"></script>
 
 </body>
 </html>

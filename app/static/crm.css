@@ -25,10 +25,11 @@ body {
 .brand-bar-inner {
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    justify-content: center;
     width: 100%;
     max-width: 1400px;
     padding: 0 16px;
+    position: relative;
 }
 .brand-left {
     display: flex;
@@ -50,7 +51,8 @@ body {
 
 /* ── User Menu (hover dropdown) ── */
 .user-menu {
-    position: relative;
+    position: absolute;
+    right: 16px;
     display: flex;
     align-items: center;
     cursor: pointer;

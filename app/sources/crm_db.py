@@ -1620,6 +1620,42 @@ def complete_prospect_task_db(task_id: int) -> bool:
         session.close()
 
 
+def update_prospect_task_db(task_id: int, **kwargs) -> dict | None:
+    """Update task fields: text, owner, priority, status.
+
+    Returns updated task dict or None on error.
+    """
+    session = get_session()
+    try:
+        task = session.query(ProspectTask).filter_by(id=task_id).first()
+        if not task:
+            return None
+
+        # Only allow updates to these fields
+        allowed_fields = {'text', 'owner', 'priority', 'status'}
+        for field, value in kwargs.items():
+            if field in allowed_fields:
+                if field == 'status' and value == 'done' and task.status == 'open':
+                    task.completed_at = datetime.now()
+                setattr(task, field, value)
+
+        session.commit()
+        return {
+            'id': task.id,
+            'text': task.text,
+            'owner': task.owner,
+            'priority': task.priority,
+            'status': task.status,
+            'org_name': task.org_name,
+            'created_at': task.created_at.isoformat() if task.created_at else None,
+        }
+    except Exception:
+        session.rollback()
+        return None
+    finally:
+        session.close()
+
+
 # ---------------------------------------------------------------------------
 # Cross-reference (not used in current codebase, but kept for compatibility)
 # ---------------------------------------------------------------------------

@@ -1016,7 +1016,8 @@ function showTaskPopover(event, tasks) {
     const owner = t.owner || '';
     const cls = priClass[pri] || 'task-popover-pri-med';
     const ownerHtml = owner ? `<div class="task-popover-owner">${escHtml(owner)}</div>` : '';
-    return `<div class="task-popover-item">
+    const taskJson = escHtml(JSON.stringify(t));
+    return `<div class="task-popover-item" style="cursor:pointer;" onclick="event.stopPropagation(); openTaskModal(${taskJson})">
       <span class="task-popover-pri ${cls}">${escHtml(pri)}</span>
       <div><div>${escHtml(text)}</div>${ownerHtml}</div>
     </div>`;
@@ -1722,7 +1723,9 @@ function buildCellContent(col, p, idx) {
       function getInitials(name) {
         if (!name) return '';
         const parts = name.trim().split(/\s+/);
-        if (parts.length === 1) return parts[0][0].toUpperCase();
+        // If single word (e.g., "Oscar"), show the full word
+        if (parts.length === 1) return parts[0].toUpperCase();
+        // If multiple words, show first letter of first and last names
         return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
       }
 
@@ -1793,8 +1796,8 @@ function renderTableRow(p, idx, extraClass = '') {
   return `<tr data-idx="${idx}"${classAttr}>${cells}</tr>`;
 }
 
-// Track which stages are collapsed (Closed starts collapsed)
-const collapsedStages = new Set(['6. Verbal', '7. Legal / DD', '8. Closed', '0. Declined']);
+// Track which stages are collapsed (only stages 1-5 uncollapsed by default)
+const collapsedStages = new Set(['0. Declined', '6. Verbal', '7. Legal / DD', '8. Closed']);
 
 function toggleStageGroup(stageSlug) {
   const key = stageSlug;

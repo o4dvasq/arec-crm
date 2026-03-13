@@ -53,6 +53,26 @@ function stripMarkdown(text) {
 }
 
 /* ═══════════════════════════════════════════════════════════
+   Utility — Markdown to HTML conversion
+   Converts markdown bold, italic, and links to HTML.
+   ═══════════════════════════════════════════════════════════ */
+
+function markdownToHtml(text) {
+    if (!text) return '';
+    return text
+        // Convert **bold** to <strong>bold</strong>
+        .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+        // Convert __bold__ to <strong>bold</strong>
+        .replace(/__(.+?)__/g, '<strong>$1</strong>')
+        // Convert _italic_ to <em>italic</em> (after __, to avoid double-replacing)
+        .replace(/_(.+?)_/g, '<em>$1</em>')
+        // Convert *italic* to <em>italic</em>
+        .replace(/\*(.+?)\*/g, '<em>$1</em>')
+        // Convert [text](url) to <a href="url" target="_blank">text</a>
+        .replace(/\[(.+?)\]\((.+?)\)/g, '<a href="$2" target="_blank">$1</a>');
+}
+
+/* ═══════════════════════════════════════════════════════════
    Overwatch — Global Search Autocomplete
    Reads window.SEARCH_INDEX injected by _nav.html
    ═══════════════════════════════════════════════════════════ */

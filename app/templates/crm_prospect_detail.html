@@ -1207,10 +1207,10 @@
 
     function narrativeToHtml(text) {
         if (!text) return '';
-        return stripMarkdown(text).trim()
+        return markdownToHtml(text).trim()
             .split(/\n\n+/)
             .filter(p => p.trim())
-            .map(p => `<p>${esc(p.trim().replace(/\n/g, ' '))}</p>`)
+            .map(p => `<p>${p.trim().replace(/\n/g, ' ')}</p>`)
             .join('');
     }
 

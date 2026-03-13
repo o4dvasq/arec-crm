@@ -33,7 +33,7 @@ from sources.crm_db import (
     _parse_currency, load_person, load_all_persons,
     delete_prospect, load_meeting_history, add_meeting_entry,
     get_tasks_for_prospect_db, add_prospect_task_db,
-    complete_prospect_task_db, get_all_tasks_for_dashboard,
+    complete_prospect_task_db, update_prospect_task_db, get_all_tasks_for_dashboard,
     load_email_log, get_emails_for_org, find_email_by_message_id,
     load_interactions, append_interaction,
     save_brief, load_saved_brief, load_all_briefs,
@@ -395,16 +395,21 @@ def api_prospect_brief(offering, org):
         })
 
     # POST — synthesize and persist
-    today_str = date.today().isoformat()
-    narrative, at_a_glance, _ = _run_prospect_brief(org, offering)
-    brief_text = narrative.replace('\n', ' ').strip()
-    update_prospect_field(org, offering, 'relationship_brief', brief_text)
-    update_prospect_field(org, offering, 'brief_refreshed', today_str)
-    return jsonify({
-        'narrative': narrative,
-        'brief_refreshed': today_str,
-        'at_a_glance': at_a_glance,
-    })
+    try:
+        today_str = date.today().isoformat()
+        narrative, at_a_glance, _ = _run_prospect_brief(org, offering)
+        brief_text = narrative.replace('\n', ' ').strip()
+        update_prospect_field(org, offering, 'relationship_brief', brief_text)
+        update_prospect_field(org, offering, 'brief_refreshed', today_str)
+        return jsonify({
+            'narrative': narrative,
+            'brief_refreshed': today_str,
+            'at_a_glance': at_a_glance,
+        })
+    except Exception as e:
+        print(f"[brief] POST synthesis failed for {org}/{offering}: {e}")
+        import traceback; traceback.print_exc()
+        return jsonify({'error': str(e), 'narrative': '', 'at_a_glance': []}), 500
 
 
 @crm_bp.route('/api/synthesize-brief', methods=['POST'])
@@ -1209,6 +1214,28 @@ def api_crm_tasks_complete():
     if not success:
         return jsonify({'error': 'Task not found'}), 404
     return jsonify({'ok': True})
+
+
+@crm_bp.route('/api/tasks/<int:task_id>', methods=['PATCH'])
+@login_required
+def api_crm_tasks_update(task_id):
+    """Update task fields: text, owner, priority, status."""
+    data = request.get_json(force=True)
+
+    # Extract fields to update
+    update_data = {}
+    for field in ['text', 'owner', 'priority', 'status']:
+        if field in data:
+            update_data[field] = data[field]
+
+    if not update_data:
+        return jsonify({'error': 'No fields to update'}), 400
+
+    result = update_prospect_task_db(task_id, **update_data)
+    if result is None:
+        return jsonify({'error': 'Task not found'}), 404
+
+    return jsonify(result), 200
 
 
 # ---------------------------------------------------------------------------
