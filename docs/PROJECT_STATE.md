@@ -6,7 +6,7 @@
 ---
 
 ## Last Updated
-2026-03-13 — Person name linking: clickable person names app-wide via `data-person-name` + `linkifyPersonNames()`
+2026-03-13 — Person name linking + simplify pass (index caching, Jinja readability, typeof guard cleanup)
 
 ---
 
@@ -20,7 +20,7 @@
 - **Schema**: 14 tables with all relationships and foreign keys
 - **Authentication**: Entra ID SSO (MSAL confidential client). Auto-provisioning on first login. DEV_USER bypass for local dev. All CRM routes require authentication (`@login_required` on 50 routes).
 - **User Management**: Admin page at `/admin/users` with role management. oscar@avilacapllc.com auto-promoted to admin.
-- **CI/CD**: GitHub Actions — push to `azure-migration` → 109 tests → auto-deploy to Azure
+- **CI/CD**: GitHub Actions — push to `azure-migration` → 120 tests → auto-deploy to Azure
 - **CRM Features**: Pipeline, prospect detail, org management, relationship briefs, contact intelligence, interaction history
 - **Brief Synthesis**: Relationship briefs (org + person) via Claude API, cached in PostgreSQL
 - **Email Integration**: Graph API poller ready (`graph_poller.py` multi-user support), auto-capture, two-tier matching
@@ -47,6 +47,7 @@
 3. **Pipeline primary contact** — Wrapped primary contact text in `<span data-person-name>` in `renderCell()`; `linkifyPersonNames()` called at end of `renderTable()` since rows are JS-rendered after page load.
 4. **Prospect detail primary contact** — Jinja template updated to emit `<span data-person-name>` when primary contact name is present; falls back to `—` when empty.
 5. **Prospect detail note authors** — `data-person-name` added to `.note-author` span in `renderNotesLog()`; `linkifyPersonNames()` called after notes `innerHTML` is set.
+6. **Simplify pass** — `_personNameIndex` cached at module scope (built once, reused on all `renderTable()` / `renderNotesLog()` calls); cramped Jinja primary contact block expanded to readable multi-line; unnecessary `typeof linkifyPersonNames` guards removed.
 
 ---
 
