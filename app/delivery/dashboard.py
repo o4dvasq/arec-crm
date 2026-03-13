@@ -21,9 +21,8 @@ from flask import Flask, redirect, url_for
 
 from delivery.crm_blueprint import crm_bp
 from delivery.admin_blueprint import admin_bp
-from db import init_app, engine
+from db import init_app
 from auth.entra_auth import init_auth_routes
-from auto_migrate import auto_migrate
 
 PROJECT_ROOT = os.path.dirname(APP_DIR)
 
@@ -38,9 +37,6 @@ app.secret_key = os.environ.get('FLASK_SECRET_KEY', os.urandom(32).hex())
 
 # Initialize database
 init_app(app)
-
-# Run auto-migrate to sync schema
-auto_migrate(engine)
 
 # Initialize authentication routes (logs DEV_USER warning if set)
 init_auth_routes(app)
