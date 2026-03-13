@@ -6,14 +6,22 @@
    skipped because they no longer carry data-person-name.
    ═══════════════════════════════════════════════════════════ */
 
-function linkifyPersonNames() {
-    const index = (window.SEARCH_INDEX || [])
+// Built once per page load — SEARCH_INDEX never changes at runtime.
+let _personNameIndex = null;
+
+function _getPersonNameIndex() {
+    if (_personNameIndex !== null) return _personNameIndex;
+    _personNameIndex = (window.SEARCH_INDEX || [])
         .filter(function (e) { return e.type === 'person'; })
         .reduce(function (map, e) {
             map[e.name.toLowerCase()] = e.url;
             return map;
         }, {});
+    return _personNameIndex;
+}
 
+function linkifyPersonNames() {
+    const index = _getPersonNameIndex();
     document.querySelectorAll('[data-person-name]').forEach(function (el) {
         const name = el.textContent.trim();
         const url = index[name.toLowerCase()];

@@ -760,3 +760,17 @@
 **Rationale:** Jinja2's built-in `urlencode` filter encodes entire query strings, not individual path segments. Org/offering names contain spaces and special characters. Encoding in Python is explicit and correct.
 
 **Impact:** `app/delivery/crm_blueprint.py` (`crm_tasks` view function), `app/templates/crm_tasks.html`.
+
+## 2026-03-13 — Person Name Linking: Client-Side `data-person-name` Pattern
+
+**Decision:** Used client-side `data-person-name` attribute + `linkifyPersonNames()` in `crm.js` rather than server-side slug resolution in each template.
+
+**Rationale:** Server-side approach would require passing person slug maps to every route that renders a template with person names — significant backend coupling. The `window.SEARCH_INDEX` is already injected on every page by `_nav.html`, making client-side resolution free. The `data-person-name` attribute is a minimal, non-destructive template change.
+
+**For dynamic content (pipeline rows, notes):** `linkifyPersonNames()` is called after each `innerHTML` assignment since `DOMContentLoaded` fires before JS-rendered rows exist. The function is idempotent — already-linked elements have no `data-person-name` attribute, so re-calling is safe.
+
+**`stopPropagation()` on person links:** Pipeline rows and other table rows have click-to-navigate handlers. Without `stopPropagation()`, clicking a person link would navigate to the prospect detail instead of the person detail. Added via `addEventListener` on the created `<a>` element.
+
+**Already-linked locations (no changes needed):** People list (full `<a>` cards), org detail contacts (`c.slug` check), prospect detail contacts list (`c.slug` check). Tasks page shows initials only — spec explicitly excludes initials from linking.
+
+**Impact:** `app/static/crm.js` (new function), `app/static/crm.css` (`.person-link` styles), `app/templates/crm_pipeline.html` (data attribute + post-render call), `app/templates/crm_prospect_detail.html` (Jinja primary contact + note author).

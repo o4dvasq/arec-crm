@@ -23,7 +23,6 @@ if _APP_DIR not in sys.path:
 from auth.entra_auth import login_required
 
 PROJECT_ROOT = os.path.dirname(_APP_DIR)
-TASKS_PATH = os.path.join(PROJECT_ROOT, "TASKS.md")
 
 from sources.crm_db import (
     load_prospects, load_offerings, get_fund_summary, get_fund_summary_all,
@@ -31,10 +30,10 @@ from sources.crm_db import (
     get_contacts_for_org, create_person_file, update_contact_fields,
     get_prospects_for_org, get_prospect, write_prospect, update_prospect_field,
     load_unmatched, remove_unmatched, add_unmatched,
-    _parse_currency, load_person, load_tasks_by_org, load_all_persons,
+    _parse_currency, load_person, load_all_persons,
     delete_prospect, load_meeting_history, add_meeting_entry,
-    get_tasks_for_prospect, get_all_prospect_tasks, add_prospect_task,
-    complete_prospect_task, get_all_tasks_for_dashboard,
+    get_tasks_for_prospect_db, add_prospect_task_db,
+    complete_prospect_task_db, get_all_tasks_for_dashboard,
     load_email_log, get_emails_for_org, find_email_by_message_id,
     load_interactions, append_interaction,
     save_brief, load_saved_brief, load_all_briefs,
@@ -1062,26 +1061,14 @@ def api_prospects():
     if not include_closed:
         excluded = {'8. Closed', '0. Not Pursuing', '0. Declined'}
         prospects = [p for p in prospects if p.get('Stage', '') not in excluded]
-    tasks_by_org = load_tasks_by_org()
-    all_new_tasks = get_all_prospect_tasks()
-    new_tasks_by_org: dict = {}
-    for t in all_new_tasks:
-        new_tasks_by_org.setdefault(t['org'], []).append(
-            {k: v for k, v in t.items() if k != 'org'}
-        )
+    # Get tasks from PostgreSQL for each prospect
     for p in prospects:
         org_name = p.get('org', '')
-        org_tasks = tasks_by_org.get(org_name, [])
-        if org_tasks:
-            p['Tasks'] = ' | '.join(
-                f"[@{t['owner']}] {t['task']}" for t in org_tasks
-            )
-        else:
-            p['Tasks'] = ''
-        p['_tasks'] = org_tasks
-        new_tasks = new_tasks_by_org.get(org_name, [])
-        p['prospect_tasks'] = new_tasks
-        p['open_task_count'] = sum(1 for t in new_tasks if t['status'] == 'open')
+        prospect_tasks = get_tasks_for_prospect_db(org_name)
+        p['Tasks'] = ''  # No legacy markdown tasks
+        p['_tasks'] = []  # Legacy field, empty
+        p['prospect_tasks'] = prospect_tasks
+        p['open_task_count'] = len(prospect_tasks)
     all_briefs = load_all_briefs()
     prospect_briefs = all_briefs.get('prospect', {})
     for p in prospects:
@@ -1192,7 +1179,7 @@ def api_crm_tasks_list():
     org = request.args.get('org', '').strip()
     if not org:
         return jsonify({'error': 'org parameter required'}), 400
-    return jsonify(get_tasks_for_prospect(org))
+    return jsonify(get_tasks_for_prospect_db(org))
 
 
 @crm_bp.route('/api/tasks', methods=['POST'])
@@ -1203,24 +1190,22 @@ def api_crm_tasks_create():
     text = data.get('text', '').strip()
     owner = data.get('owner', '').strip()
     priority = data.get('priority', 'Med').strip()
-    section = data.get('section', 'IR / Fundraising').strip()
     if not org or not text or not owner:
         return jsonify({'error': 'org, text, and owner are required'}), 400
-    success = add_prospect_task(org, text, owner, priority, section)
-    if not success:
+    task = add_prospect_task_db(org, text, owner, priority)
+    if not task:
         return jsonify({'error': 'Failed to add task'}), 500
-    return jsonify({'ok': True}), 201
+    return jsonify(task), 201
 
 
 @crm_bp.route('/api/tasks/complete', methods=['PATCH'])
 @login_required
 def api_crm_tasks_complete():
     data = request.get_json(force=True)
-    org = data.get('org', '').strip()
-    task_text = data.get('task_text', '').strip()
-    if not org or not task_text:
-        return jsonify({'error': 'org and task_text are required'}), 400
-    success = complete_prospect_task(org, task_text)
+    task_id = data.get('id')
+    if not task_id:
+        return jsonify({'error': 'task id is required'}), 400
+    success = complete_prospect_task_db(task_id)
     if not success:
         return jsonify({'error': 'Task not found'}), 404
     return jsonify({'ok': True})

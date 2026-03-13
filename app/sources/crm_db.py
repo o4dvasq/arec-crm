@@ -21,7 +21,6 @@ from db import get_session, session_scope
 APP_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 PROJECT_ROOT = os.path.dirname(APP_ROOT)
 PEOPLE_ROOT = os.path.join(PROJECT_ROOT, "memory", "people")
-TASKS_MD_PATH = os.path.join(PROJECT_ROOT, "TASKS.md")
 
 # Field write order for prospects (matches crm_reader.py)
 PROSPECT_FIELD_ORDER = [
@@ -1551,211 +1550,74 @@ def add_pending_interview(entry: dict) -> None:
 
 
 # ---------------------------------------------------------------------------
-# Tasks (from TASKS.md — local file, not migrated)
+# PostgreSQL-backed task functions (prospect_tasks table)
 # ---------------------------------------------------------------------------
 
-def load_tasks_by_org() -> dict[str, list[dict]]:
-    """Parse TASKS.md and return open tasks grouped by org name."""
-    if not os.path.exists(TASKS_MD_PATH):
-        return {}
-
-    with open(TASKS_MD_PATH, 'r') as f:
-        text = f.read()
-
-    result = {}
-    current_section = None
-    task_index = 0
-
-    for line in text.splitlines():
-        stripped = line.strip()
-
-        if stripped.startswith('## '):
-            current_section = stripped[3:].strip()
-            task_index = 0
-            continue
-
-        if current_section in ('Personal', 'Done', None):
-            continue
-
-        if stripped.startswith('- [ ]') or stripped.startswith('- [x]'):
-            if stripped.startswith('- [x]'):
-                task_index += 1
-                continue
-
-            pri_match = re.search(r'\*\*\[(\w+)\]\*\*', stripped)
-            priority = pri_match.group(1) if pri_match else 'Med'
-
-            owner_match = re.search(r'\*\*@([^*]+)\*\*', stripped)
-            if owner_match:
-                owner = owner_match.group(1).strip()
-            else:
-                assigned_match = re.search(r'—\s*assigned:(.+)$', stripped)
-                owner = assigned_match.group(1).strip() if assigned_match else 'Oscar'
-
-            org_match = re.search(r'\(([^)]+)\)\s*(?:—\s*assigned:[^)]*)?$', stripped)
-            if not org_match:
-                task_index += 1
-                continue
-
-            org_name = org_match.group(1).strip()
-
-            desc = stripped
-            desc = re.sub(r'^- \[ \]\s*\*\*\[\w+\]\*\*\s*', '', desc)
-            desc = re.sub(r'\*\*@[^*]+\*\*\s*', '', desc)
-            desc = re.sub(r'\s*—\s*assigned:.*$', '', desc)
-            desc = re.sub(r'\s*\([^)]+\)\s*$', '', desc)
-            desc = desc.strip(' —-')
-
-            result.setdefault(org_name, []).append({
-                'task': desc,
-                'owner': owner,
-                'section': current_section,
-                'index': task_index,
-                'priority': priority,
-            })
-
-            task_index += 1
-
-    return result
+def get_tasks_for_prospect_db(org_name: str) -> list[dict]:
+    """Get open tasks for a prospect from prospect_tasks table."""
+    session = get_session()
+    try:
+        tasks = session.query(ProspectTask).filter(
+            ProspectTask.org_name.ilike(org_name),
+            ProspectTask.status == 'open'
+        ).order_by(ProspectTask.created_at.desc()).all()
+        return [{
+            'id': t.id,
+            'text': t.text,
+            'owner': t.owner or '',
+            'priority': t.priority or 'Med',
+            'status': t.status or 'open',
+            'created_at': t.created_at,
+        } for t in tasks]
+    finally:
+        session.close()
 
 
-def get_tasks_for_prospect(org_name: str) -> list[dict]:
-    """Scan TASKS.md for tasks tagged [org: org_name]."""
-    if not os.path.exists(TASKS_MD_PATH):
-        return []
-
-    with open(TASKS_MD_PATH, 'r') as f:
-        text = f.read()
-
-    results = []
-    current_section = None
-    org_lower = org_name.lower()
-
-    for line in text.splitlines():
-        stripped = line.strip()
-        if stripped.startswith('## '):
-            current_section = stripped[3:].strip()
-            continue
-
-        if current_section:
-            task = _parse_org_tagged_task(line, current_section)
-            if task and task['org'].lower() == org_lower:
-                results.append({k: v for k, v in task.items() if k != 'org'})
-
-    return results
-
-
-def _parse_org_tagged_task(line: str, section: str) -> dict | None:
-    """Parse a TASKS.md line with [org: ...] tag."""
-    stripped = line.strip()
-    if not (stripped.startswith('- [ ]') or stripped.startswith('- [x]')):
+def add_prospect_task_db(org_name: str, text: str, owner: str, priority: str = 'Med') -> dict | None:
+    """Add a task to the prospect_tasks table. Returns the created task dict or None."""
+    if not org_name or not text:
         return None
-    org_m = re.search(r'\[org:\s*([^\]]+)\]', stripped)
-    if not org_m:
+    session = get_session()
+    try:
+        task = ProspectTask(
+            org_name=org_name,
+            text=text,
+            owner=owner or '',
+            priority=priority,
+            status='open',
+        )
+        session.add(task)
+        session.commit()
+        return {
+            'id': task.id,
+            'text': task.text,
+            'owner': task.owner,
+            'priority': task.priority,
+            'status': task.status,
+        }
+    except Exception:
+        session.rollback()
         return None
-    org_name = org_m.group(1).strip()
-    status = 'done' if stripped.startswith('- [x]') else 'open'
-    pri_m = re.search(r'\*\*\[(\w+)\]\*\*', stripped)
-    priority = pri_m.group(1) if pri_m else 'Med'
-    owner_m = re.search(r'\[owner:\s*([^\]]+)\]', stripped)
-    owner = owner_m.group(1).strip() if owner_m else ''
-
-    text = re.sub(r'^- \[.\]\s*', '', stripped)
-    text = re.sub(r'\*\*\[\w+\]\*\*\s*', '', text)
-    text = re.sub(r'\[org:\s*[^\]]+\]', '', text)
-    text = re.sub(r'\[owner:\s*[^\]]+\]', '', text)
-    text = text.strip(' —-').strip()
-
-    return {
-        'org': org_name,
-        'text': text,
-        'owner': owner,
-        'priority': priority,
-        'status': status,
-        'section': section,
-        'raw_line': stripped,
-    }
+    finally:
+        session.close()
 
 
-def get_all_prospect_tasks() -> list[dict]:
-    """Scan TASKS.md for all tasks tagged with any [org: ...] tag."""
-    if not os.path.exists(TASKS_MD_PATH):
-        return []
-
-    with open(TASKS_MD_PATH, 'r') as f:
-        text = f.read()
-
-    results = []
-    current_section = None
-
-    for line in text.splitlines():
-        stripped = line.strip()
-        if stripped.startswith('## '):
-            current_section = stripped[3:].strip()
-            continue
-        if current_section:
-            task = _parse_org_tagged_task(line, current_section)
-            if task:
-                results.append(task)
-
-    return results
-
-
-def add_prospect_task(org_name: str, text: str, owner: str, priority: str = "Med", section: str = "IR / Fundraising") -> bool:
-    """Append a new prospect task to TASKS.md."""
-    if not org_name or not text or not owner:
+def complete_prospect_task_db(task_id: int) -> bool:
+    """Mark a task as done by ID."""
+    session = get_session()
+    try:
+        task = session.query(ProspectTask).filter_by(id=task_id).first()
+        if not task:
+            return False
+        task.status = 'done'
+        task.completed_at = datetime.now()
+        session.commit()
+        return True
+    except Exception:
+        session.rollback()
         return False
-    if not os.path.exists(TASKS_MD_PATH):
-        return False
-
-    new_line = f'- [ ] **[{priority}]** {text} — [org: {org_name}] [owner: {owner}]\n'
-
-    with open(TASKS_MD_PATH, 'r') as f:
-        lines = f.readlines()
-
-    target = f'## {section}'
-    inserted = False
-    for i, ln in enumerate(lines):
-        if ln.strip() == target:
-            lines.insert(i + 1, new_line)
-            inserted = True
-            break
-
-    if not inserted:
-        lines.append(f'\n## {section}\n')
-        lines.append(new_line)
-
-    with open(TASKS_MD_PATH, 'w') as f:
-        f.writelines(lines)
-
-    return True
-
-
-def complete_prospect_task(org_name: str, task_text: str) -> bool:
-    """Find open task matching org_name + partial text, mark it done."""
-    if not os.path.exists(TASKS_MD_PATH):
-        return False
-
-    with open(TASKS_MD_PATH, 'r') as f:
-        lines = f.readlines()
-
-    org_lower = org_name.lower()
-    text_lower = task_text.lower().strip()
-
-    for i, line in enumerate(lines):
-        stripped = line.strip()
-        if not stripped.startswith('- [ ]'):
-            continue
-        org_m = re.search(r'\[org:\s*([^\]]+)\]', stripped)
-        if not org_m or org_m.group(1).strip().lower() != org_lower:
-            continue
-        if text_lower in stripped.lower():
-            lines[i] = line.replace('- [ ]', '- [x]', 1)
-            with open(TASKS_MD_PATH, 'w') as f:
-                f.writelines(lines)
-            return True
-
-    return False
+    finally:
+        session.close()
 
 
 # ---------------------------------------------------------------------------

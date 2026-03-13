@@ -6,7 +6,7 @@
 ---
 
 ## Last Updated
-2026-03-13 — Tasks page: `/crm/tasks` with My Tasks / Team Tasks, search, priority+size sort
+2026-03-13 — Person name linking: clickable person names app-wide via `data-person-name` + `linkifyPersonNames()`
 
 ---
 
@@ -20,7 +20,7 @@
 - **Schema**: 14 tables with all relationships and foreign keys
 - **Authentication**: Entra ID SSO (MSAL confidential client). Auto-provisioning on first login. DEV_USER bypass for local dev. All CRM routes require authentication (`@login_required` on 50 routes).
 - **User Management**: Admin page at `/admin/users` with role management. oscar@avilacapllc.com auto-promoted to admin.
-- **CI/CD**: GitHub Actions — push to `azure-migration` → 101 tests → auto-deploy to Azure
+- **CI/CD**: GitHub Actions — push to `azure-migration` → 109 tests → auto-deploy to Azure
 - **CRM Features**: Pipeline, prospect detail, org management, relationship briefs, contact intelligence, interaction history
 - **Brief Synthesis**: Relationship briefs (org + person) via Claude API, cached in PostgreSQL
 - **Email Integration**: Graph API poller ready (`graph_poller.py` multi-user support), auto-capture, two-tier matching
@@ -30,6 +30,7 @@
 - **Navigation**: Lucide target icon, user name on right with hover dropdown (Admin + Logout), centered nav tabs (Pipeline, People, Orgs, Tasks), global search on right
 - **Pipeline UI Polish**: At a Glance column is muted/lighter (2-line clamp), Tasks column wider with assignee initials, markdown stripped from display text
 - **Tasks Page**: `/crm/tasks` — My Tasks + Team Tasks sections, priority/size sort, client-side search, prospect links
+- **Person Name Linking**: All person names app-wide are clickable links to `/crm/people/<slug>` via `linkifyPersonNames()` in `crm.js`
 
 ### Overwatch — Personal Productivity Platform (LOCAL ONLY)
 - **Location**: `~/Dropbox/projects/overwatch/`
@@ -41,11 +42,11 @@
 
 ## What Was Just Completed (March 13, 2026)
 
-1. **`/crm/tasks` route** — New `GET /crm/tasks` route in `crm_blueprint.py` with `@login_required`. Splits all open DB tasks into My Tasks / Team Tasks by matching `g.user.display_name` / `g.user.email` against `task.owner`. Sorts each section by priority (Hi→Med→Lo) then deal size (desc).
-2. **`get_all_tasks_for_dashboard()`** — New DB-backed function in `crm_db.py`. Queries `prospect_tasks` table (status=`open`) and joins with `organizations` + `prospects` to enrich each task with `target`, `target_display`, and `offering`.
-3. **`crm_tasks.html`** — New dark-theme template: search bar, My Tasks table (5 cols), Team Tasks table (6 cols with assignee initials), client-side JS filter on prospect name + task text, empty states, Jinja macro for priority badges.
-4. **2 new tests** — `test_get_all_tasks_for_dashboard_returns_enriched_tasks` and `test_get_all_tasks_for_dashboard_excludes_completed`. 101 tests total, all passing.
-5. **Tasks tab now live** — Nav tab already pointed to `/crm/tasks`; route was the missing piece.
+1. **`linkifyPersonNames()` in `crm.js`** — Global function that reads `window.SEARCH_INDEX` (already injected by `_nav.html`), builds a name→URL lookup for all `type: 'person'` entries, finds all `[data-person-name]` elements, and replaces them with `.person-link` anchors. `stopPropagation()` added to prevent triggering table row click handlers. Called on `DOMContentLoaded` for server-rendered content.
+2. **`.person-link` CSS** — Added to `crm.css`: subtle blue (`#60a5fa`), no underline until hover, matches app accent color.
+3. **Pipeline primary contact** — Wrapped primary contact text in `<span data-person-name>` in `renderCell()`; `linkifyPersonNames()` called at end of `renderTable()` since rows are JS-rendered after page load.
+4. **Prospect detail primary contact** — Jinja template updated to emit `<span data-person-name>` when primary contact name is present; falls back to `—` when empty.
+5. **Prospect detail note authors** — `data-person-name` added to `.note-author` span in `renderNotesLog()`; `linkifyPersonNames()` called after notes `innerHTML` is set.
 
 ---
 
@@ -80,11 +81,10 @@
 
 1. **SPEC_prospect-detail-overhaul.md** — Prospect detail page overhaul
 2. **SPEC_contact-enrichment.md** — Contact enrichment features
-3. **SPEC_person-name-linking.md** — Person name linking
-4. **SPEC_nav-redesign.md** — Nav redesign (if any remaining items)
-5. **SPEC_pipeline-polish.md** — Pipeline polish
-6. **Run graph column migration** — Execute `python3 scripts/migrate_add_graph_columns.py` on Azure database
-7. **Schedule `graph_poller.py`** — Deploy as Azure Function or container job for hourly email polling
+3. **SPEC_nav-redesign.md** — Nav redesign (if any remaining items)
+4. **SPEC_pipeline-polish.md** — Pipeline polish
+5. **Run graph column migration** — Execute `python3 scripts/migrate_add_graph_columns.py` on Azure database
+6. **Schedule `graph_poller.py`** — Deploy as Azure Function or container job for hourly email polling
 
 ---
 

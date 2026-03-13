@@ -84,7 +84,7 @@ python3 app/drain_inbox.py                        # Drain crm@avilacapllc.com sh
 - **Assigned To filter on pipeline**: Pipeline view has dropdown to filter prospects by `assigned_to` field.
 - **No markdown fallback**: App assumes PostgreSQL is available. No `crm_reader.py` imports allowed.
 - **User provisioning is automatic**: Users auto-created on first login. No manual seeding required. oscar@avilacapllc.com promoted to admin on first login.
-- **Tests use SQLite in-memory**: `conftest.py` defaults to `sqlite:///:memory:` when `TEST_DATABASE_URL` not set. All 101 tests run this way in CI.
+- **Tests use SQLite in-memory**: `conftest.py` defaults to `sqlite:///:memory:` when `TEST_DATABASE_URL` not set. All 109 tests run this way in CI.
 
 ---
 

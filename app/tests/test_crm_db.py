@@ -781,39 +781,109 @@ def test_purge_old_unmatched(full_test_db):
     assert 'old@example.com' not in emails
 
 
-def test_load_tasks_by_org(full_test_db):
-    """load_tasks_by_org groups tasks by org (smoke test)."""
-    # Just verify it doesn't crash - file may not exist
-    tasks_by_org = crm_db.load_tasks_by_org()
-    assert isinstance(tasks_by_org, dict)
+def test_get_tasks_for_prospect_db(full_test_db):
+    """get_tasks_for_prospect_db returns open tasks for an org."""
+    session = full_test_db['session']
+
+    # Add open tasks for UTIMCO
+    task1 = ProspectTask(
+        org_name='UTIMCO', text='Task 1', owner='Alice', priority='Hi', status='open'
+    )
+    task2 = ProspectTask(
+        org_name='UTIMCO', text='Task 2', owner='Bob', priority='Med', status='open'
+    )
+    # Add a done task (should not be returned)
+    task3 = ProspectTask(
+        org_name='UTIMCO', text='Task 3', owner='Charlie', priority='Lo', status='done'
+    )
+    session.add_all([task1, task2, task3])
+    session.commit()
+
+    tasks = crm_db.get_tasks_for_prospect_db('UTIMCO')
+    assert len(tasks) == 2
+    assert all(t['status'] == 'open' for t in tasks)
+    texts = {t['text'] for t in tasks}
+    assert texts == {'Task 1', 'Task 2'}
 
 
-def test_get_tasks_for_prospect(full_test_db):
-    """get_tasks_for_prospect finds tasks for specific org (smoke test)."""
-    # Just verify it doesn't crash - file may not exist
-    tasks = crm_db.get_tasks_for_prospect('UTIMCO')
+def test_get_tasks_for_prospect_db_case_insensitive(full_test_db):
+    """get_tasks_for_prospect_db should match org names case-insensitively."""
+    session = full_test_db['session']
+
+    task = ProspectTask(
+        org_name='UTIMCO', text='Test', owner='Alice', priority='Med', status='open'
+    )
+    session.add(task)
+    session.commit()
+
+    # Should match with different case
+    tasks = crm_db.get_tasks_for_prospect_db('utimco')
+    assert len(tasks) == 1
+    assert tasks[0]['text'] == 'Test'
+
+
+def test_get_tasks_for_prospect_db_empty_org(full_test_db):
+    """get_tasks_for_prospect_db returns empty list for org with no tasks."""
+    tasks = crm_db.get_tasks_for_prospect_db('NonexistentOrg')
     assert isinstance(tasks, list)
+    assert len(tasks) == 0
 
 
-def test_get_all_prospect_tasks(full_test_db):
-    """get_all_prospect_tasks finds all tasks with org tags (smoke test)."""
-    # Just verify it doesn't crash - file may not exist
-    tasks = crm_db.get_all_prospect_tasks()
-    assert isinstance(tasks, list)
+def test_add_prospect_task_db(full_test_db):
+    """add_prospect_task_db creates a new task and returns it."""
+    task = crm_db.add_prospect_task_db('UTIMCO', 'Send documents', 'Alice', 'Hi')
+
+    assert task is not None
+    assert task['id'] is not None
+    assert task['text'] == 'Send documents'
+    assert task['owner'] == 'Alice'
+    assert task['priority'] == 'Hi'
+    assert task['status'] == 'open'
+
+    # Verify it was saved to the database
+    session = full_test_db['session']
+    db_task = session.query(ProspectTask).filter_by(id=task['id']).first()
+    assert db_task is not None
+    assert db_task.org_name == 'UTIMCO'
 
 
-def test_add_prospect_task(full_test_db):
-    """add_prospect_task appends task to TASKS.md (smoke test)."""
-    # Just verify it doesn't crash - file may not exist
-    result = crm_db.add_prospect_task('UTIMCO', 'Test task', 'Oscar', 'Hi')
-    assert isinstance(result, bool)
+def test_add_prospect_task_db_no_org_returns_none(full_test_db):
+    """add_prospect_task_db returns None if org_name is missing."""
+    result = crm_db.add_prospect_task_db('', 'Task', 'Alice')
+    assert result is None
 
 
-def test_complete_prospect_task(full_test_db):
-    """complete_prospect_task marks task as done (smoke test)."""
-    # Just verify it doesn't crash - file may not exist or task may not exist
-    result = crm_db.complete_prospect_task('UTIMCO', 'Some task')
-    assert isinstance(result, bool)
+def test_add_prospect_task_db_no_text_returns_none(full_test_db):
+    """add_prospect_task_db returns None if text is missing."""
+    result = crm_db.add_prospect_task_db('UTIMCO', '', 'Alice')
+    assert result is None
+
+
+def test_complete_prospect_task_db(full_test_db):
+    """complete_prospect_task_db marks a task as done."""
+    session = full_test_db['session']
+
+    task = ProspectTask(
+        org_name='UTIMCO', text='Review documents', owner='Alice', priority='Med', status='open'
+    )
+    session.add(task)
+    session.commit()
+    task_id = task.id
+
+    # Complete the task
+    result = crm_db.complete_prospect_task_db(task_id)
+    assert result is True
+
+    # Verify it was updated
+    db_task = session.query(ProspectTask).filter_by(id=task_id).first()
+    assert db_task.status == 'done'
+    assert db_task.completed_at is not None
+
+
+def test_complete_prospect_task_db_nonexistent_returns_false(full_test_db):
+    """complete_prospect_task_db returns False for nonexistent task ID."""
+    result = crm_db.complete_prospect_task_db(99999)
+    assert result is False
 
 
 def test_get_prospect_full(full_test_db):

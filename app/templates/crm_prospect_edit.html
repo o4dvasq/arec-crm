@@ -400,7 +400,7 @@ async function addTask() {
   const resp = await fetch('/crm/api/tasks', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ org: ORG, text, owner, priority, section: 'IR / Fundraising' }),
+    body: JSON.stringify({ org: ORG, text, owner, priority }),
   });
   if (resp.ok) {
     document.getElementById('new-task-text').value = '';
@@ -417,7 +417,7 @@ async function completeTask(idx) {
   const resp = await fetch('/crm/api/tasks/complete', {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ org: ORG, task_text: task.text }),
+    body: JSON.stringify({ id: task.id }),
   });
   if (resp.ok) {
     await loadTasks();

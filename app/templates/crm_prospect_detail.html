@@ -778,7 +778,10 @@
                 <!-- Primary Contact -->
                 <div>
                     <div class="field-label">Primary Contact</div>
-                    <div class="field-value">{% set _pc = prospect.get('Primary Contact', '').split(';')[0].strip() %}{% if _pc %}<span data-person-name>{{ _pc }}</span>{% else %}—{% endif %}</div>
+                    <div class="field-value">
+                        {%- set _pc = prospect.get('Primary Contact', '').split(';')[0].strip() -%}
+                        {%- if _pc -%}<span data-person-name>{{ _pc }}</span>{%- else -%}—{%- endif -%}
+                    </div>
                 </div>
 
                 <!-- Assigned To -->
@@ -1275,7 +1278,7 @@
     // ============================================
     async function loadTasks() {
         try {
-            const resp = await fetch(`/tasks/api/tasks/for-org?org=${enc(ORG)}`);
+            const resp = await fetch(`/crm/api/tasks?org=${enc(ORG)}`);
             const tasks = resp.ok ? await resp.json() : [];
             renderTasks(tasks);
         } catch (_) { /* silently ignore */ }
@@ -1609,7 +1612,7 @@
             </div>`;
         }).join('');
         countEl.textContent = notes.length;
-        if (typeof linkifyPersonNames === 'function') linkifyPersonNames();
+        linkifyPersonNames();
     }
 
     function formatNoteDate(isoStr) {
