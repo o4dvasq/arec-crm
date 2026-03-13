@@ -46,26 +46,24 @@ jobs:
       with:
         creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-    - name: Clear old deployment files
+    - name: Stop App Service
       run: |
-        az webapp config appsettings set \
+        az webapp stop \
           --resource-group rg-arec-crm \
-          --name arec-crm-app \
-          --settings SCM_DO_BUILD_DURING_DEPLOYMENT=false \
-          --output none
+          --name arec-crm-app
 
-    - name: Deploy to Azure Web App (clean)
+    - name: Deploy to Azure Web App
       run: |
         az webapp deploy \
           --resource-group rg-arec-crm \
           --name arec-crm-app \
           --src-path deploy.zip \
           --type zip \
-          --clean true
+          --async false
 
-    - name: Restart App Service
+    - name: Start App Service
       run: |
-        az webapp restart \
+        az webapp start \
           --resource-group rg-arec-crm \
           --name arec-crm-app
 
