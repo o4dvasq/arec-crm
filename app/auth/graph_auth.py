@@ -15,6 +15,7 @@ SCOPES = [
     "https://graph.microsoft.com/Calendars.Read",
     "https://graph.microsoft.com/Chat.Read",
     "https://graph.microsoft.com/User.Read",
+    "https://graph.microsoft.com/Contacts.Read",
 ]
 
 TOKEN_CACHE_PATH = os.path.expanduser("~/.arec_briefing_token_cache.json")

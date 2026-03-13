@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Tasks — AREC CRM</title>
+  <link rel="stylesheet" href="/static/crm.css">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0f172a; color: #e2e8f0; min-height: 100vh; }
+
+    .page { padding: 20px 24px; max-width: 1400px; margin: 0 auto; }
+
+    /* Search */
+    .search-bar { margin-bottom: 20px; }
+    .search-bar input {
+      width: 100%;
+      padding: 10px 14px;
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 8px;
+      font-size: 14px;
+      color: #e2e8f0;
+      outline: none;
+    }
+    .search-bar input:focus { border-color: #3b82f6; }
+    .search-bar input::placeholder { color: #64748b; }
+
+    /* Section header */
+    .section-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 14px 16px 10px;
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #94a3b8;
+      border-bottom: 1px solid #334155;
+    }
+    .section-count {
+      background: #334155;
+      color: #cbd5e1;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 1px 7px;
+      border-radius: 10px;
+    }
+
+    /* Table */
+    .table-wrap { background: #1e293b; border: 1px solid #334155; border-radius: 8px; overflow: hidden; margin-bottom: 24px; }
+    table { width: 100%; border-collapse: collapse; }
+    thead { background: #0f172a; }
+    th { padding: 10px 14px; text-align: left; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: #94a3b8; border-bottom: 1px solid #334155; white-space: nowrap; }
+    th.right { text-align: right; }
+    td { padding: 10px 14px; font-size: 13px; border-bottom: 1px solid #1e293b; vertical-align: middle; }
+    tr:last-child td { border-bottom: none; }
+    tbody tr { cursor: pointer; transition: background 0.1s; }
+    tbody tr:hover { background: #334155; }
+    tbody tr:nth-child(even) { background: rgba(255,255,255,0.02); }
+    tbody tr:nth-child(even):hover { background: #334155; }
+
+    td.right { text-align: right; font-variant-numeric: tabular-nums; }
+
+    /* Priority badges */
+    .pri-badge {
+      display: inline-block;
+      padding: 2px 7px;
+      border-radius: 4px;
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .pri-hi  { background: #7f1d1d; color: #fca5a5; }
+    .pri-med { background: #1e3a5f; color: #93c5fd; }
+    .pri-lo  { background: #1e3a2f; color: #6ee7b7; }
+    .pri-none { background: #1e293b; color: #64748b; border: 1px solid #334155; }
+
+    /* Prospect link */
+    .prospect-link { color: #60a5fa; text-decoration: none; font-weight: 500; }
+    .prospect-link:hover { text-decoration: underline; }
+
+    /* Assignee initials */
+    .assignee-pill {
+      display: inline-block;
+      background: #334155;
+      color: #94a3b8;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 2px 7px;
+      border-radius: 10px;
+      white-space: nowrap;
+    }
+
+    /* Task text */
+    .task-text { color: #cbd5e1; }
+    .task-text-trunc { max-width: 380px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+    /* Empty state */
+    .empty-row td { color: #64748b; font-style: italic; padding: 20px 14px; text-align: center; }
+
+    /* Hidden by search filter */
+    tr.hidden-row { display: none; }
+  </style>
+</head>
+<body>
+
+{% include '_nav.html' %}
+
+{% macro pri_badge(p) %}
+  {% if p in ('Hi', 'High') %}
+    <span class="pri-badge pri-hi">HIGH</span>
+  {% elif p in ('Med', 'Medium') %}
+    <span class="pri-badge pri-med">MED</span>
+  {% elif p in ('Lo', 'Low') %}
+    <span class="pri-badge pri-lo">LOW</span>
+  {% else %}
+    <span class="pri-badge pri-none">{{ p or '—' }}</span>
+  {% endif %}
+{% endmacro %}
+
+<div class="page">
+
+  <!-- Search bar -->
+  <div class="search-bar">
+    <input type="text" id="task-search" placeholder="Search by prospect name..." autocomplete="off" spellcheck="false" oninput="filterTasks(this.value)">
+  </div>
+
+  <!-- My Tasks -->
+  <div class="table-wrap" id="my-tasks-wrap">
+    <div class="section-header">
+      My Tasks
+      <span class="section-count" id="my-tasks-count">{{ my_tasks | length }}</span>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th style="width:90px">Priority</th>
+          <th>Task</th>
+          <th>Prospect</th>
+          <th class="right">Size</th>
+          <th>Created</th>
+        </tr>
+      </thead>
+      <tbody id="my-tasks-body">
+        {% if my_tasks %}
+          {% for task in my_tasks %}
+          <tr data-prospect="{{ task.org | lower }}"
+              onclick="window.location.href='{{ task.detail_url }}'">
+            <td>{{ pri_badge(task.priority) }}</td>
+            <td><span class="task-text task-text-trunc">{{ task.text | striptags }}</span></td>
+            <td>
+              <a class="prospect-link" href="{{ task.detail_url }}"
+                 onclick="event.stopPropagation()">{{ task.org }}</a>
+            </td>
+            <td class="right">{{ task.target_display }}</td>
+            <td style="color:#64748b">
+              {% if task.created_at %}{{ task.created_at.strftime('%b %d') }}{% else %}—{% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        {% else %}
+          <tr class="empty-row"><td colspan="5">No tasks assigned to you. Tasks can be created from prospect detail pages.</td></tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Team Tasks -->
+  <div class="table-wrap" id="team-tasks-wrap">
+    <div class="section-header">
+      Team Tasks
+      <span class="section-count" id="team-tasks-count">{{ team_tasks | length }}</span>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th style="width:90px">Priority</th>
+          <th>Task</th>
+          <th>Prospect</th>
+          <th class="right">Size</th>
+          <th>Assignee</th>
+          <th>Created</th>
+        </tr>
+      </thead>
+      <tbody id="team-tasks-body">
+        {% if team_tasks %}
+          {% for task in team_tasks %}
+          <tr data-prospect="{{ task.org | lower }}"
+              onclick="window.location.href='{{ task.detail_url }}'">
+            <td>{{ pri_badge(task.priority) }}</td>
+            <td><span class="task-text task-text-trunc">{{ task.text | striptags }}</span></td>
+            <td>
+              <a class="prospect-link" href="{{ task.detail_url }}"
+                 onclick="event.stopPropagation()">{{ task.org }}</a>
+            </td>
+            <td class="right">{{ task.target_display }}</td>
+            <td>
+              {% if task.owner %}
+                <span class="assignee-pill">{{ task.owner.split()[0][0] }}{{ task.owner.split()[-1][0] if task.owner.split() | length > 1 else '' }}</span>
+              {% else %}
+                <span style="color:#64748b">—</span>
+              {% endif %}
+            </td>
+            <td style="color:#64748b">
+              {% if task.created_at %}{{ task.created_at.strftime('%b %d') }}{% else %}—{% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        {% else %}
+          <tr class="empty-row"><td colspan="6">No team tasks found.</td></tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+
+</div>
+
+<script>
+function filterTasks(query) {
+  const q = query.trim().toLowerCase();
+
+  function filterTable(tbodyId, countId, emptyColspan, emptyMsg) {
+    const tbody = document.getElementById(tbodyId);
+    const rows = tbody.querySelectorAll('tr[data-prospect]');
+    let visible = 0;
+    rows.forEach(row => {
+      const prospect = row.getAttribute('data-prospect') || '';
+      const taskText = row.querySelector('.task-text')?.textContent.toLowerCase() || '';
+      const match = !q || prospect.includes(q) || taskText.includes(q);
+      row.classList.toggle('hidden-row', !match);
+      if (match) visible++;
+    });
+    document.getElementById(countId).textContent = visible;
+
+    // Show/hide empty state
+    let emptyRow = tbody.querySelector('.empty-row');
+    if (rows.length > 0) {
+      if (visible === 0) {
+        if (!emptyRow) {
+          emptyRow = document.createElement('tr');
+          emptyRow.className = 'empty-row';
+          emptyRow.innerHTML = `<td colspan="${emptyColspan}">${emptyMsg}</td>`;
+          tbody.appendChild(emptyRow);
+        } else {
+          emptyRow.style.display = '';
+        }
+      } else if (emptyRow) {
+        emptyRow.style.display = 'none';
+      }
+    }
+  }
+
+  filterTable('my-tasks-body', 'my-tasks-count', 5, 'No matching tasks.');
+  filterTable('team-tasks-body', 'team-tasks-count', 6, 'No matching tasks.');
+}
+</script>
+
+</body>
+</html>

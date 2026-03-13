@@ -1,4 +1,50 @@
 /* ═══════════════════════════════════════════════════════════
+   Person Name Linking — app-wide
+   Finds [data-person-name] elements and wraps them in links
+   using window.SEARCH_INDEX (injected by _nav.html).
+   Safe to call multiple times; already-linked elements are
+   skipped because they no longer carry data-person-name.
+   ═══════════════════════════════════════════════════════════ */
+
+function linkifyPersonNames() {
+    const index = (window.SEARCH_INDEX || [])
+        .filter(function (e) { return e.type === 'person'; })
+        .reduce(function (map, e) {
+            map[e.name.toLowerCase()] = e.url;
+            return map;
+        }, {});
+
+    document.querySelectorAll('[data-person-name]').forEach(function (el) {
+        const name = el.textContent.trim();
+        const url = index[name.toLowerCase()];
+        if (url && !el.closest('a')) {
+            const link = document.createElement('a');
+            link.href = url;
+            link.className = 'person-link';
+            link.textContent = name;
+            link.addEventListener('click', function (e) { e.stopPropagation(); });
+            el.replaceWith(link);
+        }
+    });
+}
+
+document.addEventListener('DOMContentLoaded', linkifyPersonNames);
+
+/* ═══════════════════════════════════════════════════════════
+   Utility — Markdown stripping
+   Removes bold/italic markdown wrappers from display text.
+   ═══════════════════════════════════════════════════════════ */
+
+function stripMarkdown(text) {
+    if (!text) return '';
+    return text
+        .replace(/\*\*(.+?)\*\*/g, '$1')
+        .replace(/\*(.+?)\*/g, '$1')
+        .replace(/__(.+?)__/g, '$1')
+        .replace(/_(.+?)_/g, '$1');
+}
+
+/* ═══════════════════════════════════════════════════════════
    Overwatch — Global Search Autocomplete
    Reads window.SEARCH_INDEX injected by _nav.html
    ═══════════════════════════════════════════════════════════ */

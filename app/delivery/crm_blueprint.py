@@ -13,7 +13,7 @@ from datetime import date, datetime
 from urllib.parse import quote as urlquote
 from flask import (
     Blueprint, jsonify, request, render_template,
-    redirect, url_for, abort, send_file,
+    redirect, url_for, abort, send_file, g,
 )
 
 _APP_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -34,7 +34,7 @@ from sources.crm_db import (
     _parse_currency, load_person, load_tasks_by_org, load_all_persons,
     delete_prospect, load_meeting_history, add_meeting_entry,
     get_tasks_for_prospect, get_all_prospect_tasks, add_prospect_task,
-    complete_prospect_task,
+    complete_prospect_task, get_all_tasks_for_dashboard,
     load_email_log, get_emails_for_org, find_email_by_message_id,
     load_interactions, append_interaction,
     save_brief, load_saved_brief, load_all_briefs,
@@ -43,6 +43,7 @@ from sources.crm_db import (
     discover_and_enrich_contact_emails, enrich_org_domain,
     find_person_by_email,
     merge_organizations, get_merge_preview,
+    save_enrichment_results,
 )
 from sources.relationship_brief import (
     find_people_files, find_glossary_entry, find_meeting_summaries, find_org_tasks,
@@ -350,7 +351,11 @@ def _run_prospect_brief(org: str, offering: str, max_tokens: int = 1600,
 
     Returns (narrative, at_a_glance, content_hash).
     """
-    raw_data = collect_relationship_data(org, offering, base_dir=PROJECT_ROOT)
+    try:
+        raw_data = collect_relationship_data(org, offering, base_dir=PROJECT_ROOT)
+    except Exception as e:
+        print(f"[brief] collect_relationship_data failed for {org}: {e}")
+        raw_data = {}
     content_hash = compute_content_hash(raw_data)
     context_block = build_context_block(raw_data)
     try:
@@ -360,7 +365,8 @@ def _run_prospect_brief(org: str, offering: str, max_tokens: int = 1600,
             max_tokens=max_tokens,
             want_json=want_json,
         )
-    except Exception:
+    except Exception as e:
+        print(f"[brief] call_claude_brief failed for {org}: {e}")
         narrative = build_fallback_summary(raw_data)
         at_a_glance = ''
     brief_key = f"{org}::{offering}"
@@ -372,7 +378,11 @@ def _run_prospect_brief(org: str, offering: str, max_tokens: int = 1600,
 @login_required
 def api_prospect_brief(offering, org):
     if request.method == 'GET':
-        raw_data = collect_relationship_data(org, offering, base_dir=PROJECT_ROOT)
+        try:
+            raw_data = collect_relationship_data(org, offering, base_dir=PROJECT_ROOT)
+        except Exception as e:
+            print(f"[brief] GET collect_relationship_data failed for {org}: {e}")
+            raw_data = {}
         content_hash = compute_content_hash(raw_data)
         brief_key = f"{org}::{offering}"
         saved = load_saved_brief('prospect', brief_key)
@@ -655,10 +665,11 @@ def api_prospect_email_scan(offering, org):
 @login_required
 def api_add_prospect_note(offering, org):
     data = request.get_json(force=True)
-    author = (data.get('author') or '').strip()
+    # Author is auto-populated from the logged-in user
+    author = (g.user.get('display_name') or g.user.get('email') or 'Unknown').strip()
     text = (data.get('text') or '').strip()
-    if not author or not text:
-        return jsonify({'error': 'author and text are required'}), 400
+    if not text:
+        return jsonify({'error': 'text is required'}), 400
     entry = save_prospect_note(org, offering, author, text)
     return jsonify({'ok': True, 'entry': entry})
 
@@ -687,6 +698,15 @@ def api_person_data():
         json.dumps(data, sort_keys=True, default=str).encode()
     ).hexdigest()[:12]
     saved = load_saved_brief('person', name)
+
+    # Augment profile with DB enrichment fields (linkedin_url, enriched_at)
+    slug = re.sub(r'[^a-z0-9\s-]', '', name.lower().strip())
+    slug = re.sub(r'\s+', '-', slug).strip('-')
+    db_person = load_person(slug)
+    if db_person:
+        data['profile']['linkedin_url'] = db_person.get('linkedin_url') or ''
+        data['profile']['enriched_at'] = db_person.get('enriched_at')
+
     return jsonify({**data, 'content_hash': content_hash, 'saved_brief': saved})
 
 
@@ -854,6 +874,176 @@ def api_person_contact_update(slug):
 
 
 # ---------------------------------------------------------------------------
+# Contact Enrichment
+# ---------------------------------------------------------------------------
+
+def _search_linkedin_url(name: str, org: str, timeout: int = 10) -> str | None:
+    """
+    Search DuckDuckGo for a LinkedIn profile URL for the given person + org.
+    Returns the first matching linkedin.com/in/ URL, or None.
+    """
+    import requests as _requests
+    from urllib.parse import unquote, urlencode
+
+    query = f'"{name}" "{org}" site:linkedin.com/in'
+    try:
+        resp = _requests.get(
+            'https://html.duckduckgo.com/html/',
+            params={'q': query},
+            headers={'User-Agent': 'Mozilla/5.0 (compatible; AREC-CRM/1.0)'},
+            timeout=timeout,
+        )
+        if resp.status_code != 200:
+            return None
+        # DuckDuckGo HTML encodes result URLs in uddg= parameters
+        matches = re.findall(r'uddg=(https?%3A%2F%2F(?:www\.)?linkedin\.com%2Fin%2F[\w\-]+)', resp.text)
+        if matches:
+            return unquote(matches[0])
+    except Exception as e:
+        print(f"[enrich] LinkedIn search failed: {e}")
+    return None
+
+
+@crm_bp.route('/api/people/<slug>/enrich', methods=['POST'])
+@login_required
+def api_person_enrich(slug):
+    """
+    Run the contact enrichment pipeline for a person:
+      1. LinkedIn URL via web search
+      2. Email footer parsing (phone, title) from recent emails
+      3. Outlook contacts lookup (phone, title, email)
+
+    Returns a JSON preview of discovered fields — does NOT auto-save.
+    """
+    person = load_person(slug)
+    if not person:
+        return jsonify({'error': 'Person not found'}), 404
+
+    current = {
+        'phone': person.get('phone') or '',
+        'title': person.get('role') or '',
+        'email': person.get('email') or '',
+        'linkedin_url': person.get('linkedin_url') or '',
+    }
+
+    findings = []
+    graph_error = None
+
+    # --- 1. LinkedIn search ---
+    if person.get('organization'):
+        linkedin_url = _search_linkedin_url(person['name'], person['organization'])
+        if linkedin_url:
+            findings.append({
+                'field': 'linkedin_url',
+                'label': 'LinkedIn',
+                'found': linkedin_url,
+                'current': current['linkedin_url'],
+                'status': 'CONFIRMED' if linkedin_url == current['linkedin_url']
+                          else ('NEW' if not current['linkedin_url'] else 'CONFLICT'),
+                'source': 'web search',
+            })
+
+    # --- 2 & 3. Graph API: email footer + Outlook contacts ---
+    try:
+        from auth.graph_auth import get_access_token
+        from sources.ms_graph import search_contact_emails_for_signature, lookup_outlook_contact
+
+        token = get_access_token(allow_device_flow=False)
+
+        # Email footer scan
+        if person.get('email'):
+            sig = search_contact_emails_for_signature(
+                token, person['name'], person['email'], days_back=30
+            )
+            if sig.get('phone'):
+                source_label = f"email footer ({sig['email_count']} email{'s' if sig['email_count'] != 1 else ''})"
+                findings.append({
+                    'field': 'phone',
+                    'label': 'Phone',
+                    'found': sig['phone'],
+                    'current': current['phone'],
+                    'status': 'CONFIRMED' if sig['phone'] == current['phone']
+                              else ('NEW' if not current['phone'] else 'CONFLICT'),
+                    'source': source_label,
+                })
+            if sig.get('title'):
+                findings.append({
+                    'field': 'title',
+                    'label': 'Title',
+                    'found': sig['title'],
+                    'current': current['title'],
+                    'status': 'CONFIRMED' if sig['title'] == current['title']
+                              else ('NEW' if not current['title'] else 'CONFLICT'),
+                    'source': 'email footer',
+                })
+
+        # Outlook contacts lookup
+        outlook = lookup_outlook_contact(token, person['name'], person.get('email', ''))
+        if outlook:
+            for field_key, label, outlook_key in [
+                ('phone', 'Phone', 'phone'),
+                ('title', 'Title', 'title'),
+                ('email', 'Email', 'email'),
+            ]:
+                # Skip if already found from email footer
+                already_found = any(f['field'] == field_key for f in findings)
+                val = outlook.get(outlook_key, '')
+                if val and not already_found:
+                    findings.append({
+                        'field': field_key,
+                        'label': label,
+                        'found': val,
+                        'current': current[field_key],
+                        'status': 'CONFIRMED' if val == current[field_key]
+                                  else ('NEW' if not current[field_key] else 'CONFLICT'),
+                        'source': 'Outlook contacts',
+                    })
+
+    except Exception as e:
+        graph_error = str(e)
+        print(f"[enrich] Graph API error for {slug}: {e}")
+
+    enriched_at = datetime.now().isoformat()
+    return jsonify({
+        'findings': findings,
+        'enriched_at': enriched_at,
+        'graph_error': graph_error,
+        'no_graph_consent': graph_error is not None,
+    })
+
+
+@crm_bp.route('/api/people/<slug>/enrich/save', methods=['POST'])
+@login_required
+def api_person_enrich_save(slug):
+    """
+    Save confirmed enrichment results to the contact record.
+    Expects: { fields: {field: value, ...}, sources: {field: source, ...} }
+    """
+    person = load_person(slug)
+    if not person:
+        return jsonify({'error': 'Person not found'}), 404
+
+    data = request.get_json(force=True)
+    incoming = data.get('fields', {})
+    sources = data.get('sources', {})
+
+    save_fields = {}
+    for key in ('phone', 'title', 'email', 'linkedin_url'):
+        if key in incoming and incoming[key]:
+            save_fields[key] = incoming[key]
+
+    if sources:
+        save_fields['enrichment_source'] = sources
+
+    ok = save_enrichment_results(person['name'], save_fields)
+    if not ok:
+        return jsonify({'error': 'Save failed — contact not found in DB'}), 500
+
+    enriched_at = datetime.now().isoformat()
+    return jsonify({'ok': True, 'enriched_at': enriched_at})
+
+
+# ---------------------------------------------------------------------------
 # Offerings / Prospects API
 # ---------------------------------------------------------------------------
 
@@ -946,6 +1136,50 @@ def api_patch_prospect_field():
     update_prospect_field(org, offering, field, value)
     updated = get_prospect(org, offering)
     return jsonify(updated)
+
+
+# ---------------------------------------------------------------------------
+# Tasks Page
+# ---------------------------------------------------------------------------
+
+PRIORITY_ORDER = {'Hi': 1, 'High': 1, 'Med': 2, 'Medium': 2, 'Lo': 3, 'Low': 3}
+
+
+@crm_bp.route('/tasks')
+@login_required
+def crm_tasks():
+    all_tasks = get_all_tasks_for_dashboard()
+
+    user_display = (g.user.get('display_name') or '').strip().lower()
+    user_email = (g.user.get('email') or '').strip().lower()
+    user_ids = {user_display, user_email} - {''}
+
+    def sort_key(t):
+        pri = PRIORITY_ORDER.get(t['priority'], 4)
+        return (pri, -(t['target'] or 0))
+
+    def enrich(tasks):
+        result = []
+        for t in tasks:
+            url = f"/crm/prospect/{urlquote(t['offering'], safe='')}/{urlquote(t['org'], safe='')}/detail"
+            result.append({**t, 'detail_url': url})
+        return result
+
+    my_tasks = enrich(sorted(
+        [t for t in all_tasks if t['owner'].strip().lower() in user_ids],
+        key=sort_key
+    ))
+    team_tasks = enrich(sorted(
+        [t for t in all_tasks if t['owner'].strip().lower() not in user_ids],
+        key=sort_key
+    ))
+
+    return render_template(
+        'crm_tasks.html',
+        active_tab='tasks',
+        my_tasks=my_tasks,
+        team_tasks=team_tasks,
+    )
 
 
 # ---------------------------------------------------------------------------

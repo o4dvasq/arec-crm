@@ -332,6 +332,7 @@ def load_person(slug: str) -> dict | None:
             return None
 
         org = session.query(Organization).filter_by(id=contact.organization_id).first()
+        enriched_at = contact.enriched_at
         return {
             'slug': slug,
             'name': contact.name,
@@ -339,6 +340,8 @@ def load_person(slug: str) -> dict | None:
             'role': contact.title,
             'email': contact.email,
             'phone': contact.phone,
+            'linkedin_url': contact.linkedin_url or '',
+            'enriched_at': enriched_at.isoformat() if enriched_at else None,
             'type': 'investor',  # Default type
         }
     finally:
@@ -537,6 +540,41 @@ def update_contact_fields(org: str, name: str, fields: dict) -> bool:
         if 'phone' in fields:
             contact.phone = fields['phone']
 
+        contact.updated_at = datetime.now()
+        session.commit()
+        return True
+    except Exception:
+        session.rollback()
+        raise
+    finally:
+        session.close()
+
+
+def save_enrichment_results(name: str, fields: dict) -> bool:
+    """
+    Persist enrichment-discovered fields on a contact and stamp enriched_at.
+
+    Accepted keys in fields: phone, title, email, linkedin_url, enrichment_source.
+    enriched_at is always set to now().
+    """
+    session = get_session()
+    try:
+        contact = session.query(Contact).filter(Contact.name.ilike(name)).first()
+        if not contact:
+            return False
+
+        if fields.get('phone'):
+            contact.phone = fields['phone']
+        if fields.get('title'):
+            contact.title = fields['title']
+        if fields.get('email'):
+            contact.email = fields['email']
+        if 'linkedin_url' in fields:
+            contact.linkedin_url = fields['linkedin_url']
+        if 'enrichment_source' in fields:
+            contact.enrichment_source = fields['enrichment_source']
+
+        contact.enriched_at = datetime.now()
         contact.updated_at = datetime.now()
         session.commit()
         return True
@@ -1723,6 +1761,64 @@ def complete_prospect_task(org_name: str, task_text: str) -> bool:
 # ---------------------------------------------------------------------------
 # Cross-reference (not used in current codebase, but kept for compatibility)
 # ---------------------------------------------------------------------------
+
+def get_all_tasks_for_dashboard() -> list[dict]:
+    """Return all open prospect tasks enriched with prospect data (org, offering, target).
+
+    Used by the /crm/tasks dashboard page. Joins ProspectTask with Organization
+    and Prospect to attach deal size and offering for display and sorting.
+    """
+    session = get_session()
+    try:
+        tasks = session.query(ProspectTask).filter(ProspectTask.status == 'open').all()
+
+        # Build org_name → prospect data map (one query per unique org, cached)
+        org_cache: dict[str, dict] = {}
+        for task in tasks:
+            key = task.org_name.lower()
+            if key not in org_cache:
+                org_obj = session.query(Organization).filter(
+                    Organization.name.ilike(task.org_name)
+                ).first()
+                if org_obj:
+                    prospect = session.query(Prospect).filter_by(
+                        organization_id=org_obj.id
+                    ).first()
+                    offering = session.query(Offering).filter_by(
+                        id=prospect.offering_id
+                    ).first() if prospect else None
+                    target_cents = prospect.target if prospect else 0
+                    org_cache[key] = {
+                        'target': target_cents or 0,
+                        'target_display': _format_currency((target_cents or 0) / 100),
+                        'offering': offering.name if offering else '',
+                    }
+                else:
+                    org_cache[key] = {'target': 0, 'target_display': '$0', 'offering': ''}
+
+        result = []
+        for task in tasks:
+            prospect_data = org_cache.get(task.org_name.lower(), {
+                'target': 0, 'target_display': '$0', 'offering': ''
+            })
+            result.append({
+                'id': task.id,
+                'org': task.org_name,
+                'text': task.text,
+                'owner': task.owner or '',
+                'priority': task.priority or 'Med',
+                'status': task.status or 'open',
+                'created_at': task.created_at,
+                'target': prospect_data['target'],
+                'target_display': prospect_data['target_display'],
+                'offering': prospect_data['offering'],
+            })
+        return result
+    except Exception:
+        raise
+    finally:
+        session.close()
+
 
 def get_prospect_full(org: str, offering: str) -> dict | None:
     """Get prospect with org data and contacts."""

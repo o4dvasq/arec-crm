@@ -5,7 +5,7 @@
 
 **Location:** `~/Dropbox/projects/arec-crm/`
 
-**Last audited:** 2026-03-12 (updated: multi-user auth enforcement, graph_poller)
+**Last audited:** 2026-03-13 (updated: tasks page — `/crm/tasks`, `crm_tasks.html`, `get_all_tasks_for_dashboard()`)
 
 ---
 
@@ -69,26 +69,27 @@ arec-crm/                        (~/Dropbox/projects/arec-crm/)
 │   │   └── relationship_brief.py  ← Context aggregation for briefs
 │   ├── delivery/
 │   │   ├── dashboard.py       ← Flask main app
-│   │   ├── crm_blueprint.py   ← CRM routes (all 49 require @login_required) + brief synthesis endpoints
+│   │   ├── crm_blueprint.py   ← CRM routes (all 50 require @login_required) + brief synthesis endpoints
 │   │   └── admin_blueprint.py ← Admin routes (/admin/users)
 │   ├── templates/
 │   │   ├── crm_pipeline.html
 │   │   ├── crm_prospect_detail.html
+│   │   ├── crm_tasks.html          ← Tasks page (/crm/tasks) — My Tasks + Team Tasks
 │   │   ├── crm_org_edit.html
 │   │   ├── crm_people.html
 │   │   ├── crm_person_detail.html
 │   │   ├── access_denied.html      ← Unauthorized user page
 │   │   ├── _contacts_table.html    ← Contacts partial
-│   │   ├── _nav.html               ← Navigation partial (includes admin badge)
+│   │   ├── _nav.html               ← Navigation partial (Lucide target icon, hover user dropdown, centered tabs with Tasks)
 │   │   └── admin/
 │   │       └── users.html          ← Admin user management page
 │   ├── static/
 │   │   ├── crm.css
 │   │   ├── crm.js
 │   │   └── icons.js
-│   ├── tests/                 ← 99 unit tests (SQLite in-memory, CI green)
+│   ├── tests/                 ← 101 unit tests (SQLite in-memory, CI green)
 │   │   ├── conftest.py        ← Fixtures: seed users, orgs, contacts, prospects
-│   │   ├── test_crm_db.py     ← 69 tests for all crm_db.py functions
+│   │   ├── test_crm_db.py     ← 71 tests for all crm_db.py functions
 │   │   ├── test_brief_synthesizer.py  ← 10 tests
 │   │   └── test_email_matching.py     ← 20 tests
 │   └── requirements.txt

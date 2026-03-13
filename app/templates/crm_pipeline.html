@@ -137,9 +137,23 @@
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
-      max-width: 250px;
+      max-width: 350px;
       font-size: 13px;
       color: #cbd5e1;
+    }
+
+    /* At a Glance column */
+    .at-glance-cell {
+      color: #94a3b8;
+      font-size: 12px;
+      font-weight: 400;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      line-height: 1.4;
+      max-width: 300px;
+      white-space: normal;
     }
 
     .task-count-badge {
@@ -1705,9 +1719,20 @@ function buildCellContent(col, p, idx) {
         return '<span style="color:#94a3b8">—</span>';
       }
 
+      function getInitials(name) {
+        if (!name) return '';
+        const parts = name.trim().split(/\s+/);
+        if (parts.length === 1) return parts[0][0].toUpperCase();
+        return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+      }
+
       const firstTask = allTasks[0];
-      const firstText = firstTask.text || firstTask.task || '';
-      const truncated = firstText.length > 50 ? firstText.slice(0, 50) + '…' : firstText;
+      const rawText = firstTask.text || firstTask.task || '';
+      const cleanText = stripMarkdown(rawText);
+      const initials = getInitials(firstTask.owner || '');
+      const suffix = initials ? ` (${initials})` : '';
+      const display = cleanText + suffix;
+      const truncated = display.length > 55 ? display.slice(0, 55) + '…' : display;
 
       const badge = allTasks.length > 1
         ? `<span class="task-count-badge" onclick="showTaskPopover(event, ${escHtml(JSON.stringify(allTasks))})" title="Show all ${allTasks.length} tasks">+${allTasks.length - 1}</span>`
@@ -1718,8 +1743,8 @@ function buildCellContent(col, p, idx) {
 
     case 'at_a_glance': {
       if (!val) return '<span style="color:#94a3b8">—</span>';
-      const display = val.length > 60 ? val.slice(0, 60) + '…' : val;
-      return `<span title="${escHtml(val)}" style="color:#475569;font-style:italic">⚡ ${escHtml(display)}</span>`;
+      const clean = stripMarkdown(val);
+      return `<div class="at-glance-cell" title="${escHtml(clean)}">${escHtml(clean)}</div>`;
     }
 
     case 'last_touch': {
@@ -1747,7 +1772,7 @@ function renderCell(col, p, idx, isFirstCell = false) {
     const safeOrg = escHtml(p.org);
     const primaryContact = p['Primary Contact'];
     const contactLine = primaryContact
-      ? `<div style="font-size:11px;color:#94a3b8;margin-top:2px;font-weight:400">${escHtml(primaryContact)}</div>`
+      ? `<div style="font-size:11px;color:#94a3b8;margin-top:2px;font-weight:400"><span data-person-name>${escHtml(primaryContact)}</span></div>`
       : '';
     const dragHandle = isFirstCell ? `<span class="drag-handle" draggable="true" data-idx="${idx}">⠿</span>` : '';
     return `<td class="col-org org-cell" data-col-key="org" style="position:relative;padding-left:${isFirstCell ? '24px' : '14px'}">${dragHandle}<span style="font-weight:500">${safeOrg}</span>${contactLine}</td>`;
@@ -1848,6 +1873,7 @@ function renderTable() {
   });
 
   tbody.innerHTML = html;
+  if (typeof linkifyPersonNames === 'function') linkifyPersonNames();
 }
 
 function escHtml(str) {
@@ -2140,6 +2166,7 @@ function openPipelineTaskCreate(org) {
 }
 
 </script>
+<script src="/static/crm.js"></script>
 <script src="/static/task-edit-modal.js"></script>
 </body>
 </html>

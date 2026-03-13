@@ -376,6 +376,187 @@ def search_emails_deep(
     return final
 
 
+def fetch_message_body(token: str, message_id: str, uid: str = None) -> str:
+    """
+    Fetch the text body of a single message.
+    Strips HTML tags if the content type is HTML.
+    Returns empty string on failure.
+    """
+    import re as _re
+    user = uid or _user_id()
+    url = f"{GRAPH_BASE}/users/{user}/messages/{message_id}"
+    try:
+        resp = requests.get(
+            url,
+            headers=_headers(token),
+            params={"$select": "body"},
+            timeout=10,
+        )
+        if resp.status_code != 200:
+            return ''
+        body = resp.json().get('body', {})
+        content = body.get('content', '')
+        if body.get('contentType', '').lower() == 'html':
+            content = _re.sub(r'<[^>]+>', ' ', content)
+            content = _re.sub(r'&nbsp;', ' ', content)
+            content = _re.sub(r'&amp;', '&', content)
+            content = _re.sub(r'\s+', ' ', content).strip()
+        return content
+    except Exception as e:
+        print(f"[ms_graph] fetch_message_body {message_id} failed: {e}")
+        return ''
+
+
+def _parse_email_signature(body_text: str) -> dict:
+    """
+    Parse the last 10 lines of an email body for phone numbers and job titles.
+    Returns {'phone': str|None, 'title': str|None}.
+    """
+    import re as _re
+
+    lines = [l.strip() for l in body_text.replace('\r', '\n').split('\n') if l.strip()]
+    last_lines = lines[-10:] if len(lines) > 10 else lines
+    block = '\n'.join(last_lines)
+
+    # Phone: US (xxx) xxx-xxxx or +1-xxx-xxx-xxxx patterns
+    phone_pat = _re.compile(
+        r'(?:\+?1[-.\s]?)?(?:\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4})'
+        r'|(?:\+\d{1,3}[-.\s]?\d{2,4}[-.\s]?\d{3,4}[-.\s]?\d{3,4})'
+    )
+    phone_match = phone_pat.search(block)
+    phone = phone_match.group(0).strip() if phone_match else None
+
+    # Title: common seniority words
+    title_pat = _re.compile(
+        r'\b(Managing Director|Managing Partner|Senior Vice President|Senior VP|'
+        r'Executive Vice President|Executive VP|Vice President|VP|Partner|Principal|'
+        r'Portfolio Manager|Investment Officer|Investment Manager|'
+        r'Chief Executive Officer|CEO|Chief Financial Officer|CFO|'
+        r'Chief Operating Officer|COO|Chief Investment Officer|CIO|'
+        r'President|Director|Head of [A-Za-z ]+|Associate|Analyst)\b',
+        _re.IGNORECASE,
+    )
+    title_match = title_pat.search(block)
+    title = title_match.group(0).strip() if title_match else None
+
+    return {'phone': phone, 'title': title}
+
+
+def search_contact_emails_for_signature(
+    token: str,
+    name: str,
+    contact_email: str,
+    days_back: int = 30,
+) -> dict:
+    """
+    Search recent emails from a contact and parse their email signature for
+    phone numbers and job titles.
+
+    Returns:
+        {'phone': str|None, 'title': str|None, 'email_count': int}
+    """
+    if not contact_email:
+        return {'phone': None, 'title': None, 'email_count': 0}
+
+    uid = _user_id()
+    # KQL search for emails from this contact across all mail folders
+    url = f"{GRAPH_BASE}/users/{uid}/messages"
+    params = {
+        "$search": f'"from:{contact_email}"',
+        "$select": "id,subject,receivedDateTime",
+        "$top": 10,
+    }
+
+    try:
+        raw = _get_all_pages(token, url, params=params)
+    except Exception as e:
+        print(f"[ms_graph] Email sig search for {contact_email} failed: {e}")
+        return {'phone': None, 'title': None, 'email_count': 0}
+
+    # Filter to within the requested window
+    cutoff = datetime.now(timezone.utc) - timedelta(days=days_back)
+    cutoff_iso = cutoff.strftime("%Y-%m-%dT%H:%M:%SZ")
+    recent = [m for m in raw if m.get('receivedDateTime', '') >= cutoff_iso]
+
+    phone = None
+    title = None
+    for msg in recent[:5]:
+        msg_id = msg.get('id')
+        if not msg_id:
+            continue
+        body_text = fetch_message_body(token, msg_id, uid)
+        if not body_text:
+            continue
+        extracted = _parse_email_signature(body_text)
+        if not phone and extracted.get('phone'):
+            phone = extracted['phone']
+        if not title and extracted.get('title'):
+            title = extracted['title']
+        if phone and title:
+            break
+
+    return {'phone': phone, 'title': title, 'email_count': len(recent)}
+
+
+def lookup_outlook_contact(token: str, name: str, email: str = '') -> dict:
+    """
+    Look up a person in the current user's Outlook contacts.
+    Returns {'phone': str, 'title': str, 'email': str, 'company': str} or {}.
+    Requires Contacts.Read scope.
+    """
+    uid = _user_id()
+    url = f"{GRAPH_BASE}/users/{uid}/contacts"
+    params = {
+        "$search": f'"{name}"',
+        "$select": "displayName,emailAddresses,businessPhones,mobilePhone,jobTitle,companyName",
+        "$top": 5,
+    }
+
+    try:
+        raw = _get_all_pages(token, url, params=params)
+    except Exception as e:
+        print(f"[ms_graph] Outlook contact lookup for '{name}' failed: {e}")
+        return {}
+
+    if not raw:
+        return {}
+
+    # Find the best match by display name or email
+    best = None
+    name_lower = name.lower()
+    email_lower = email.lower()
+
+    for c in raw:
+        display = c.get('displayName', '').lower()
+        contact_emails = [
+            addr.get('address', '').lower()
+            for addr in c.get('emailAddresses', [])
+        ]
+        if name_lower in display or display in name_lower:
+            best = c
+            break
+        if email_lower and email_lower in contact_emails:
+            best = c
+            break
+
+    if not best:
+        return {}
+
+    phones = best.get('businessPhones') or []
+    mobile = best.get('mobilePhone') or ''
+    phone = phones[0] if phones else mobile
+
+    contact_emails = best.get('emailAddresses') or []
+    found_email = contact_emails[0].get('address', '') if contact_emails else ''
+
+    return {
+        'phone': phone,
+        'title': best.get('jobTitle', ''),
+        'email': found_email,
+        'company': best.get('companyName', ''),
+    }
+
+
 def get_recent_chats(token: str, hours: int = 24) -> list[dict]:
     """
     Return recent Teams chat messages from the last N hours.

@@ -665,3 +665,98 @@
 
 ---
 
+
+## 2026-03-13 — Navigation Redesign: CSS Grid Centering + CSS-Only Hover Dropdown
+
+**Decision:** Used 3-column CSS grid (`1fr auto 1fr`) on `.nav-tabs-inner` instead of flexbox with `margin-left: auto` or `justify-content: center` to center the tab row.
+
+**Rationale:** Pure flexbox can't truly center a group of items when there's an asymmetric element (the search bar) on the right. `margin-left: auto` on the search would push tabs left, not center them. A 3-column grid (empty spacer | tabs | search) gives mathematically correct centering regardless of search bar width.
+
+**Decision:** CSS-only hover dropdown for user menu (`.user-menu:hover .user-dropdown { display: block }`). No JavaScript.
+
+**Rationale:** Spec explicitly allowed CSS-only. Avoids a JS event listener, simpler to maintain, and works without any DOM-ready hooks. Dropout appears on hover within 0ms.
+
+**Decision:** Lucide `<i data-lucide="target">` element replaces inline SVG for brand icon.
+
+**Rationale:** Lucide CDN already loaded on every page via `_nav.html`. Using `data-lucide` attribute + `lucide.createIcons()` (called in `icons.js`) keeps markup clean and makes future icon swaps a one-word change. Inline SVG paths are brittle and hard to read.
+
+**Impact:** `app/templates/_nav.html`, `app/static/crm.css`. No backend changes. 99 tests unaffected.
+
+**Note for next related feature:** The Tasks tab is present in the nav but `/crm/tasks` returns 404 until SPEC_tasks-page.md is implemented. This is intentional — nav was built ahead of the route.
+
+## 2026-03-13 — Pipeline Polish: `owner` field for task initials, not `assigned_to`
+
+**Decision:** Used `owner` field (not `assigned_to`) to derive task assignee initials in the pipeline Tasks column.
+
+**Rationale:** The spec referenced `assigned_to` on task objects, but both task sources (`load_tasks_by_org` → `_tasks` and `get_all_prospect_tasks` → `prospect_tasks`) use `owner` as the assignee field. `assigned_to` exists on the prospect itself (the team member managing the deal), not on individual tasks. Implemented against actual data shape.
+
+**Impact:** `app/templates/crm_pipeline.html` (task rendering, initials extraction, `.at-glance-cell` CSS), `app/static/crm.js` (`stripMarkdown()` utility added as global).
+
+---
+
+## 2026-03-13 — Pipeline Polish: `crm.js` not previously loaded in pipeline template
+
+**Decision:** Added `<script src="/static/crm.js">` to `crm_pipeline.html` to expose `stripMarkdown()`.
+
+**Rationale:** `crm.js` was only loaded via `_nav.html` on pages that include the nav partial. The pipeline template does include the nav, but `crm.js` was loaded as a separate explicit tag rather than relying on nav inclusion order — safer and more explicit.
+
+**Impact:** `app/templates/crm_pipeline.html`. Other templates that render nav already have access to `stripMarkdown()` via the same load path.
+
+
+---
+
+## 2026-03-13 — Prospect Detail Overhaul
+
+**Decision:** Removed the Quick Actions card (Add Task / Quick Note pill toggle) entirely from the prospect detail page rather than keeping it as a secondary entry point.
+**Rationale:** The card duplicated functionality already present in the Tasks card (+ Add Task button → modal) and Notes Log (textarea form). Keeping two entry points caused confusion about which one was canonical, especially after notes became auto-attributed and no longer needed an author input.
+**Impact:** `app/templates/crm_prospect_detail.html` — HTML card, CSS block, and all JS functions (`switchQA`, `setPriority`, `submitQuickTask`, `submitQuickNote`, etc.) removed.
+
+---
+
+**Decision:** Note author is now auto-populated server-side from `g.user.display_name` (fallback: `g.user.email`) — the Name field was removed from the Notes form entirely.
+**Rationale:** With multi-user auth in place, asking the user to type their own name is redundant and error-prone (typos, different spellings). The server has the authoritative identity via `g.user`.
+**Impact:** `api_add_prospect_note` in `crm_blueprint.py` no longer reads `author` from the request body. Frontend `submitNote()` no longer sends it. Historical notes in the DB retain whatever author was stored at write time.
+
+---
+
+**Decision:** `collect_relationship_data` is now wrapped in try/except in both `_run_prospect_brief` and `api_prospect_brief` GET. Errors are logged and return empty data rather than propagating as 500s.
+**Rationale:** Root cause of "Brief generation unavailable" — the GET /brief endpoint had no error boundary. If `collect_relationship_data` threw (e.g., a DB timeout or missing config), Flask returned 500, which the frontend's catch block turned into the unavailable message. The fix ensures the page always loads even if data collection partially fails.
+**Impact:** `crm_blueprint.py` `_run_prospect_brief` and `api_prospect_brief`. Errors now print to server log instead of silently turning into client-visible "unavailable".
+
+---
+
+**Decision:** Scan Email button (in page header) reuses the existing `/email-scan` endpoint (90-day deep scan) rather than adding a new 60-day variant as the spec suggested.
+**Rationale:** The existing endpoint is already well-tested, handles dedup, enriches org domains and contact emails, and works correctly. The difference between 60 and 90 days is immaterial in practice. Adding a new route would have duplicated significant logic.
+**Impact:** `runScanEmail()` JS function in `crm_prospect_detail.html` calls `/email-scan`, then auto-triggers `refreshBrief()`. No new backend route added.
+
+## 2026-03-13 — Tasks Page: DB-Backed Function Over TASKS.md
+
+**Decision:** Added `get_all_tasks_for_dashboard()` as a new DB-backed function querying `prospect_tasks` directly, rather than reusing the existing `get_all_prospect_tasks()` which reads TASKS.md. The new function joins with `organizations` and `prospects` to enrich each task with deal size and offering.
+
+**Rationale:** The spec explicitly targets the `prospect_tasks` DB table. The existing TASKS.md functions are legacy — they exist because the task system was never fully migrated to PostgreSQL. A clean DB-backed function avoids TASKS.md file access on every page load and enables proper DB queries (filter by status, join for enrichment).
+
+**Known gap:** Prospect detail page task CRUD (`get_tasks_for_prospect`, `add_prospect_task`, `complete_prospect_task`) still read/write TASKS.md. This creates a split-system state: tasks created via the prospect detail page (TASKS.md) won't appear on `/crm/tasks` (DB-only). Resolving this requires migrating the prospect detail task CRUD to use the `prospect_tasks` table — deferred.
+
+**Rejected:** Reusing `get_all_prospect_tasks()` — returns TASKS.md data with no prospect enrichment; would require separate prospect lookups and can't filter by DB status.
+
+**Impact:** `app/sources/crm_db.py` (new function), `app/delivery/crm_blueprint.py` (new route + `g` import), `app/templates/crm_tasks.html` (new file), `app/tests/test_crm_db.py` (2 new tests).
+
+---
+
+## 2026-03-13 — Tasks Page: Row Click → Prospect Detail (Not Modal)
+
+**Decision:** Clicking a task row on `/crm/tasks` navigates to the prospect's detail page rather than opening an inline edit modal.
+
+**Rationale:** The existing task edit API has no `PUT /api/tasks/<id>` endpoint — only create (`POST`) and complete (`PATCH /complete`). Building a modal would require a new API endpoint. The prospect detail page already has full task management UI. Navigation is simpler and doesn't block the spec.
+
+**Impact:** `app/templates/crm_tasks.html`. URLs are pre-computed in the route using `urlquote` (Python) rather than Jinja — Jinja2 has no built-in filter for URL path segment encoding.
+
+---
+
+## 2026-03-13 — Tasks Page: `detail_url` Pre-Computed in Route
+
+**Decision:** `detail_url` for each task (prospect detail page link) is pre-computed in the Python route using `urlquote(org, safe='')` and `urlquote(offering, safe='')`, then passed to the template as part of each task dict.
+
+**Rationale:** Jinja2's built-in `urlencode` filter encodes entire query strings, not individual path segments. Org/offering names contain spaces and special characters. Encoding in Python is explicit and correct.
+
+**Impact:** `app/delivery/crm_blueprint.py` (`crm_tasks` view function), `app/templates/crm_tasks.html`.

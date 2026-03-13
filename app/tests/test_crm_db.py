@@ -15,7 +15,7 @@ if APP_DIR not in sys.path:
     sys.path.insert(0, APP_DIR)
 
 from sources import crm_db
-from models import UrgencyLevel, ClosingOption
+from models import UrgencyLevel, ClosingOption, ProspectTask
 
 
 # ---------------------------------------------------------------------------
@@ -837,3 +837,147 @@ def test_resolve_primary_contact(full_test_db):
     # Not found returns None
     contact = crm_db.resolve_primary_contact('UTIMCO', 'Nobody')
     assert contact is None
+
+
+# ---------------------------------------------------------------------------
+# Tasks Dashboard
+# ---------------------------------------------------------------------------
+
+def test_get_all_tasks_for_dashboard_returns_enriched_tasks(full_test_db):
+    """get_all_tasks_for_dashboard returns open tasks with prospect data."""
+    session = full_test_db['session']
+
+    # Seed an open task for UTIMCO
+    task = ProspectTask(
+        org_name='UTIMCO',
+        text='Send term sheet',
+        owner='Oscar Vasquez',
+        priority='Hi',
+        status='open',
+    )
+    session.add(task)
+    session.commit()
+
+    tasks = crm_db.get_all_tasks_for_dashboard()
+
+    assert len(tasks) == 1
+    t = tasks[0]
+    assert t['org'] == 'UTIMCO'
+    assert t['text'] == 'Send term sheet'
+    assert t['owner'] == 'Oscar Vasquez'
+    assert t['priority'] == 'Hi'
+    assert t['status'] == 'open'
+    # Should be enriched with prospect target from UTIMCO prospect ($5M = 500000000 cents)
+    assert t['target'] == 500000000
+    assert t['target_display'] == '$5M'
+    assert t['offering'] == 'AREC Fund I'
+
+
+def test_get_all_tasks_for_dashboard_excludes_completed(full_test_db):
+    """get_all_tasks_for_dashboard only returns open tasks."""
+    session = full_test_db['session']
+
+    session.add(ProspectTask(
+        org_name='UTIMCO', text='Done task', owner='Oscar Vasquez',
+        priority='Med', status='completed',
+    ))
+    session.commit()
+
+    tasks = crm_db.get_all_tasks_for_dashboard()
+    assert all(t['status'] == 'open' for t in tasks)
+    assert len(tasks) == 0
+
+
+# ---------------------------------------------------------------------------
+# Contact enrichment
+# ---------------------------------------------------------------------------
+
+def test_save_enrichment_results_new_fields(full_test_db):
+    """save_enrichment_results populates enrichment fields and stamps enriched_at."""
+    fields = {
+        'phone': '512-555-9999',
+        'linkedin_url': 'https://linkedin.com/in/jared-brimberry',
+        'enrichment_source': {'phone': 'email footer', 'linkedin_url': 'web search'},
+    }
+    ok = crm_db.save_enrichment_results('Jared Brimberry', fields)
+    assert ok is True
+
+    person = crm_db.load_person('jared-brimberry')
+    assert person is not None
+    assert person['phone'] == '512-555-9999'
+    assert person['linkedin_url'] == 'https://linkedin.com/in/jared-brimberry'
+    assert person['enriched_at'] is not None
+
+
+def test_save_enrichment_results_unknown_contact(full_test_db):
+    """save_enrichment_results returns False for an unknown contact name."""
+    ok = crm_db.save_enrichment_results('Nobody Here', {'phone': '555-0000'})
+    assert ok is False
+
+
+def test_save_enrichment_results_sets_enriched_at(full_test_db):
+    """enriched_at is always stamped, even when no new data fields are provided."""
+    ok = crm_db.save_enrichment_results('Jared Brimberry', {})
+    assert ok is True
+    person = crm_db.load_person('jared-brimberry')
+    assert person['enriched_at'] is not None
+
+
+def test_load_person_returns_enrichment_fields(full_test_db):
+    """load_person returns linkedin_url and enriched_at keys."""
+    person = crm_db.load_person('jared-brimberry')
+    assert person is not None
+    assert 'linkedin_url' in person
+    assert 'enriched_at' in person
+
+
+def test_save_enrichment_results_title_update(full_test_db):
+    """save_enrichment_results updates title via the 'title' key."""
+    ok = crm_db.save_enrichment_results('Amit Rind', {'title': 'Senior Managing Director'})
+    assert ok is True
+    person = crm_db.load_person('amit-rind')
+    assert person['role'] == 'Senior Managing Director'
+
+
+# ---------------------------------------------------------------------------
+# Email signature parser (pure function — no DB or network needed)
+# ---------------------------------------------------------------------------
+
+def test_parse_email_signature_phone():
+    """_parse_email_signature extracts a US phone number from the last lines."""
+    from sources.ms_graph import _parse_email_signature
+    body = (
+        "Hi Oscar, thanks for the call.\n\n"
+        "Best regards,\n"
+        "Jared Brimberry\n"
+        "Investment Officer, UTIMCO\n"
+        "512-555-0100\n"
+        "jared@utimco.org\n"
+    )
+    result = _parse_email_signature(body)
+    assert result['phone'] is not None
+    assert '512' in result['phone']
+
+
+def test_parse_email_signature_title():
+    """_parse_email_signature extracts a job title from the last lines."""
+    from sources.ms_graph import _parse_email_signature
+    body = (
+        "Please find the attached documents.\n\n"
+        "Amit Rind\n"
+        "Managing Director\n"
+        "Blackstone\n"
+        "amit.rind@blackstone.com\n"
+    )
+    result = _parse_email_signature(body)
+    assert result['title'] is not None
+    assert 'Managing Director' in result['title']
+
+
+def test_parse_email_signature_no_match():
+    """_parse_email_signature returns None values when no patterns match."""
+    from sources.ms_graph import _parse_email_signature
+    body = "Hi there, just following up on our conversation."
+    result = _parse_email_signature(body)
+    assert result['phone'] is None
+    assert result['title'] is None

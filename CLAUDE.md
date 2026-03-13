@@ -12,7 +12,7 @@ Multi-user CRM and fundraising platform for the AREC team. Manages investor pipe
 1. **ALL work on `azure-migration` branch.** Run `git checkout azure-migration` before doing anything. NEVER modify `deprecated-markdown` — it has stale markdown-based code. A pre-push hook blocks pushes to it. If the hook is missing, run `bash scripts/install-hooks.sh`.
 2. **No local-only features.** Everything must deploy to Azure. If it doesn't work on Azure, it doesn't ship.
 3. **No markdown backend.** The app uses PostgreSQL only. `crm_reader.py` is deleted. Do NOT import it. All data goes through `crm_db.py`.
-4. **Test before pushing.** Run `python -m pytest app/tests/ -v --tb=short` (99 tests). CI runs tests on every push — failures block deployment.
+4. **Test before pushing.** Run `python3.12 -m pytest app/tests/ -v --tb=short` (101 tests). CI runs tests on every push — failures block deployment.
 5. **Push deploys automatically.** Push to `azure-migration` → GitHub Actions runs tests → deploys to Azure App Service. No manual deployment steps.
 
 ---
@@ -22,7 +22,7 @@ Multi-user CRM and fundraising platform for the AREC team. Manages investor pipe
 ```bash
 git checkout azure-migration                      # ALWAYS start here
 python3 app/delivery/dashboard.py                 # Local dev — http://localhost:8000
-python3 -m pytest app/tests/ -v --tb=short        # Run 99 tests (uses SQLite in-memory)
+python3.12 -m pytest app/tests/ -v --tb=short      # Run 101 tests (uses SQLite in-memory)
 python3 scripts/seed_user.py                      # Add a new user to the users table
 python3 scripts/refresh_interested_briefs.py      # Bulk brief refresh for Stage 5 prospects
 python3 app/drain_inbox.py                        # Drain crm@avilacapllc.com shared mailbox
@@ -84,7 +84,7 @@ python3 app/drain_inbox.py                        # Drain crm@avilacapllc.com sh
 - **Assigned To filter on pipeline**: Pipeline view has dropdown to filter prospects by `assigned_to` field.
 - **No markdown fallback**: App assumes PostgreSQL is available. No `crm_reader.py` imports allowed.
 - **User provisioning is automatic**: Users auto-created on first login. No manual seeding required. oscar@avilacapllc.com promoted to admin on first login.
-- **Tests use SQLite in-memory**: `conftest.py` defaults to `sqlite:///:memory:` when `TEST_DATABASE_URL` not set. All 99 tests run this way in CI.
+- **Tests use SQLite in-memory**: `conftest.py` defaults to `sqlite:///:memory:` when `TEST_DATABASE_URL` not set. All 101 tests run this way in CI.
 
 ---
 

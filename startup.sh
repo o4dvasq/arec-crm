@@ -48,6 +48,28 @@ else
     echo "✓ Database already initialized (found organizations table with data)"
 fi
 
+# Run auto-migrate to sync schema from models
+echo "Running auto-migrate..."
+python3 -c "
+import sys
+sys.path.insert(0, '/home/site/wwwroot/app')
+from dotenv import load_dotenv
+load_dotenv()
+from db import init_db
+from auto_migrate import auto_migrate
+try:
+    engine = init_db()
+    auto_migrate(engine)
+    print('Auto-migrate complete.')
+except Exception as e:
+    print(f'ERROR: Auto-migrate failed: {e}')
+    sys.exit(1)
+"
+
+if [ $? -ne 0 ]; then
+    echo "ERROR: Auto-migrate failed. Continuing anyway..."
+fi
+
 # Install dependencies if not already installed
 echo "Checking Python dependencies..."
 if [ ! -f "/home/site/wwwroot/.deps_installed" ]; then

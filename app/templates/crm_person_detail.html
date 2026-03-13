@@ -401,6 +401,22 @@
             <a href="/crm/org/{{ person.org | urlencode }}" class="page-subtitle-link">{{ person.org }}</a>
             {% endif %}
         </div>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:0.35rem;">
+            <button class="btn" id="enrich-btn" onclick="enrichContact()">
+                ✦ Enrich Contact
+            </button>
+            <span id="enriched-ts" style="font-size:11px;color:var(--muted);display:none;"></span>
+        </div>
+    </div>
+
+    <!-- Enrichment Preview Card (hidden until results arrive) -->
+    <div class="card hidden" id="enrich-card" style="border-color:#2563eb44;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;">
+            <div class="section-title">Enrichment Results</div>
+            <button class="btn-sm" onclick="dismissEnrichment()">✕ Dismiss</button>
+        </div>
+        <div id="enrich-results"></div>
+        <div style="display:flex;gap:0.5rem;margin-top:1rem;" id="enrich-actions"></div>
     </div>
 
     <!-- Contact Info Box (hidden until data loads; shown by renderPersonCard if content exists) -->
@@ -644,6 +660,20 @@ function renderPersonCard(data) {
             `<span class="contact-label">Phone</span>` +
             `<span class="contact-value"><a href="tel:${esc(profile.phone)}">${esc(profile.phone)}</a></span>`
         );
+    }
+    if (profile.linkedin_url) {
+        contactRows.push(
+            `<span class="contact-label">LinkedIn</span>` +
+            `<span class="contact-value"><a href="${esc(profile.linkedin_url)}" target="_blank" rel="noopener">${esc(profile.linkedin_url.replace(/^https?:\/\/(www\.)?/, ''))}</a></span>`
+        );
+    }
+
+    // Show enriched_at timestamp in the header
+    const enrichedTs = document.getElementById('enriched-ts');
+    if (profile.enriched_at && enrichedTs) {
+        const d = new Date(profile.enriched_at);
+        enrichedTs.textContent = `Last enriched: ${d.toLocaleDateString('en-US', {month:'short', day:'numeric', year:'numeric'})}`;
+        enrichedTs.style.display = 'block';
     }
 
     // Prospect connections
@@ -1005,6 +1035,159 @@ function esc(t) {
     if (t == null) return '';
     const map = {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'};
     return String(t).replace(/[&<>"']/g, c => map[c]);
+}
+
+// ============================================
+// CONTACT ENRICHMENT
+// ============================================
+
+// Holds the last enrichment response for use by saveEnrichment()
+let _enrichData = null;
+
+async function enrichContact() {
+    const btn = document.getElementById('enrich-btn');
+    btn.disabled = true;
+    btn.textContent = '⟳ Enriching...';
+
+    try {
+        const resp = await fetch(`/crm/api/people/${enc(PERSON_SLUG)}/enrich`, { method: 'POST' });
+        if (!resp.ok) throw new Error('Enrichment request failed');
+        const data = await resp.json();
+        _enrichData = data;
+        renderEnrichmentPreview(data);
+    } catch (err) {
+        console.error('Enrichment failed:', err);
+        const card = document.getElementById('enrich-card');
+        document.getElementById('enrich-results').innerHTML =
+            `<div style="color:#ef4444;font-size:13px;">Enrichment failed. Please try again.</div>`;
+        document.getElementById('enrich-actions').innerHTML = '';
+        card.classList.remove('hidden');
+    } finally {
+        btn.disabled = false;
+        btn.textContent = '✦ Enrich Contact';
+    }
+}
+
+function renderEnrichmentPreview(data) {
+    const card = document.getElementById('enrich-card');
+    const resultsEl = document.getElementById('enrich-results');
+    const actionsEl = document.getElementById('enrich-actions');
+
+    const findings = data.findings || [];
+    const graphError = data.graph_error;
+
+    if (findings.length === 0 && !graphError) {
+        resultsEl.innerHTML = `<div style="color:var(--muted);font-size:13px;padding:0.5rem 0;">No new information found.</div>`;
+        actionsEl.innerHTML = `<button class="btn btn-sm" onclick="dismissEnrichment()">Dismiss</button>`;
+        card.classList.remove('hidden');
+        return;
+    }
+
+    const STATUS_LABEL = { NEW: 'NEW', CONFLICT: 'CONFLICT', CONFIRMED: 'confirmed' };
+    const STATUS_COLOR = { NEW: '#22c55e', CONFLICT: '#f59e0b', CONFIRMED: '#64748b' };
+
+    let html = '<div style="border:1px solid #334155;border-radius:6px;overflow:hidden;">';
+    findings.forEach((f, i) => {
+        const color = STATUS_COLOR[f.status] || '#64748b';
+        const tag = STATUS_LABEL[f.status] || f.status;
+        const borderTop = i > 0 ? 'border-top:1px solid #1e293b;' : '';
+        let valueHtml = esc(f.found);
+        if (f.field === 'linkedin_url') {
+            valueHtml = `<a href="${esc(f.found)}" target="_blank" rel="noopener" style="color:var(--accent)">${esc(f.found)}</a>`;
+        }
+        let conflictHtml = '';
+        if (f.status === 'CONFLICT') {
+            conflictHtml = `<div style="font-size:11px;color:#f59e0b;margin-top:2px;">Current: ${esc(f.current)}</div>`;
+        }
+        html += `
+            <div style="display:grid;grid-template-columns:90px 1fr auto;gap:8px;align-items:start;padding:10px 14px;${borderTop}font-size:13px;">
+                <span style="color:var(--muted);font-size:12px;padding-top:1px;">${esc(f.label)}</span>
+                <div>
+                    <span style="color:var(--text);">${valueHtml}</span>
+                    ${conflictHtml}
+                    <div style="font-size:11px;color:#475569;margin-top:2px;">${esc(f.source)}</div>
+                </div>
+                <span style="font-size:11px;font-weight:600;color:${color};white-space:nowrap;padding-top:1px;">${tag}</span>
+            </div>`;
+    });
+    html += '</div>';
+
+    if (graphError) {
+        const isAuthError = graphError.toLowerCase().includes('auth') || graphError.toLowerCase().includes('token');
+        const msg = isAuthError
+            ? 'Email enrichment requires Graph API consent.'
+            : `Graph API unavailable: email and Outlook lookups skipped.`;
+        html += `<div style="margin-top:0.75rem;font-size:12px;color:#64748b;">${esc(msg)}</div>`;
+    }
+
+    resultsEl.innerHTML = html;
+
+    // Only show Save if there are actionable (non-CONFIRMED) findings
+    const hasNew = findings.some(f => f.status === 'NEW' || f.status === 'CONFLICT');
+    if (hasNew) {
+        actionsEl.innerHTML = `
+            <button class="btn btn-primary btn-sm" id="enrich-save-btn" onclick="saveEnrichment()">Save Changes</button>
+            <button class="btn btn-sm" onclick="dismissEnrichment()">Dismiss</button>
+            <span id="enrich-save-status" style="font-size:12px;color:var(--muted);"></span>`;
+    } else {
+        actionsEl.innerHTML = `<button class="btn btn-sm" onclick="dismissEnrichment()">Dismiss</button>`;
+    }
+
+    card.classList.remove('hidden');
+}
+
+async function saveEnrichment() {
+    if (!_enrichData) return;
+
+    const saveBtn = document.getElementById('enrich-save-btn');
+    const statusEl = document.getElementById('enrich-save-status');
+    saveBtn.disabled = true;
+    saveBtn.textContent = 'Saving...';
+
+    const fields = {};
+    const sources = {};
+    (_enrichData.findings || []).forEach(f => {
+        // For CONFLICT fields, the user confirmed by clicking Save — use the new value
+        if (f.status === 'NEW' || f.status === 'CONFLICT') {
+            fields[f.field] = f.found;
+            sources[f.field] = f.source;
+        }
+    });
+
+    try {
+        const resp = await fetch(`/crm/api/people/${enc(PERSON_SLUG)}/enrich/save`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ fields, sources }),
+        });
+        if (!resp.ok) throw new Error('Save failed');
+        const result = await resp.json();
+
+        // Update the "Last enriched" timestamp
+        const enrichedTs = document.getElementById('enriched-ts');
+        if (enrichedTs && result.enriched_at) {
+            const d = new Date(result.enriched_at);
+            enrichedTs.textContent = `Last enriched: ${d.toLocaleDateString('en-US', {month:'short', day:'numeric', year:'numeric'})}`;
+            enrichedTs.style.display = 'block';
+        }
+
+        statusEl.textContent = 'Saved.';
+        setTimeout(() => {
+            dismissEnrichment();
+            loadPersonDetail();
+        }, 800);
+    } catch (err) {
+        saveBtn.disabled = false;
+        saveBtn.textContent = 'Save Changes';
+        statusEl.textContent = 'Error — please try again.';
+        statusEl.style.color = '#ef4444';
+    }
+}
+
+function dismissEnrichment() {
+    const card = document.getElementById('enrich-card');
+    card.classList.add('hidden');
+    _enrichData = null;
 }
 
 // ============================================
