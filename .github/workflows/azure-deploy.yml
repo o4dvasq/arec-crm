@@ -46,24 +46,18 @@ jobs:
       with:
         creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-    - name: Stop App Service
-      run: |
-        az webapp stop \
-          --resource-group rg-arec-crm \
-          --name arec-crm-app
-
     - name: Deploy to Azure Web App
-      run: |
-        az webapp deploy \
-          --resource-group rg-arec-crm \
-          --name arec-crm-app \
-          --src-path deploy.zip \
-          --type zip \
-          --async false
+      uses: azure/webapps-deploy@v3
+      with:
+        app-name: 'arec-crm-app'
+        package: deploy.zip
 
-    - name: Start App Service
+    - name: Start and restart App Service
       run: |
         az webapp start \
+          --resource-group rg-arec-crm \
+          --name arec-crm-app || true
+        az webapp restart \
           --resource-group rg-arec-crm \
           --name arec-crm-app
 
