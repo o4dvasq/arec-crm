@@ -3,8 +3,8 @@ name: Deploy to Azure App Service
 on:
   push:
     branches:
-      - azure-migration  # Deploy when pushing to azure-migration branch
-  workflow_dispatch:  # Allow manual triggering
+      - azure-migration
+  workflow_dispatch:
 
 jobs:
   deploy:
@@ -46,23 +46,32 @@ jobs:
       with:
         creds: ${{ secrets.AZURE_CREDENTIALS }}
 
+    # Oryx builds a fresh venv from requirements.txt on every deploy
+    # SCM_DO_BUILD_DURING_DEPLOYMENT=true must be set in App Settings
     - name: Deploy to Azure Web App
       uses: azure/webapps-deploy@v3
       with:
         app-name: 'arec-crm-app'
         package: deploy.zip
-        clean: true
 
-    - name: Start and restart App Service
+    - name: Restart App Service
       run: |
         az webapp start \
           --resource-group rg-arec-crm \
           --name arec-crm-app || true
+        sleep 5
         az webapp restart \
           --resource-group rg-arec-crm \
           --name arec-crm-app
 
-    - name: Check deployment status
+    - name: Verify deployment
       run: |
-        echo "Deployment complete. Check app at:"
-        echo "https://arec-crm-app.azurewebsites.net/crm"
+        echo "Deployment complete. Verifying..."
+        sleep 30
+        HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" https://arec-crm-app.azurewebsites.net/crm)
+        echo "HTTP status: $HTTP_STATUS"
+        if [ "$HTTP_STATUS" -ge 500 ]; then
+          echo "WARNING: Site returning $HTTP_STATUS — check logs"
+          exit 1
+        fi
+        echo "Site is up at https://arec-crm-app.azurewebsites.net/crm"

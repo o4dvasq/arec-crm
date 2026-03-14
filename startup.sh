@@ -1,15 +1,20 @@
 #!/bin/bash
 # Azure App Service startup script for AREC CRM
-# This runs when the container starts on Azure App Service
+# Dependencies are installed by Oryx during deployment (SCM_DO_BUILD_DURING_DEPLOYMENT=true)
+# This script handles DB checks, auto-migrate, and gunicorn startup
 
-set -x  # Enable debug output
+set -x
 
 echo "Starting AREC CRM on Azure App Service..."
-
-# Navigate to project root
 cd /home/site/wwwroot
 
-# Check if database needs initialization
+# Activate Oryx-built virtual environment if present
+if [ -f /home/site/wwwroot/antenv/bin/activate ]; then
+    echo "Activating Oryx virtual environment..."
+    source /home/site/wwwroot/antenv/bin/activate
+fi
+
+# Check if database needs initialization (first deploy only)
 echo "Checking database status..."
 DB_INITIALIZED=$(python3 -c "
 import os
@@ -30,7 +35,6 @@ except Exception as e:
 
 if [ "$DB_INITIALIZED" != "initialized" ]; then
     echo "Database not initialized. Running initialization scripts..."
-
     echo "Step 1: Creating schema..."
     python3 scripts/create_schema.py
     if [ $? -ne 0 ]; then
@@ -39,13 +43,13 @@ if [ "$DB_INITIALIZED" != "initialized" ]; then
         echo "Step 2: Migrating data..."
         python3 scripts/migrate_to_postgres.py
         if [ $? -eq 0 ]; then
-            echo "✓ Database initialized successfully"
+            echo "Database initialized successfully"
         else
             echo "ERROR: Migration failed. App may not work correctly."
         fi
     fi
 else
-    echo "✓ Database already initialized (found organizations table with data)"
+    echo "Database already initialized (found organizations table with data)"
 fi
 
 # Run auto-migrate to sync schema from models
@@ -70,28 +74,9 @@ if [ $? -ne 0 ]; then
     echo "ERROR: Auto-migrate failed. Continuing anyway..."
 fi
 
-# Install dependencies if not already installed
-echo "Checking Python dependencies..."
-if [ ! -f "/home/site/wwwroot/.deps_installed" ]; then
-    echo "Installing dependencies from app/requirements.txt..."
-    python3 -m pip install --no-cache-dir -r /home/site/wwwroot/app/requirements.txt
-    if [ $? -eq 0 ]; then
-        touch /home/site/wwwroot/.deps_installed
-        echo "✓ Dependencies installed successfully"
-    else
-        echo "ERROR: Failed to install dependencies"
-        exit 1
-    fi
-else
-    echo "✓ Dependencies already installed"
-fi
-
-# Start gunicorn with 4 workers
+# Start gunicorn
 echo "Starting Gunicorn..."
-cd /home/site/wwwroot
 export PYTHONPATH=/home/site/wwwroot:$PYTHONPATH
-
-# Azure App Service sets PORT environment variable
 PORT=${PORT:-8000}
 echo "Binding to port $PORT"
 
@@ -101,5 +86,5 @@ exec gunicorn \
     --timeout=120 \
     --access-logfile=- \
     --error-logfile=- \
-    --log-level=debug \
+    --log-level=info \
     app.delivery.dashboard:app
