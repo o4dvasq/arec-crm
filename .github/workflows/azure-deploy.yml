@@ -51,6 +51,7 @@ jobs:
       with:
         app-name: 'arec-crm-app'
         package: deploy.zip
+        clean: true
 
     - name: Start and restart App Service
       run: |
