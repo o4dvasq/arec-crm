@@ -65,9 +65,9 @@ jobs:
 
       - name: Verify deployment (wait for startup)
         run: |
-          echo "Waiting 30s for app to start..."
-          sleep 30
-          STATUS=$(curl -s -o /dev/null -w "%{http_code}" https://arec-crm-app.azurewebsites.net/crm/ --max-time 30)
+          echo "Waiting 90s for app to start..."
+          sleep 90
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" https://arec-crm-app.azurewebsites.net/crm/ --max-time 60)
           echo "HTTP status: $STATUS"
           if [ "$STATUS" -ge 200 ] && [ "$STATUS" -lt 400 ]; then
             echo "Deployment verified successfully!"
