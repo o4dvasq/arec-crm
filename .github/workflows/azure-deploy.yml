@@ -33,7 +33,28 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Create deployment package
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Login to Azure
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Disable Oryx build and set startup command
+        run: |
+          az webapp config appsettings set \
+            --name arec-crm-app \
+            --resource-group rg-arec-crm \
+            --settings SCM_DO_BUILD_DURING_DEPLOYMENT=false
+          az webapp config set \
+            --name arec-crm-app \
+            --resource-group rg-arec-crm \
+            --startup-file startup.sh
+
+      - name: Deploy via az webapp deploy
         run: |
           zip -r deploy.zip \
             app/ \
@@ -48,17 +69,12 @@ jobs:
             -x "**/__pycache__/*" \
             -x "*.pyc" \
             -x "app/.env"
-
-      - name: Login to Azure
-        uses: azure/login@v2
-        with:
-          creds: ${{ secrets.AZURE_CREDENTIALS }}
-
-      - name: Deploy to App Service
-        uses: azure/webapps-deploy@v3
-        with:
-          app-name: arec-crm-app
-          package: deploy.zip
+          az webapp deploy \
+            --name arec-crm-app \
+            --resource-group rg-arec-crm \
+            --src-path deploy.zip \
+            --type zip \
+            --clean true
 
       - name: Restart App Service
         run: az webapp restart --name arec-crm-app --resource-group rg-arec-crm
