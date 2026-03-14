@@ -14,6 +14,12 @@ if [ -f /home/site/wwwroot/antenv/bin/activate ]; then
     source /home/site/wwwroot/antenv/bin/activate
 fi
 
+# Install/sync dependencies into the active environment.
+# Oryx may not rebuild the venv on every deploy (missing oryx-manifest.toml),
+# so we ensure packages are always current before starting.
+echo "Installing dependencies from app/requirements.txt..."
+pip install --no-cache-dir -r /home/site/wwwroot/app/requirements.txt
+
 # Check if database needs initialization (first deploy only)
 echo "Checking database status..."
 DB_INITIALIZED=$(python3 -c "
