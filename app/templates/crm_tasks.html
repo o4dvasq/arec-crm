@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tasks — AREC CRM</title>
+    <link rel="stylesheet" href="/static/crm.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --bg-primary: #0f172a;
+            --bg-secondary: #1e293b;
+            --border: #334155;
+            --text: #e2e8f0;
+            --muted: #94a3b8;
+            --accent: #2563eb;
+            --radius: 0.5rem;
+        }
+
+        html, body {
+            background: var(--bg-primary);
+            color: var(--text);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            font-size: 14px;
+            line-height: 1.5;
+            min-height: 100vh;
+        }
+
+        .page { max-width: 1200px; margin: 0 auto; padding: 24px; }
+
+        .page-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+
+        .page-title { font-size: 1.4rem; font-weight: 700; }
+        .task-count { font-size: 13px; color: var(--muted); margin-top: 2px; }
+
+        /* Filters */
+        .filters {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .filter-select {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            color: var(--text);
+            padding: 6px 10px;
+            border-radius: 6px;
+            font-size: 13px;
+            cursor: pointer;
+        }
+
+        .filter-select:focus { outline: none; border-color: var(--accent); }
+
+        /* Two-column layout */
+        .columns {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        @media (max-width: 768px) {
+            .columns { grid-template-columns: 1fr; }
+        }
+
+        /* Column */
+        .column-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 14px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-bottom: none;
+            border-radius: var(--radius) var(--radius) 0 0;
+        }
+
+        .column-title {
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 0.8px;
+            color: var(--muted);
+            text-transform: uppercase;
+        }
+
+        .btn-add {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 4px 10px;
+            background: var(--accent);
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            font-size: 12px;
+            font-weight: 500;
+            cursor: pointer;
+        }
+
+        .btn-add:hover { background: #1d4ed8; }
+
+        /* Add task form */
+        .add-form {
+            display: none;
+            padding: 10px 14px;
+            background: #172032;
+            border: 1px solid var(--border);
+            border-bottom: none;
+            gap: 8px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .add-form.open { display: flex; }
+
+        .add-form input[type="text"] {
+            flex: 1;
+            min-width: 160px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            color: var(--text);
+            padding: 6px 10px;
+            border-radius: 5px;
+            font-size: 13px;
+        }
+
+        .add-form input[type="text"]:focus { outline: none; border-color: var(--accent); }
+
+        .add-form select {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            color: var(--text);
+            padding: 6px 8px;
+            border-radius: 5px;
+            font-size: 13px;
+            cursor: pointer;
+        }
+
+        .btn-submit {
+            padding: 6px 14px;
+            background: var(--accent);
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+        }
+
+        .btn-submit:hover { background: #1d4ed8; }
+
+        .btn-cancel {
+            padding: 6px 10px;
+            background: transparent;
+            color: var(--muted);
+            border: 1px solid var(--border);
+            border-radius: 5px;
+            font-size: 13px;
+            cursor: pointer;
+        }
+
+        .btn-cancel:hover { color: var(--text); }
+
+        /* Task list */
+        .task-list {
+            border: 1px solid var(--border);
+            border-radius: 0 0 var(--radius) var(--radius);
+            overflow: hidden;
+            min-height: 60px;
+        }
+
+        .task-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            padding: 10px 14px;
+            border-bottom: 1px solid var(--border);
+            transition: background 0.15s;
+        }
+
+        .task-item:last-child { border-bottom: none; }
+        .task-item:hover { background: #172032; }
+
+        .btn-complete {
+            flex-shrink: 0;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            border: 1.5px solid #475569;
+            background: transparent;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-top: 1px;
+            transition: border-color 0.15s, background 0.15s;
+        }
+
+        .btn-complete:hover { border-color: #22c55e; background: rgba(34,197,94,0.1); }
+
+        .task-body { flex: 1; min-width: 0; }
+
+        .task-org {
+            font-size: 11px;
+            font-weight: 600;
+            color: #60a5fa;
+            text-decoration: none;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+            display: block;
+            margin-bottom: 2px;
+        }
+
+        .task-org:hover { color: #93c5fd; }
+
+        .task-text {
+            font-size: 13px;
+            color: var(--text);
+            line-height: 1.4;
+        }
+
+        .task-meta {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-top: 4px;
+        }
+
+        .task-owner { font-size: 11px; color: var(--muted); }
+
+        .pri-badge {
+            font-size: 10px;
+            font-weight: 600;
+            padding: 1px 6px;
+            border-radius: 3px;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+
+        .pri-hi  { background: #7f1d1d; color: #fca5a5; }
+        .pri-med { background: #78350f; color: #fcd34d; }
+        .pri-low { background: #374151; color: #9ca3af; }
+
+        .empty-state {
+            padding: 20px 14px;
+            color: var(--muted);
+            font-size: 13px;
+            font-style: italic;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+{% include '_nav.html' %}
+
+<div class="page">
+    <div class="page-header">
+        <div>
+            <div class="page-title">Tasks</div>
+            <div class="task-count" id="task-count">Loading...</div>
+        </div>
+        <div class="filters">
+            <select class="filter-select" id="filter-owner" onchange="applyFilters()">
+                <option value="">All owners</option>
+            </select>
+            <select class="filter-select" id="filter-org" onchange="applyFilters()">
+                <option value="">All orgs</option>
+            </select>
+        </div>
+    </div>
+
+    <div class="columns">
+        <!-- MY TASKS -->
+        <div>
+            <div class="column-header">
+                <span class="column-title">My Tasks</span>
+                <button class="btn-add" onclick="toggleForm('my')">+ Add</button>
+            </div>
+            <div class="add-form" id="form-my">
+                <input type="text" id="new-task-text-my" placeholder="Task description..." />
+                <input type="text" id="new-task-org-my" placeholder="Org name..." list="org-list" />
+                <select id="new-task-priority-my">
+                    <option value="Med">Med</option>
+                    <option value="Hi">Hi</option>
+                    <option value="Low">Low</option>
+                </select>
+                <button class="btn-submit" onclick="addTask('my')">Add</button>
+                <button class="btn-cancel" onclick="toggleForm('my')">Cancel</button>
+            </div>
+            <div class="task-list" id="list-my">
+                <div class="empty-state">Loading...</div>
+            </div>
+        </div>
+
+        <!-- TEAM TASKS -->
+        <div>
+            <div class="column-header">
+                <span class="column-title">Team Tasks</span>
+                <button class="btn-add" onclick="toggleForm('team')">+ Add</button>
+            </div>
+            <div class="add-form" id="form-team">
+                <input type="text" id="new-task-text-team" placeholder="Task description..." />
+                <input type="text" id="new-task-org-team" placeholder="Org name..." list="org-list" />
+                <select id="new-task-owner-team">
+                    {% for member in config.team %}
+                    <option value="{{ member }}">{{ member }}</option>
+                    {% endfor %}
+                </select>
+                <select id="new-task-priority-team">
+                    <option value="Med">Med</option>
+                    <option value="Hi">Hi</option>
+                    <option value="Low">Low</option>
+                </select>
+                <button class="btn-submit" onclick="addTask('team')">Add</button>
+                <button class="btn-cancel" onclick="toggleForm('team')">Cancel</button>
+            </div>
+            <div class="task-list" id="list-team">
+                <div class="empty-state">Loading...</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<datalist id="org-list" id="org-datalist"></datalist>
+
+<script>
+const MY_OWNER = 'Oscar';
+let allTasks = [];
+
+function priBadgeClass(priority) {
+    const p = (priority || '').toLowerCase();
+    if (p === 'hi' || p === 'high') return 'pri-hi';
+    if (p === 'med' || p === 'medium') return 'pri-med';
+    return 'pri-low';
+}
+
+function priBadgeLabel(priority) {
+    const p = (priority || '').toLowerCase();
+    if (p === 'hi' || p === 'high') return 'Hi';
+    if (p === 'med' || p === 'medium') return 'Med';
+    return 'Low';
+}
+
+function renderTask(task) {
+    const orgLink = `/crm/org/${encodeURIComponent(task.org || task.org_name || '')}/edit`;
+    const orgName = task.org || task.org_name || '';
+    const priClass = priBadgeClass(task.priority);
+    const priLabel = priBadgeLabel(task.priority);
+    return `
+        <div class="task-item" data-id="${task.id}" data-owner="${task.owner || ''}" data-org="${orgName}">
+            <button class="btn-complete" onclick="completeTask(${task.id}, this)" title="Mark complete"></button>
+            <div class="task-body">
+                <a class="task-org" href="${orgLink}">${orgName}</a>
+                <div class="task-text">${task.text}</div>
+                <div class="task-meta">
+                    <span class="task-owner">${task.owner || ''}</span>
+                    <span class="pri-badge ${priClass}">${priLabel}</span>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+function renderColumn(listId, tasks) {
+    const el = document.getElementById(listId);
+    if (!tasks.length) {
+        el.innerHTML = '<div class="empty-state">No open tasks.</div>';
+        return;
+    }
+    el.innerHTML = tasks.map(renderTask).join('');
+}
+
+function applyFilters() {
+    const ownerFilter = document.getElementById('filter-owner').value;
+    const orgFilter = document.getElementById('filter-org').value;
+
+    let filtered = allTasks;
+    if (ownerFilter) filtered = filtered.filter(t => t.owner === ownerFilter);
+    if (orgFilter) filtered = filtered.filter(t => (t.org || t.org_name) === orgFilter);
+
+    const myTasks = filtered.filter(t => t.owner === MY_OWNER);
+    const teamTasks = filtered.filter(t => t.owner !== MY_OWNER);
+    renderColumn('list-my', myTasks);
+    renderColumn('list-team', teamTasks);
+}
+
+function populateFilters() {
+    const owners = [...new Set(allTasks.map(t => t.owner).filter(Boolean))].sort();
+    const orgs = [...new Set(allTasks.map(t => t.org || t.org_name).filter(Boolean))].sort();
+
+    const ownerSel = document.getElementById('filter-owner');
+    owners.forEach(o => {
+        const opt = document.createElement('option');
+        opt.value = o; opt.textContent = o;
+        ownerSel.appendChild(opt);
+    });
+
+    const orgSel = document.getElementById('filter-org');
+    const orgList = document.getElementById('org-list');
+    orgs.forEach(o => {
+        const opt = document.createElement('option');
+        opt.value = o; opt.textContent = o;
+        orgSel.appendChild(opt);
+
+        const dl = document.createElement('option');
+        dl.value = o;
+        orgList.appendChild(dl);
+    });
+}
+
+async function loadTasks() {
+    try {
+        const resp = await fetch('/crm/api/tasks');
+        if (!resp.ok) throw new Error('Failed to load tasks');
+        allTasks = await resp.json();
+
+        // Sort: Hi > Med > Low, then by org
+        const priOrder = {'hi': 0, 'high': 0, 'med': 1, 'medium': 1, 'low': 2, '': 3};
+        allTasks.sort((a, b) => {
+            const pa = priOrder[(a.priority || '').toLowerCase()] ?? 3;
+            const pb = priOrder[(b.priority || '').toLowerCase()] ?? 3;
+            if (pa !== pb) return pa - pb;
+            return (a.org || a.org_name || '').localeCompare(b.org || b.org_name || '');
+        });
+
+        const total = allTasks.length;
+        document.getElementById('task-count').textContent = `${total} open task${total !== 1 ? 's' : ''}`;
+
+        populateFilters();
+        applyFilters();
+    } catch (err) {
+        document.getElementById('task-count').textContent = 'Error loading tasks';
+        document.getElementById('list-my').innerHTML = '<div class="empty-state">Failed to load.</div>';
+        document.getElementById('list-team').innerHTML = '<div class="empty-state">Failed to load.</div>';
+    }
+}
+
+async function completeTask(taskId, btn) {
+    btn.disabled = true;
+    const item = btn.closest('.task-item');
+    try {
+        const resp = await fetch('/crm/api/tasks/complete', {
+            method: 'PATCH',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({id: taskId}),
+        });
+        if (!resp.ok) throw new Error('Failed');
+        item.style.opacity = '0.4';
+        item.style.transition = 'opacity 0.3s';
+        setTimeout(() => {
+            allTasks = allTasks.filter(t => t.id !== taskId);
+            const total = allTasks.length;
+            document.getElementById('task-count').textContent = `${total} open task${total !== 1 ? 's' : ''}`;
+            applyFilters();
+        }, 300);
+    } catch {
+        btn.disabled = false;
+    }
+}
+
+function toggleForm(col) {
+    const form = document.getElementById(`form-${col}`);
+    form.classList.toggle('open');
+    if (form.classList.contains('open')) {
+        document.getElementById(`new-task-text-${col}`).focus();
+    }
+}
+
+async function addTask(col) {
+    const text = document.getElementById(`new-task-text-${col}`).value.trim();
+    const org = document.getElementById(`new-task-org-${col}`).value.trim();
+    const priority = document.getElementById(`new-task-priority-${col}`).value;
+    const owner = col === 'my'
+        ? MY_OWNER
+        : document.getElementById('new-task-owner-team').value;
+
+    if (!text || !org) {
+        alert('Task description and org name are required.');
+        return;
+    }
+
+    try {
+        const resp = await fetch('/crm/api/tasks', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({org, text, owner, priority}),
+        });
+        const data = await resp.json();
+        if (!resp.ok) {
+            alert(data.error || 'Failed to create task');
+            return;
+        }
+        // Reset form
+        document.getElementById(`new-task-text-${col}`).value = '';
+        document.getElementById(`new-task-org-${col}`).value = '';
+        toggleForm(col);
+        // Reload tasks
+        await loadTasks();
+    } catch {
+        alert('Failed to create task. Please try again.');
+    }
+}
+
+loadTasks();
+</script>
+</body>
+</html>
