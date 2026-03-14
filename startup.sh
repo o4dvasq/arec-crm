@@ -1,24 +1,35 @@
 #!/bin/bash
-set -e
 
 echo "=== AREC CRM Startup ==="
 
-# Resolve the app root (directory containing this script)
-APP_ROOT="$(cd "$(dirname "$0")" && pwd)"
+# Resolve the app root — Oryx may extract to a temp dir, not /home/site/wwwroot
+# Try multiple strategies to find where our code lives
+if [ -f "$(dirname "$0")/app/delivery/dashboard.py" ]; then
+    APP_ROOT="$(cd "$(dirname "$0")" && pwd)"
+elif [ -f "/home/site/wwwroot/app/delivery/dashboard.py" ]; then
+    APP_ROOT="/home/site/wwwroot"
+else
+    # Search common Oryx temp extraction dirs
+    APP_ROOT=$(find /tmp -maxdepth 2 -name "dashboard.py" -path "*/delivery/*" 2>/dev/null | head -1 | sed 's|/app/delivery/dashboard.py||')
+    if [ -z "$APP_ROOT" ]; then
+        echo "FATAL: Cannot find app root"
+        exit 1
+    fi
+fi
 echo "App root: $APP_ROOT"
 
-# Activate Oryx virtual environment (could be in app root or /home/site/wwwroot)
-if [ -d "$APP_ROOT/antenv" ]; then
-    echo "Activating virtual environment from app root..."
-    source "$APP_ROOT/antenv/bin/activate"
-elif [ -d "/home/site/wwwroot/antenv" ]; then
-    echo "Activating virtual environment from /home/site/wwwroot..."
-    source /home/site/wwwroot/antenv/bin/activate
-fi
+# Activate virtual environment if available (don't fail if missing)
+for VENV_PATH in "$APP_ROOT/antenv" "/home/site/wwwroot/antenv"; do
+    if [ -f "$VENV_PATH/bin/activate" ]; then
+        echo "Activating venv: $VENV_PATH"
+        source "$VENV_PATH/bin/activate" || true
+        break
+    fi
+done
 
-# Ensure dependencies are current (handles stale antenv after code deploy)
+# Ensure dependencies are current
 echo "Installing/syncing dependencies..."
-pip install -r "$APP_ROOT/app/requirements.txt" --quiet 2>&1 | tail -5
+pip install -r "$APP_ROOT/app/requirements.txt" --quiet 2>&1 | tail -5 || true
 
 # Run auto-migrate (additive-only DDL — safe to run every boot)
 echo "Running auto-migrate..."
@@ -29,7 +40,7 @@ from auto_migrate import auto_migrate
 db_module.init_db()
 auto_migrate(db_module.engine)
 print('Auto-migrate complete.')
-"
+" || echo "WARNING: auto-migrate failed, continuing anyway"
 
 # Start gunicorn
 echo "Starting gunicorn on port ${PORT:-8000}..."
