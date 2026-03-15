@@ -6,101 +6,82 @@
 ---
 
 ## Last Updated
-2026-03-14 — Renamed `memory/` to `contacts/`, removing productivity-plugin data from CRM
+2026-03-15 — Stripped all Postgres/Azure/Entra infrastructure; returned to markdown-only local CRM
 
-**Active branch:** `postgres-local` (created off `deprecated-markdown`)
-**Azure deployment branch:** `azure-migration` (currently deployed; pending switch to `postgres-local`)
+**Active branch:** `postgres-local`
 
 ---
 
 ## What's Built and Working
 
-### PostgreSQL Backend (postgres-local branch)
-- `app/sources/crm_db.py` — Drop-in replacement for `crm_reader.py`. All 45+ functions re-implemented with SQLAlchemy. Plain strings everywhere (no Enums, no User FK). Team hardcoded as Oscar + Tony. Includes `add_prospect_task_and_return` and `update_prospect_task` for ID-based task mutation.
-- `app/models.py` — 12 SQLAlchemy ORM models: Organization, Offering, Contact, PipelineStage, Prospect, Interaction, EmailScanLog, Brief, ProspectNote, UnmatchedEmail, PendingInterview, ProspectTask. No User model. No Enum types.
-- `app/db.py` — Engine/session management. SQLite-aware: skips `pool_size`/`max_overflow` for SQLite (required for tests).
-- `app/auto_migrate.py` — Additive-only schema migration (create missing tables, add missing columns, create missing indexes). Skips ALTER TABLE on SQLite.
-- `app/delivery/dashboard.py` — Flask app wired to `crm_db.py`. DB init at startup + auto_migrate call. Root route → `/crm`. Port 8000. `before_request` hook sets `g.user` from session or `DEV_USER` env var.
-- `app/delivery/crm_blueprint.py` — All CRM routes use `crm_db.py`. All 5 task API routes protected by `@require_api_key_or_login`. Includes `/crm/tasks` page route and `/crm/api/tasks/dashboard` + `/crm/api/tasks/<id>` PATCH.
-- `app/delivery/tasks_blueprint.py` — CRM task routes use `crm_db.py`; general tasks page still uses `memory_reader.py`.
-- `app/auth/decorators.py` — `require_api_key_or_login` decorator: accepts `X-API-Key` header (if `OVERWATCH_API_KEY` set) or `g.user` session. Returns 401 JSON if neither.
-- `app/sources/relationship_brief.py` — All 5 inline imports point to `crm_db.py`. Brief synthesis and person update routing fully DB-backed. Person intel reads from `contacts/` directory.
-- `app/briefing/prompt_builder.py` — Both imports point to `crm_db.py`. Morning briefing prompt assembly fully DB-backed. Intel files read from `contacts/`.
+### Markdown Backend
+- `app/sources/crm_reader.py` — Single source of truth for all CRM data. ~1800 lines, 60+ functions. Reads/writes markdown and JSON files directly. All production code imports from here.
+- `app/sources/email_matching.py` — Extracted from deleted `crm_graph_sync.py`. Pure utility: `_fuzzy_match_org`, `_is_internal`, `_resolve_participant`. No Graph dependency.
 
-### Contact Profiles
-- `contacts/{name}.md` — 211 contact profile files (formerly `memory/people/`). Flat directory, no subdirectory. Clean filenames (e.g., `darren-sutton.md`).
-- `crm/org-locations.md` — Org location data (formerly `memory/org-locations.md`).
-- `projects/arec-fund-ii.md` — Project notes (formerly `memory/projects/`).
-- `crm/meeting_history.md` — Meeting log; merged content from former `memory/meetings.md`.
+### Web Dashboard (Flask — local dev, port 8000)
+- `app/delivery/dashboard.py` — Flask app factory. No DB init. Loads env → registers blueprints → serves. `g.user` set from `DEV_USER` env var.
+- `app/delivery/crm_blueprint.py` — All CRM routes backed by `crm_reader.py`. Graph-dependent routes (`email-scan`, `auto-capture`) return 501 with helpful message.
+- `app/delivery/tasks_blueprint.py` — Tasks page. Markdown-backed task CRUD. ID-based prospect task routes return 501.
+- `app/auth/decorators.py` — `require_api_key_or_login` is a no-op passthrough for local dev. Decorator stays on all `/crm/api/tasks*` routes for pattern preservation.
+- Dark theme throughout. Pipeline, prospect detail, orgs, people, tasks pages all functional.
+- Brief synthesis via Claude API (`brief_synthesizer.py`).
 
 ### Task API (Overwatch-compatible)
-- `GET /crm/api/tasks/dashboard` — All open tasks, enriched. API key or session required.
-- `GET /crm/api/tasks?org=X` — Tasks for specific org. `GET /crm/api/tasks` (no param) — all open tasks.
-- `POST /crm/api/tasks` — Create task. Returns `{ok, task}`.
-- `PATCH /crm/api/tasks/complete` — Complete by `{id}`.
-- `PATCH /crm/api/tasks/<id>` — Update fields (text, owner, priority, status). Returns `{ok, task}`.
-- All 5 accept `X-API-Key: <OVERWATCH_API_KEY>` or session cookie.
+- `GET /crm/api/tasks/dashboard` — All open tasks, enriched.
+- `GET /crm/api/tasks?org=X` — Tasks for specific org.
+- `POST /crm/api/tasks` — Create task (markdown-backed, returns synthetic task object).
+- `PATCH /crm/api/tasks/complete` — Returns 501 (ID-based completion requires DB).
+- `PATCH /crm/api/tasks/<id>` — Returns 501 (ID-based update requires DB).
 
-### Tasks Page
-- `GET /crm/tasks` — Standalone tasks page showing all open prospect tasks. My Tasks / Team Tasks columns. AJAX-loaded, complete/add actions, client-side owner+org filtering. Nav updated to point here.
+### Morning Briefing (`app/main.py`)
+- Degrades gracefully if Graph dependencies unavailable. Skips calendar/email fetch; proceeds with local data only.
+
+### Contact Profiles
+- `contacts/{name}.md` — 211 contact profile files (formerly `memory/people/`).
+- `crm/org-locations.md` — Org location data.
+- `projects/arec-fund-ii.md` — Project notes.
 
 ### Test Suite
-- `app/tests/conftest.py` — SQLite in-memory fixtures.
-- `app/tests/test_crm_db.py` — 52 tests covering full postgres backend.
-- `app/tests/test_tasks_api_key.py` — 24 tests covering API key auth on all 5 task endpoints.
-- **128 tests total passing**.
+- `app/tests/test_brief_synthesizer.py`, `test_email_matching.py`, `test_task_parsing.py`
+- **52 tests passing**. No DB fixtures. No DATABASE_URL required.
 
-### Seed Script
-- `scripts/seed_from_markdown.py` — Reads all markdown/JSON files via `crm_reader.py`, writes to Postgres. Idempotent. Reads contacts from `contacts/` (updated).
-
-### Web Dashboard (Flask — local dev)
-- Dark theme throughout. Pipeline, prospect detail, orgs, people, tasks pages all functional.
-- Prospect detail: click-to-edit fields, relationship briefs, interaction history, notes, contacts.
-- Brief synthesis via Claude API (`brief_synthesizer.py`).
-- Nav shows "AREC CRM" (not "Overwatch"). Tasks nav link → `/crm/tasks`.
-
-### Azure Deployment
-- `requirements.txt` at repo root — ensures Oryx populates `antenv` correctly on every deploy.
-- `startup.sh` — activates `antenv`, pip-installs deps, runs auto-migrate, launches gunicorn.
-- App currently deployed at `https://arec-crm-app.azurewebsites.net` from `azure-migration` branch.
-- `.github/workflows/azure-deploy.yml` — packages `contacts/` and `projects/` (not `memory/`).
+### Skills (Claude Desktop via MCP — unaffected by cleanup)
+- `skills/email-scan.md`, `skills/meeting-debrief.md`
+- `app/auth/graph_auth.py`, `app/sources/ms_graph.py` — preserved for skill use
 
 ---
 
 ## What Was Just Completed
 
-**memory/ → contacts/ rename (2026-03-14)**
+**crm-markdown-cleanup (2026-03-15)**
 
-- **Renamed `memory/people/` → `contacts/`** — 211 profile files moved, flattened (no `people/` subdirectory). `darren-sutton-dsuttonsuttoncapitalgroupcom.md` cleaned up to `darren-sutton.md`.
-- **Removed productivity-plugin data** — `memory/context/` (me.md, company.md) and `memory/glossary.md` deleted from CRM repo. These belong to the local productivity plugin, not the deployed CRM.
-- **Relocated supporting files** — `memory/org-locations.md` → `crm/org-locations.md`; `memory/projects/arec-fund-ii.md` → `projects/arec-fund-ii.md`; `memory/meetings.md` merged into `crm/meeting_history.md`.
-- **Updated all code path constants** — `PEOPLE_ROOT` in `crm_db.py`, `crm_reader.py`; path joins in `relationship_brief.py`, `prompt_builder.py`, `crm_blueprint.py`, `bootstrap_contacts_index.py`, `seed_from_markdown.py`, `migrate_to_postgres.py`.
-- **Updated deploy pipeline** — `.github/workflows/azure-deploy.yml` now packages `contacts/` and `projects/` instead of `memory/`.
-- **128 tests still passing** after all changes.
+- **Deleted 19 Postgres/Azure/Entra files** — `crm_db.py`, `models.py`, `db.py`, `auto_migrate.py`, `crm_graph_sync.py`, `entra_auth.py`, all migration scripts, Azure deploy workflow, `startup.sh`, `DEPLOYMENT.md`, Postgres-specific tests.
+- **Rewired all delivery layer imports** — `dashboard.py`, `crm_blueprint.py`, `tasks_blueprint.py` now import from `crm_reader.py`. DB-only routes (task complete/update by ID) return 501 with helpful messages.
+- **Made `decorators.py` a no-op passthrough** — `require_api_key_or_login` lets all requests through for local dev. Decorator stays in place for future auth.
+- **Guarded `main.py` Graph imports** — `try/except` at top level; `_GRAPH_AVAILABLE` flag gates all Graph calls. App gracefully skips calendar/email if Graph not available.
+- **Extracted `email_matching.py`** — The 3 pure utility functions from the deleted `crm_graph_sync.py` were needed by `test_email_matching.py`. Extracted to their own module, no Graph dependency.
+- **Archived Azure/Postgres docs** — Specs and architecture docs moved to `docs/archive/azure-migration-march-2026/`. `LESSONS_LEARNED.md` already existed there.
+- **App starts clean** with `python3 app/delivery/dashboard.py` and no env vars beyond `DEV_USER`.
 
 ---
 
 ## Known Issues
 
-- **Azure deployment source mismatch** — Azure App Service is configured to deploy from `azure-migration` branch. All current development is on `postgres-local`. Decision needed: switch deployment branch, or merge postgres-local into azure-migration.
-- **Interactions seeding** — `interactions.md` only has 1 entry and it uses a person name (`Tony Avila`) as the heading instead of an org name, so it gets skipped. No data loss; interactions come in via the app.
-- **Contacts: 47 skipped on first seed run** — Some contacts have orgs that appear only in `prospects.md`. Auto-created on prospect seeding; picked up on second seed run.
+- **`/api/task/complete` and `/api/tasks/prospect/<id>/complete` return 501** — ID-based task completion doesn't exist in the markdown layer. Workaround: complete by org + text substring via `complete_prospect_task(org, text)` in `crm_reader.py`.
+- **Interactions seeding** — `interactions.md` has only 1 entry using a person name as heading instead of org. Skipped on import. No data loss.
 
 ---
 
 ## Next Up
 
-1. **Commit and push** `contacts/` rename changes to `postgres-local`.
-2. **Decide deployment branch** — switch Azure to `postgres-local`, or merge postgres-local → azure-migration.
-3. **Branch 2**: Full Azure deploy with PostgreSQL Flexible Server, Key Vault, Entra ID. See `docs/specs/SPEC_azure-deploy.md`.
+1. Decide on next spec — candidates: `global-search-bar`, `people-detail-contact-box`, `overwatch-repo-scaffold`
+2. If restoring Overwatch task integration: implement `add_prospect_task_and_return` wrapper in `crm_reader.py` to return a synthetic task dict after adding (unblocks `POST /crm/api/tasks` returning a real task object).
 
-**Local dev setup** (postgres-local branch):
+**Local dev setup:**
 ```bash
-createdb arec_crm                  # First time only
-echo "DATABASE_URL=postgresql://localhost/arec_crm" > app/.env
-python3 scripts/seed_from_markdown.py   # Populate DB from markdown/contacts/
-python3 app/delivery/dashboard.py       # http://localhost:8000
-python3.12 -m pytest app/tests/ -v     # 128 tests
+echo "DEV_USER=oscar" > app/.env     # First time only
+python3 app/delivery/dashboard.py    # http://localhost:8000
+python3.12 -m pytest app/tests/ -v  # 52 tests
 ```
 
 ---
@@ -113,7 +94,7 @@ python3.12 -m pytest app/tests/ -v     # 128 tests
 
 ## Deferred / Parked
 
-- Morning briefing pipeline (`app/main.py`) — still markdown-based; not in scope for postgres-local
+- Prospect task completion by ID — requires either a DB or a slug/index scheme in the markdown layer
+- Graph API features (`email-scan`, `auto-capture`) — work via Claude Desktop skill; disabled as in-app routes (return 501)
 - `arec-mobile/` PWA — functional, not actively iterated
-- `prospect_meetings` — still JSON file-backed (`crm/prospect_meetings.json`); no DB table in Branch 1 scope
-- Graph API features (`email-scan`, `auto-capture`) — disabled on this branch; will be re-enabled in Branch 2/3
+- `prospect_meetings` — JSON file-backed (`crm/prospect_meetings.json`); no DB table

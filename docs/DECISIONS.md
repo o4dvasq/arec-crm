@@ -489,3 +489,35 @@
 - `app/templates/_nav.html` (user display name + logout link)
 - `scripts/create_schema.py` (seed 8 users with placeholder IDs)
 
+---
+
+## 2026-03-15 — CRM Markdown Cleanup: Revert to Markdown-Only Local App
+
+**Decision:** Stripped all PostgreSQL, Azure App Service, Entra ID, and multi-user infrastructure from the codebase. The app returns to a clean markdown-only local CRM backed by `crm_reader.py`.
+
+**Rationale:** After ~5 days on the Azure migration, the deployment complexity (Oryx, gunicorn, cold start, Key Vault, Entra SSO) was blocking daily use. For a single-user local tool, the overhead was not justified. See `docs/archive/azure-migration-march-2026/LESSONS_LEARNED.md` for full retrospective.
+
+**Key implementation decisions:**
+
+1. **`require_api_key_or_login` kept as no-op passthrough, not deleted** — All 5 `/crm/api/tasks*` routes retain the decorator so the auth pattern is preserved for a future multi-user scenario. The decorator body is a passthrough; removing it would require editing 5 route definitions.
+
+2. **Graph-dependent routes return 501, not 404 or 200** — `email-scan` and `auto-capture` in-app routes return `501 Not Implemented` with a message directing to the Claude Desktop skill. 501 is semantically correct (server doesn't support the feature in this configuration) and more debuggable than 404 or a silent empty response.
+
+3. **`email_matching.py` extracted, not lost** — The three utility functions (`_fuzzy_match_org`, `_is_internal`, `_resolve_participant`) in the deleted `crm_graph_sync.py` had no Graph dependency and were under test. Rather than delete `test_email_matching.py`, the functions were extracted to `app/sources/email_matching.py`. The email-scan skill uses them via `crm_graph_sync.py` on the Claude Desktop side, not via the Flask app.
+
+4. **`main.py` guarded, not deleted** — The morning briefing script is still useful when Graph credentials are available. Wrapping imports in `try/except ImportError` and gating all Graph calls behind `_GRAPH_AVAILABLE` lets it run gracefully in both modes.
+
+5. **Task routes returning 501 vs. alternative implementations** — The 3 DB-only task operations (`complete_by_id`, `update_by_id`, `add_and_return`) could theoretically be approximated in markdown (e.g., text-based completion, synthetic ID from enumerate). Chose 501 for now because (a) the Overwatch integration isn't live, (b) the spec didn't ask for approximations, and (c) a real solution would need a stable ID scheme.
+
+**Rejected approaches:**
+- Keeping `crm_db.py` as a fallback (adds ~2000 lines of dead code with no user)
+- Moving to SQLite (same complexity win as just using markdown; adds a file to manage)
+
+**For the next designer:** The `postgres-local` branch still has the full SQLAlchemy schema and 128 tests in git history if a DB layer is ever needed again. The `docs/archive/azure-migration-march-2026/` folder has lessons learned and all archived specs.
+
+**Impact:**
+- Deleted: `crm_db.py`, `models.py`, `db.py`, `auto_migrate.py`, `crm_graph_sync.py`, `entra_auth.py`, all migration scripts, `startup.sh`, `DEPLOYMENT.md`, Azure workflow, Postgres test files
+- Modified: `dashboard.py`, `crm_blueprint.py`, `tasks_blueprint.py`, `decorators.py`, `main.py`, `requirements.txt` (both), `conftest.py`, `CLAUDE.md`
+- New: `app/sources/email_matching.py`
+- Archived: Azure/Postgres specs to `docs/archive/azure-migration-march-2026/`
+
