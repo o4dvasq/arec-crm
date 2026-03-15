@@ -4,6 +4,7 @@ CRM and fundraising platform for the AREC team. Manages investor pipeline, relat
 
 **Location:** `~/Dropbox/projects/arec-crm/`
 **Branch:** `postgres-local` (active dev branch)
+**Sister repo:** `~/Dropbox/projects/overwatch/` (personal productivity — tasks, briefings, personal contacts)
 
 ---
 
