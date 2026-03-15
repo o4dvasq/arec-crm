@@ -1,12 +1,8 @@
 # SPEC: People Detail — Contact Info Box
 
-**Project:** arec-crm | **Branch:** markdown-local | **Date:** March 10, 2026
+**Project:** arec-crm  
+**Date:** March 10, 2026  
 **Status:** Ready for implementation
-
-SEQUENCING: Implement AFTER SPEC_crm-memory-to-contacts-rename.md is complete (paths depend on rename).
-DEPENDS ON: SPEC_crm-markdown-cleanup.md, working CRM on markdown-local.
-BACKEND: All data via crm_reader.py and markdown files — NO crm_db.py, NO models.py, NO SQLAlchemy.
-NOTE: Path references below use `memory/people/` — the current directory name. If SPEC_crm-memory-to-contacts-rename.md has already been implemented, substitute `contacts/` for `memory/people/` throughout.
 
 ---
 

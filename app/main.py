@@ -31,12 +31,17 @@ from dotenv import load_dotenv
 # Load .env from the app directory
 load_dotenv(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".env"))
 
-from auth.graph_auth import get_access_token
+try:
+    from auth.graph_auth import get_access_token
+    from sources.crm_graph_sync import run_auto_capture
+    from sources.ms_graph import get_recent_emails, get_today_events, get_tomorrow_events
+    _GRAPH_AVAILABLE = True
+except ImportError:
+    _GRAPH_AVAILABLE = False
+
 from briefing.generator import generate_briefing
 from briefing.prompt_builder import build_prompt
-from sources.crm_graph_sync import run_auto_capture
 from sources.memory_reader import load_inbox, load_memory_summary, load_tasks
-from sources.ms_graph import get_recent_emails, get_today_events, get_tomorrow_events
 
 # ---------------------------------------------------------------------------
 # Logging
@@ -207,51 +212,55 @@ def run_briefing() -> None:
     log.info("=== Morning briefing starting ===")
 
     # 1. Authenticate
-    log.info("Authenticating with Microsoft Graph...")
-    try:
-        token = get_access_token()
-        log.info("Token acquired successfully")
-    except Exception as e:
-        log.error(f"Authentication failed: {e}")
-        sys.exit(1)
-
-    # 2. Fetch data
-    log.info("Fetching calendar events...")
-    try:
-        events = get_today_events(token)
-        log.info(f"Fetched {len(events)} events")
-    except Exception as e:
-        log.warning(f"Calendar fetch failed: {e}")
-        events = []
-
-    # Fetch tomorrow's events if after 3 PM Pacific or light today
-    tomorrow_events = []
-    try:
-        from zoneinfo import ZoneInfo
-        now_pacific = datetime.now(ZoneInfo("America/Los_Angeles"))
-        include_tomorrow = now_pacific.hour >= 15 or len(events) < 2
-    except Exception:
-        include_tomorrow = len(events) < 2
-
-    if include_tomorrow:
-        reason = "after 3 PM" if (len(events) >= 2) else "fewer than 2 events today"
-        log.info(f"Including tomorrow's schedule ({reason})...")
+    if not _GRAPH_AVAILABLE:
+        log.warning("Graph dependencies not available. Calendar/email features disabled.")
+        token = None
+    else:
+        log.info("Authenticating with Microsoft Graph...")
         try:
-            tomorrow_events = get_tomorrow_events(token)
-            log.info(f"Fetched {len(tomorrow_events)} tomorrow events")
+            token = get_access_token()
+            log.info("Token acquired successfully")
         except Exception as e:
-            log.warning(f"Tomorrow calendar fetch failed: {e}")
-            tomorrow_events = []
+            log.error(f"Authentication failed: {e}")
+            token = None
 
-    write_dashboard_calendar(events, tomorrow_events or None)  # seed dashboard
+    # 2. Fetch data (requires Graph token)
+    events = []
+    tomorrow_events = []
+    emails = []
 
-    log.info("Fetching recent emails...")
-    try:
-        emails = get_recent_emails(token, hours=18)
-        log.info(f"Fetched {len(emails)} emails")
-    except Exception as e:
-        log.warning(f"Email fetch failed: {e}")
-        emails = []
+    if token and _GRAPH_AVAILABLE:
+        log.info("Fetching calendar events...")
+        try:
+            events = get_today_events(token)
+            log.info(f"Fetched {len(events)} events")
+        except Exception as e:
+            log.warning(f"Calendar fetch failed: {e}")
+
+        try:
+            from zoneinfo import ZoneInfo
+            now_pacific = datetime.now(ZoneInfo("America/Los_Angeles"))
+            include_tomorrow = now_pacific.hour >= 15 or len(events) < 2
+        except Exception:
+            include_tomorrow = len(events) < 2
+
+        if include_tomorrow:
+            reason = "after 3 PM" if (len(events) >= 2) else "fewer than 2 events today"
+            log.info(f"Including tomorrow's schedule ({reason})...")
+            try:
+                tomorrow_events = get_tomorrow_events(token)
+                log.info(f"Fetched {len(tomorrow_events)} tomorrow events")
+            except Exception as e:
+                log.warning(f"Tomorrow calendar fetch failed: {e}")
+
+        write_dashboard_calendar(events, tomorrow_events or None)
+
+        log.info("Fetching recent emails...")
+        try:
+            emails = get_recent_emails(token, hours=18)
+            log.info(f"Fetched {len(emails)} emails")
+        except Exception as e:
+            log.warning(f"Email fetch failed: {e}")
 
     # 3. Load local data
     tasks = load_tasks()
@@ -287,13 +296,14 @@ def run_briefing() -> None:
     }
     write_briefing(briefing_text, BRIEFING_PATH, meta)
 
-    # 7. Run auto-capture
-    log.info("Running auto-capture...")
-    try:
-        capture_stats = run_auto_capture(token)
-        log.info(f"Auto-capture: {capture_stats}")
-    except Exception as e:
-        log.warning(f"Auto-capture failed (non-fatal): {e}")
+    # 7. Run auto-capture (Graph-dependent)
+    if token and _GRAPH_AVAILABLE:
+        log.info("Running auto-capture...")
+        try:
+            capture_stats = run_auto_capture(token)
+            log.info(f"Auto-capture: {capture_stats}")
+        except Exception as e:
+            log.warning(f"Auto-capture failed (non-fatal): {e}")
 
     elapsed = time.time() - start_time
     log.info(f"=== Morning briefing complete in {elapsed:.1f}s ===")

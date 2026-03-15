@@ -1,10 +1,8 @@
 # SPEC: Global Search Bar
 
-**Project:** arec-crm | **Branch:** markdown-local | **Date:** March 10, 2026
+**Project:** arec-crm (Overwatch)
+**Date:** March 10, 2026
 **Status:** Ready for implementation
-
-SEQUENCING: Implement AFTER SPEC_crm-markdown-cleanup.md is complete. No other dependencies — this spec is backend-agnostic.
-BACKEND: All data via crm_reader.py — NO crm_db.py, NO models.py, NO SQLAlchemy. Search index built from existing crm_reader.py data injected via Jinja2.
 
 ---
 

@@ -1,7 +1,7 @@
 """
 test_email_matching.py — Tests for CRM email/participant matching logic.
 
-Tests _fuzzy_match_org and _is_internal from crm_graph_sync.py.
+Tests _fuzzy_match_org and _is_internal from email_matching.py.
 _resolve_participant is tested with a mock for find_person_by_email.
 """
 
@@ -15,7 +15,7 @@ APP_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if APP_DIR not in sys.path:
     sys.path.insert(0, APP_DIR)
 
-from sources.crm_graph_sync import _fuzzy_match_org, _is_internal, _resolve_participant
+from sources.email_matching import _fuzzy_match_org, _is_internal, _resolve_participant
 
 
 # ---------------------------------------------------------------------------
@@ -114,28 +114,28 @@ def test_none_email_treated_as_internal():
 def test_resolve_by_exact_email_match():
     """Person file lookup returns an org → use it."""
     mock_person = {'name': 'Jared Brimberry', 'organization': 'UTIMCO', 'email': 'jared@utimco.org'}
-    with patch('sources.crm_graph_sync.find_person_by_email', return_value=mock_person):
+    with patch('sources.email_matching.find_person_by_email', return_value=mock_person):
         result = _resolve_participant('jared@utimco.org', 'Jared Brimberry', ORG_LIST)
     assert result == {'org': 'UTIMCO', 'contact': 'Jared Brimberry'}
 
 
 def test_resolve_by_fuzzy_display_name_when_no_person_file():
     """No person file → fall back to fuzzy org match on display name."""
-    with patch('sources.crm_graph_sync.find_person_by_email', return_value=None):
+    with patch('sources.email_matching.find_person_by_email', return_value=None):
         result = _resolve_participant('unknown@blackstone.com', 'Blackstone Portfolio', ORG_LIST)
     assert result == {'org': 'Blackstone', 'contact': 'Blackstone Portfolio'}
 
 
 def test_resolve_returns_none_for_internal_email():
     """Internal email → skip (return None)."""
-    with patch('sources.crm_graph_sync.find_person_by_email', return_value=None):
+    with patch('sources.email_matching.find_person_by_email', return_value=None):
         result = _resolve_participant('oscar@avilacapllc.com', 'Oscar Vasquez', ORG_LIST)
     assert result is None
 
 
 def test_resolve_returns_none_when_no_match():
     """No person file AND no fuzzy org match → None."""
-    with patch('sources.crm_graph_sync.find_person_by_email', return_value=None):
+    with patch('sources.email_matching.find_person_by_email', return_value=None):
         result = _resolve_participant('stranger@noreply.com', 'Newsletter Bot', ORG_LIST)
     assert result is None
 
@@ -143,6 +143,6 @@ def test_resolve_returns_none_when_no_match():
 def test_resolve_uses_person_name_not_display_name():
     """When person file found, return person's stored name, not the raw display name."""
     mock_person = {'name': 'Jared C. Brimberry', 'organization': 'UTIMCO', 'email': 'jared@utimco.org'}
-    with patch('sources.crm_graph_sync.find_person_by_email', return_value=mock_person):
+    with patch('sources.email_matching.find_person_by_email', return_value=mock_person):
         result = _resolve_participant('jared@utimco.org', 'J. Brimberry', ORG_LIST)
     assert result['contact'] == 'Jared C. Brimberry'

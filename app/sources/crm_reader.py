@@ -1,5 +1,6 @@
+# crm_reader.py — markdown-file CRM backend. Single source of truth for all production code.
 """
-CRM data reader/writer for all markdown files in crm/ and memory/people/.
+CRM data reader/writer for all markdown files in crm/ and contacts/.
 All downstream consumers import from here. No parsing logic elsewhere.
 """
 
@@ -11,8 +12,7 @@ from datetime import date, datetime, timedelta
 APP_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))  # .../app
 PROJECT_ROOT = os.path.dirname(APP_ROOT)  # .../ClaudeProductivity
 CRM_ROOT = os.path.join(PROJECT_ROOT, "crm")
-MEMORY_ROOT = os.path.join(PROJECT_ROOT, "memory")
-PEOPLE_ROOT = os.path.join(MEMORY_ROOT, "people")
+PEOPLE_ROOT = os.path.join(PROJECT_ROOT, "contacts")
 TASKS_MD_PATH = os.path.join(PROJECT_ROOT, "TASKS.md")
 BRIEFS_PATH = os.path.join(CRM_ROOT, "briefs.json")
 PROSPECT_NOTES_PATH = os.path.join(CRM_ROOT, "prospect_notes.json")
@@ -373,7 +373,7 @@ def load_contacts_index() -> dict:
 
 
 def load_person(slug: str) -> dict | None:
-    """Parse a memory/people/<slug>.md file into a dict."""
+    """Parse a contacts/<slug>.md file into a dict."""
     path = os.path.join(PEOPLE_ROOT, f"{slug}.md")
     if not os.path.exists(path):
         return None
@@ -467,7 +467,7 @@ def _name_to_slug(name: str) -> str:
 
 
 def create_person_file(name: str, org: str, email: str, role: str, person_type: str) -> str:
-    """Create memory/people/<slug>.md and update contacts_index.md. Returns slug."""
+    """Create contacts/<slug>.md and update contacts_index.md. Returns slug."""
     slug = _name_to_slug(name)
     # Ensure unique slug
     base_slug = slug
@@ -521,7 +521,7 @@ def create_person_file(name: str, org: str, email: str, role: str, person_type: 
 
 
 def load_all_persons() -> list[dict]:
-    """Load all person files from memory/people/. Returns list of person dicts sorted by name."""
+    """Load all person files from contacts/. Returns list of person dicts sorted by name."""
     if not os.path.exists(PEOPLE_ROOT):
         return []
     persons = []

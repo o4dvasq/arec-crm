@@ -16,7 +16,7 @@ if _APP_DIR not in sys.path:
 PROJECT_ROOT = os.path.dirname(_APP_DIR)
 TASKS_PATH = os.path.join(PROJECT_ROOT, "TASKS.md")
 
-from sources.crm_reader import load_crm_config
+from sources.crm_reader import load_crm_config, get_tasks_for_prospect, add_prospect_task
 from sources.memory_reader import _parse_task_line, _format_task_line
 
 tasks_bp = Blueprint('tasks', __name__, url_prefix='/tasks')
@@ -294,51 +294,46 @@ def api_task_priority_update(section, index):
 
 @tasks_bp.route('/api/tasks/for-org', methods=['GET'])
 def api_tasks_for_org():
-    """Return all open tasks for a given org, with section+index for modal editing."""
+    """Return all open prospect tasks for a given org from the DB."""
     org = request.args.get('org', '').strip()
     if not org:
         return jsonify({'error': 'org parameter required'}), 400
-    org_lower = org.lower()
 
+    tasks = get_tasks_for_prospect(org)
     results = []
-    lines = _read_task_lines()
-    current_section = None
-    section_counts = {}
-
-    for raw_line in lines:
-        ln = raw_line.rstrip('\n')
-        m = re.match(r'^## (.+)$', ln.rstrip())
-        if m:
-            current_section = m.group(1).strip()
-            continue
-        if current_section is None:
-            continue
-        is_task = ln.startswith('- [ ] ') or ln.startswith('- [x] ')
-        if not is_task:
-            continue
-
-        idx = section_counts.get(current_section, 0)
-        section_counts[current_section] = idx + 1
-
-        # Only show open tasks
-        if not ln.startswith('- [ ] '):
-            continue
-
-        task = _parse_task_line(ln, current_section)
-        task_org = task.get('org', '').lower()
-        task_text_lower = ln.lower()
-
-        # Match by [org:] tag, (OrgName) suffix, or org name in task text
-        if task_org == org_lower or org_lower in task_text_lower:
-            results.append({
-                'text': task.get('text', ''),
-                'priority': task.get('priority', 'Med'),
-                'status': task.get('status', 'New'),
-                'assigned_to': task.get('assigned_to', ''),
-                'context': task.get('context', ''),
-                'section': current_section,
-                'index': idx,
-                'raw_line': ln.strip(),
-            })
-
+    for i, t in enumerate(tasks):
+        results.append({
+            'id': i,
+            'text': t['text'],
+            'priority': t.get('priority', 'Med'),
+            'status': t.get('status', 'open'),
+            'assigned_to': t.get('owner', ''),
+            'context': '',
+            'section': t.get('section', 'Fundraising - Me'),
+            'index': i,
+        })
     return jsonify(results)
+
+
+@tasks_bp.route('/api/tasks/prospect', methods=['POST'])
+def api_prospect_task_create():
+    """Create a new prospect task in the DB."""
+    data = request.get_json(force=True)
+    org = data.get('org', '').strip()
+    text = data.get('text', '').strip()
+    owner = data.get('assigned_to', data.get('owner', '')).strip()
+    priority = data.get('priority', 'Med').strip()
+    if not org or not text:
+        return jsonify({'ok': False, 'error': 'org and text required'}), 400
+    ok = add_prospect_task(org, text, owner, priority)
+    return jsonify({'ok': ok})
+
+
+@tasks_bp.route('/api/tasks/prospect/<int:task_id>/complete', methods=['POST'])
+def api_prospect_task_complete(task_id):
+    return jsonify({'ok': False, 'error': 'Prospect task completion by ID requires a database.'}), 501
+
+
+@tasks_bp.route('/api/tasks/prospect/<int:task_id>', methods=['DELETE'])
+def api_prospect_task_delete(task_id):
+    return jsonify({'ok': False, 'error': 'Prospect task deletion by ID requires a database.'}), 501

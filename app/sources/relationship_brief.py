@@ -1,7 +1,7 @@
 """
 relationship_brief.py — Aggregates knowledge base data for the CRM Relationship Brief.
 
-Scans memory/people files, glossary, meeting summaries, and TASKS.md
+Scans contacts/ files, glossary, meeting summaries, and TASKS.md
 to build a structured context object for any prospect org.
 
 Also provides AI synthesis helpers: collect_relationship_data, build_context_block,
@@ -25,14 +25,14 @@ def _get_base_dir():
 
 def find_people_files(org_name, contact_names, base_dir=None):
     """
-    Find memory/people/*.md files relevant to this org or any of its contacts.
+    Find contacts/*.md files relevant to this org or any of its contacts.
     Matches by filename first, then by scanning file content.
     Returns list of {'filename': str, 'content': str}.
     """
     if base_dir is None:
         base_dir = _get_base_dir()
 
-    people_dir = os.path.join(base_dir, "memory", "people")
+    people_dir = os.path.join(base_dir, "contacts")
     if not os.path.exists(people_dir):
         return []
 
@@ -69,13 +69,13 @@ def find_people_files(org_name, contact_names, base_dir=None):
 
 def find_glossary_entry(org_name, base_dir=None):
     """
-    Search memory/glossary.md for the org name and return surrounding context.
+    Search crm/glossary.md for the org name and return surrounding context.
     Returns a string with matched sections separated by '---', or None.
     """
     if base_dir is None:
         base_dir = _get_base_dir()
 
-    glossary_path = os.path.join(base_dir, "memory", "glossary.md")
+    glossary_path = os.path.join(base_dir, "crm", "glossary.md")
     if not os.path.exists(glossary_path):
         return None
 
@@ -192,7 +192,7 @@ RULES:
 def collect_relationship_data(org, offering, base_dir=None):
     """Collect all knowledge base data for an org/offering.
     Returns structured dict with all 8 sources."""
-    from sources.crm_reader import (
+    from sources.crm_db import (
         get_prospect, get_organization, get_contacts_for_org,
         load_interactions, get_emails_for_org,
     )
@@ -210,7 +210,7 @@ def collect_relationship_data(org, offering, base_dir=None):
     contacts = get_contacts_for_org(org) or []
     contact_names = [c.get('name', '') for c in contacts]
 
-    # Source 3b: memory/people/ intel files
+    # Source 3b: contacts/ intel files
     people_intel = find_people_files(org, contact_names, base_dir=base_dir)
 
     # Source 4: Interaction log
@@ -229,7 +229,7 @@ def collect_relationship_data(org, offering, base_dir=None):
     email_history = get_emails_for_org(org) or []
 
     # Source 9: Freeform notes log (phone calls, manual entries)
-    from sources.crm_reader import load_prospect_notes, load_prospect_meetings
+    from sources.crm_db import load_prospect_notes, load_prospect_meetings
     notes_log = load_prospect_notes(org, offering) or []
 
     # Source 10: Upcoming meetings
@@ -549,11 +549,11 @@ RULES:
 
 
 def find_people_files_for_person(person_name, base_dir=None):
-    """Find memory/people/ files for a specific person by name."""
+    """Find contacts/ files for a specific person by name."""
     if base_dir is None:
         base_dir = _get_base_dir()
 
-    people_dir = os.path.join(base_dir, "memory", "people")
+    people_dir = os.path.join(base_dir, "contacts")
     if not os.path.exists(people_dir):
         return []
 
@@ -605,7 +605,7 @@ def find_meeting_summaries_for_person(person_name, org_name='', base_dir=None):
 
 def get_email_history_for_person(email, org_name=''):
     """Get emails to/from a specific email address, filtered from org email log."""
-    from sources.crm_reader import get_emails_for_org
+    from sources.crm_db import get_emails_for_org
 
     if not email or not org_name:
         return []
@@ -660,7 +660,7 @@ def _build_person_profile(person_name, people_intel, org_name):
 
 def collect_person_data(person_name, base_dir=None):
     """Collect all knowledge base data about a person across all sources."""
-    from sources.crm_reader import (
+    from sources.crm_db import (
         get_organization, get_prospects_for_org, load_interactions,
     )
 
@@ -849,7 +849,7 @@ def build_person_fallback_summary(raw_data):
 
 def execute_person_updates(person_name, org_name, updates, base_dir=None):
     """Execute AI-routed updates for a person record."""
-    from sources.crm_reader import (
+    from sources.crm_db import (
         update_contact_fields, get_prospects_for_org,
         update_prospect_field, append_interaction,
     )
@@ -901,7 +901,7 @@ def execute_person_updates(person_name, org_name, updates, base_dir=None):
         except Exception as e:
             results.append({'action': 'interaction', 'status': 'error', 'error': str(e)})
 
-    # Intel notes → append to memory/people/ file
+    # Intel notes → append to contacts/ file
     intel_notes = updates.get('intel_notes')
     if intel_notes:
         try:
@@ -922,11 +922,11 @@ def execute_person_updates(person_name, org_name, updates, base_dir=None):
 
 
 def append_person_intel(person_name, notes, base_dir=None):
-    """Append qualitative intel to a person's memory/people/ file. Creates file if needed."""
+    """Append qualitative intel to a person's contacts/ file. Creates file if needed."""
     if base_dir is None:
         base_dir = _get_base_dir()
 
-    people_dir = os.path.join(base_dir, "memory", "people")
+    people_dir = os.path.join(base_dir, "contacts")
     os.makedirs(people_dir, exist_ok=True)
 
     slug = person_name.lower().strip()

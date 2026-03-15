@@ -6,7 +6,7 @@ import os
 import re
 from datetime import date, timedelta
 
-from sources.crm_reader import load_interactions, load_prospects
+from sources.crm_db import load_interactions, load_prospects
 
 _APP_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))  # .../app
 PRODUCTIVITY_ROOT = os.path.dirname(_APP_ROOT)  # project root (works in any location)
@@ -57,7 +57,7 @@ def _matches_event(prospect: dict, event: dict) -> bool:
 
     # Check attendee emails/names
     try:
-        from sources.crm_reader import find_person_by_email, get_contacts_for_org
+        from sources.crm_db import find_person_by_email, get_contacts_for_org
         contacts = get_contacts_for_org(prospect.get("org", ""))
         contact_emails = {c.get("email", "").lower() for c in contacts if c.get("email")}
 
@@ -86,9 +86,9 @@ def _matches_event(prospect: dict, event: dict) -> bool:
 
 
 def _load_intel_file(org: str) -> str:
-    """Load the intel file for an org from memory/people/ (capped at 800 chars)."""
+    """Load the intel file for an org from contacts/ (capped at 800 chars)."""
     slug = re.sub(r"[^a-z0-9]+", "-", org.lower()).strip("-")
-    path = os.path.join(PRODUCTIVITY_ROOT, "memory", "people", f"{slug}.md")
+    path = os.path.join(PRODUCTIVITY_ROOT, "contacts", f"{slug}.md")
     if not os.path.exists(path):
         return ""
     with open(path, "r", encoding="utf-8") as f:

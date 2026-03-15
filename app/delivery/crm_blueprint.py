@@ -21,7 +21,6 @@ if _APP_DIR not in sys.path:
     sys.path.insert(0, _APP_DIR)
 
 PROJECT_ROOT = os.path.dirname(_APP_DIR)
-TASKS_PATH = os.path.join(PROJECT_ROOT, "TASKS.md")
 
 from sources.crm_reader import (
     load_prospects, load_offerings, get_fund_summary, get_fund_summary_all,
@@ -31,7 +30,9 @@ from sources.crm_reader import (
     load_unmatched, remove_unmatched, add_unmatched,
     _parse_currency, load_person, load_tasks_by_org, load_all_persons,
     delete_prospect, load_meeting_history, add_meeting_entry,
-    get_tasks_for_prospect, get_all_prospect_tasks, add_prospect_task,
+    get_tasks_for_prospect as get_tasks_for_prospect_db,
+    get_all_prospect_tasks as get_all_tasks_for_dashboard,
+    add_prospect_task,
     complete_prospect_task,
     load_email_log, get_emails_for_org, find_email_by_message_id,
     load_interactions, append_interaction,
@@ -50,8 +51,10 @@ from sources.relationship_brief import (
     execute_person_updates, PERSON_BRIEF_SYSTEM_PROMPT, PERSON_UPDATE_ROUTING_PROMPT,
 )
 from briefing.brief_synthesizer import call_claude_brief
+from auth.decorators import require_api_key_or_login
 
 crm_bp = Blueprint('crm', __name__, url_prefix='/crm')
+
 
 
 @crm_bp.context_processor
@@ -106,7 +109,7 @@ ORG_BRIEF_SYSTEM = (
 # ---------------------------------------------------------------------------
 
 def parse_kb_person_file(path: str) -> dict:
-    """Parse a memory/people/*.md file into a person dict."""
+    """Parse a contacts/*.md file into a person dict."""
     slug = os.path.splitext(os.path.basename(path))[0]
     name_fallback = ' '.join(w.capitalize() for w in slug.replace('-', ' ').split())
     fields = {'name': name_fallback, 'org': '', 'title': '', 'email': '', 'phone': '', 'company': ''}
@@ -152,19 +155,12 @@ def api_kb_people():
     config = load_crm_config()
     team = config.get('team', [])
     arec_team = {(m['name'] if isinstance(m, dict) else m).lower() for m in team}
-    people_dir = os.path.join(PROJECT_ROOT, 'memory', 'people')
-    results = []
-    if os.path.isdir(people_dir):
-        for fname in sorted(os.listdir(people_dir)):
-            if not fname.endswith('.md'):
-                continue
-            path = os.path.join(people_dir, fname)
-            person = parse_kb_person_file(path)
-            if person['name'].lower() in arec_team:
-                continue
-            if not q or q in person['name'].lower():
-                results.append(person)
-    results.sort(key=lambda p: p['name'].lower())
+    all_people = load_all_persons()
+    results = [
+        p for p in all_people
+        if p['name'].lower() not in arec_team
+        and (not q or q in p['name'].lower())
+    ]
     return jsonify(results[:10] if q else results)
 
 
@@ -180,7 +176,7 @@ def api_people_search():
 
 @crm_bp.route('/person/<slug>')
 def person_detail(slug):
-    people_dir = os.path.join(PROJECT_ROOT, 'memory', 'people')
+    people_dir = os.path.join(PROJECT_ROOT, 'contacts')
     path = os.path.join(people_dir, f'{slug}.md')
     if not os.path.exists(path):
         abort(404)
@@ -224,17 +220,15 @@ def people_person_detail(slug):
 
 
 def _render_person_detail(slug):
-    people_dir = os.path.join(PROJECT_ROOT, 'memory', 'people')
-    path = os.path.join(people_dir, f'{slug}.md')
-    if not os.path.exists(path):
+    person = load_person(slug)
+    if not person:
         abort(404)
-    person = parse_kb_person_file(path)
     return render_template('crm_person_detail.html', person=person, slug=slug)
 
 
 @crm_bp.route('/people/<slug>/delete', methods=['POST'])
 def delete_person(slug):
-    people_dir = os.path.join(PROJECT_ROOT, 'memory', 'people')
+    people_dir = os.path.join(PROJECT_ROOT, 'contacts')
     path = os.path.join(people_dir, f'{slug}.md')
     if not os.path.exists(path):
         abort(404)
@@ -434,198 +428,8 @@ def api_email_detail(message_id):
 
 @crm_bp.route('/api/prospect/<offering>/<path:org>/email-scan', methods=['POST'])
 def api_prospect_email_scan(offering, org):
-    """
-    Deep email scan for a specific org — searches Archive + Sent Items over
-    the last 90 days for any email related to the org's domain or contacts.
-    Adds new matches to email_log.json (deduped). Returns count added.
-    """
-    from auth.graph_auth import get_access_token
-    from sources.ms_graph import search_emails_deep
-    from sources.crm_reader import get_org_domains, add_emails_to_log
-
-    org_domains = get_org_domains()
-    domain = ''
-    for org_name, d in org_domains.items():
-        if org_name.lower() == org.lower():
-            domain = d
-            break
-
-    contacts = get_contacts_for_org(org)
-    contact_emails = [c.get('email', '') for c in contacts if c.get('email')]
-
-    if not domain and not contact_emails:
-        return jsonify({
-            'error': (
-                'No domain or contacts found for this org. '
-                'Add a Domain field to the org in organizations.md first.'
-            ),
-            'added': 0,
-        }), 400
-
-    try:
-        token = get_access_token(allow_device_flow=False)
-    except Exception as e:
-        return jsonify({'error': f'MS Graph auth failed: {e}', 'added': 0}), 500
-
-    # Query both Oscar's mailbox and delegate mailboxes
-    config = load_crm_config()
-    delegate_mailboxes = config.get('delegate_mailboxes', [])
-
-    raw_emails = []
-    seen_message_ids = set()
-
-    # Search Oscar's mailbox
-    try:
-        oscar_emails = search_emails_deep(token, domain, contact_emails, days_back=90, mailbox=None)
-        for email in oscar_emails:
-            msg_id = email.get('messageId')
-            if msg_id and msg_id not in seen_message_ids:
-                seen_message_ids.add(msg_id)
-                raw_emails.append(email)
-    except Exception as e:
-        return jsonify({'error': f'Email search (Oscar) failed: {e}', 'added': 0}), 500
-
-    # Search delegate mailboxes (e.g., Tony)
-    for delegate_mailbox in delegate_mailboxes:
-        try:
-            delegate_emails = search_emails_deep(
-                token, domain, contact_emails, days_back=90, mailbox=delegate_mailbox
-            )
-            for email in delegate_emails:
-                msg_id = email.get('messageId')
-                if msg_id and msg_id not in seen_message_ids:
-                    seen_message_ids.add(msg_id)
-                    raw_emails.append(email)
-        except Exception as e:
-            # Log but don't fail — delegate mailbox access might be limited
-            print(f"[crm_blueprint] Delegate mailbox {delegate_mailbox} scan failed: {e}")
-
-    if not raw_emails:
-        return jsonify({
-            'added': 0,
-            'total': 0,
-            'message': 'No matching emails found in the last 90 days.',
-        })
-
-    client = anthropic.Anthropic()
-    log_entries = []
-    for email in raw_emails:
-        subject = email.get('subject', '')
-        preview = email.get('preview', '')
-        from_addr = email.get('from', '')
-        is_sent = email.get('isSent', False)
-        try:
-            resp = client.messages.create(
-                model='claude-haiku-4-5-20251001',
-                max_tokens=100,
-                messages=[{
-                    'role': 'user',
-                    'content': (
-                        f"Summarize this {'outgoing' if is_sent else 'incoming'} "
-                        f"real estate investor email in 1-2 sentences. "
-                        f"Focus on the key action, commitment, or decision. Be specific.\n\n"
-                        f"Subject: {subject}\n"
-                        f"From: {from_addr}\n"
-                        f"Preview: {preview}"
-                    ),
-                }],
-            )
-            summary = resp.content[0].text.strip()
-        except Exception:
-            summary = f"{'Sent' if is_sent else 'Received'}: {subject}"
-
-        log_entries.append({
-            'messageId': email.get('messageId'),
-            'date': email.get('date', ''),
-            'timestamp': email.get('timestamp', ''),
-            'subject': subject,
-            'from': from_addr,
-            'fromName': email.get('fromName', ''),
-            'to': email.get('to', []),
-            'orgMatch': org,
-            'matchType': 'deep-scan',
-            'confidence': 0.90,
-            'summary': summary,
-            'outlookUrl': '',
-            'mailbox': email.get('mailbox'),  # Preserve mailbox for "via Tony" indicator
-        })
-
-    added = add_emails_to_log(log_entries)
-    already_logged = len(raw_emails) - added
-
-    # --- Email enrichment (a)(b)(c) ---
-    enrichment_stats = {'domains_added': 0, 'emails_enriched': 0, 'history_entries': 0}
-
-    # Collect all external email addresses seen in this scan
-    all_participants = []
-    for email in raw_emails:
-        from_addr = email.get('from', '')
-        from_name = email.get('fromName', '')
-        is_sent = email.get('isSent', False)
-        email_subject = email.get('subject', '')
-        email_date = email.get('date', '')
-        direction = 'outgoing' if is_sent else 'incoming'
-
-        if from_addr and not is_sent:
-            all_participants.append((from_addr, from_name))
-
-            # (a) Enrich org domain from sender
-            from_domain = from_addr.split('@')[-1].lower()
-            if enrich_org_domain(org, from_domain):
-                enrichment_stats['domains_added'] += 1
-
-            # (b) Append email history to person and org
-            person = find_person_by_email(from_addr)
-            if person and person.get('slug'):
-                append_person_email_history(
-                    person['slug'], email_date, email_subject, direction
-                )
-                enrichment_stats['history_entries'] += 1
-            append_org_email_history(
-                org, email_date, email_subject, from_name or from_addr, direction
-            )
-
-        # For sent emails, check TO recipients
-        for to_addr in email.get('to', []):
-            if isinstance(to_addr, str) and to_addr:
-                all_participants.append((to_addr, ''))
-                if is_sent:
-                    to_person = find_person_by_email(to_addr)
-                    if to_person and to_person.get('slug'):
-                        append_person_email_history(
-                            to_person['slug'], email_date, email_subject, direction
-                        )
-                        enrichment_stats['history_entries'] += 1
-                    append_org_email_history(
-                        org, email_date, email_subject, to_addr, direction
-                    )
-
-    # (c) Discover and enrich contact emails from all participants
-    enrichment = discover_and_enrich_contact_emails(org, all_participants)
-    enrichment_stats['emails_enriched'] += enrichment['emails_enriched']
-    if enrichment['domain_added']:
-        enrichment_stats['domains_added'] += 1
-
-    # Build enrichment message
-    enrichment_parts = []
-    if enrichment_stats['domains_added']:
-        enrichment_parts.append(f"{enrichment_stats['domains_added']} domain(s) added")
-    if enrichment_stats['emails_enriched']:
-        enrichment_parts.append(f"{enrichment_stats['emails_enriched']} contact email(s) enriched")
-    if enrichment_stats['history_entries']:
-        enrichment_parts.append(f"{enrichment_stats['history_entries']} history entries added")
-    enrichment_msg = (' | Enriched: ' + ', '.join(enrichment_parts)) if enrichment_parts else ''
-
-    return jsonify({
-        'added': added,
-        'total': len(raw_emails),
-        'enrichment': enrichment_stats,
-        'message': (
-            f'Scan complete — {added} new email{"s" if added != 1 else ""} added'
-            + (f' ({already_logged} already logged)' if already_logged else '')
-            + f'.{enrichment_msg}'
-        ),
-    })
+    """Disabled on postgres-local branch (no Graph API)."""
+    return jsonify({'error': 'Email scanning requires Graph API (not available on this branch)', 'added': 0}), 501
 
 
 # ---------------------------------------------------------------------------
@@ -762,7 +566,7 @@ def api_person_update():
 @crm_bp.route('/people/api/<slug>/contact', methods=['PATCH'])
 def api_person_contact_update(slug):
     data = request.get_json(force=True)
-    people_dir = os.path.join(PROJECT_ROOT, 'memory', 'people')
+    people_dir = os.path.join(PROJECT_ROOT, 'contacts')
     path = os.path.join(people_dir, f'{slug}.md')
     if not os.path.exists(path):
         return jsonify({'error': 'Person not found'}), 404
@@ -942,41 +746,53 @@ def api_patch_prospect_field():
 # Prospect Task API
 # ---------------------------------------------------------------------------
 
+@crm_bp.route('/tasks')
+def crm_tasks_page():
+    config = load_crm_config()
+    return render_template('crm_tasks.html', config=config)
+
+
+@crm_bp.route('/api/tasks/dashboard', methods=['GET'])
+@require_api_key_or_login
+def api_tasks_dashboard():
+    tasks = get_all_tasks_for_dashboard()
+    return jsonify({'ok': True, 'tasks': tasks, 'count': len(tasks)})
+
+
 @crm_bp.route('/api/tasks', methods=['GET'])
+@require_api_key_or_login
 def api_crm_tasks_list():
     org = request.args.get('org', '').strip()
-    if not org:
-        return jsonify({'error': 'org parameter required'}), 400
-    return jsonify(get_tasks_for_prospect(org))
+    tasks = get_tasks_for_prospect_db(org) if org else get_all_tasks_for_dashboard()
+    return jsonify(tasks)
 
 
 @crm_bp.route('/api/tasks', methods=['POST'])
+@require_api_key_or_login
 def api_crm_tasks_create():
     data = request.get_json(force=True)
     org = data.get('org', '').strip()
     text = data.get('text', '').strip()
     owner = data.get('owner', '').strip()
     priority = data.get('priority', 'Med').strip()
-    section = data.get('section', 'IR / Fundraising').strip()
     if not org or not text or not owner:
-        return jsonify({'error': 'org, text, and owner are required'}), 400
-    success = add_prospect_task(org, text, owner, priority, section)
-    if not success:
-        return jsonify({'error': 'Failed to add task'}), 500
-    return jsonify({'ok': True}), 201
+        return jsonify({'ok': False, 'error': 'org, text, and owner are required'}), 400
+    ok = add_prospect_task(org, text, owner, priority)
+    if not ok:
+        return jsonify({'ok': False, 'error': 'Failed to add task'}), 500
+    return jsonify({'ok': True, 'task': {'org': org, 'text': text, 'owner': owner, 'priority': priority}}), 201
 
 
 @crm_bp.route('/api/tasks/complete', methods=['PATCH'])
+@require_api_key_or_login
 def api_crm_tasks_complete():
-    data = request.get_json(force=True)
-    org = data.get('org', '').strip()
-    task_text = data.get('task_text', '').strip()
-    if not org or not task_text:
-        return jsonify({'error': 'org and task_text are required'}), 400
-    success = complete_prospect_task(org, task_text)
-    if not success:
-        return jsonify({'error': 'Task not found'}), 404
-    return jsonify({'ok': True})
+    return jsonify({'ok': False, 'error': 'Task completion by ID requires a database. Use /crm/api/prospect/.../tasks to complete by org and text.'}), 501
+
+
+@crm_bp.route('/api/tasks/<int:task_id>', methods=['PATCH'])
+@require_api_key_or_login
+def api_crm_tasks_update(task_id):
+    return jsonify({'ok': False, 'error': 'Task update by ID requires a database.'}), 501
 
 
 # ---------------------------------------------------------------------------
@@ -1117,7 +933,7 @@ def api_org_add_contact(org_name):
         # Link existing person to this org
         # For now, we assume the person file exists and update it
         # to associate with this org
-        people_dir = os.path.join(PROJECT_ROOT, 'memory', 'people')
+        people_dir = os.path.join(PROJECT_ROOT, 'contacts')
         # Find the person file by name
         found = False
         for fname in os.listdir(people_dir):
@@ -1283,22 +1099,8 @@ def api_unmatched_dismiss(email):
 
 @crm_bp.route('/api/auto-capture', methods=['POST'])
 def api_auto_capture():
-    try:
-        from auth.graph_auth import get_access_token
-        from sources.crm_graph_sync import run_auto_capture
-        token = get_access_token(allow_device_flow=False)
-        stats = run_auto_capture(token)
-        return jsonify({
-            'ok': True,
-            'emails_scanned': stats.get('matched', 0) + stats.get('unmatched', 0) + stats.get('skipped_dedup', 0),
-            'meetings_scanned': 0,
-            'interactions_logged': stats.get('matched', 0),
-            'prospects_touched': stats.get('matched', 0),
-            'duplicates_skipped': stats.get('skipped_dedup', 0),
-            'unmatched_count': stats.get('unmatched', 0),
-        })
-    except Exception as e:
-        return jsonify({'ok': False, 'error': str(e)}), 500
+    """Disabled on postgres-local branch (no Graph API)."""
+    return jsonify({'error': 'Auto-capture requires Graph API (not available on this branch)', 'added': 0}), 501
 
 
 @crm_bp.route('/api/orgs')

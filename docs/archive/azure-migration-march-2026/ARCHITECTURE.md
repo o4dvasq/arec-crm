@@ -6,7 +6,7 @@
 **Location:** `~/Dropbox/projects/arec-crm/`
 *(Migrated from `~/Dropbox/Tech/ClaudeProductivity/` on 2026-03-10)*
 
-**Last audited:** 2026-03-11
+**Last audited:** 2026-03-14 (postgres-local branch — memory/ → contacts/ rename)
 
 ---
 
@@ -58,6 +58,7 @@ arec-crm/                        (~/Dropbox/projects/arec-crm/)
 │   ├── models.py              ← SQLAlchemy ORM models (14 tables)
 │   ├── db.py                  ← Database connection + session management
 │   ├── auth/
+│   │   ├── decorators.py      ← Flask auth decorators (require_api_key_or_login)
 │   │   ├── graph_auth.py      ← MSAL device flow authentication (local briefing)
 │   │   └── entra_auth.py      ← MSAL confidential client (Azure SSO for web app)
 │   ├── briefing/
@@ -85,6 +86,7 @@ arec-crm/                        (~/Dropbox/projects/arec-crm/)
 │   │   ├── crm_org_edit.html
 │   │   ├── crm_people.html
 │   │   ├── crm_person_detail.html
+│   │   ├── crm_tasks.html         ← Standalone all-tasks page (/crm/tasks)
 │   │   ├── _contacts_table.html   ← Contacts partial (included in org/prospect detail)
 │   │   ├── _nav.html              ← Navigation partial
 │   │   ├── meeting_detail.html
@@ -99,28 +101,33 @@ arec-crm/                        (~/Dropbox/projects/arec-crm/)
 │   │   └── tasks/
 │   │       ├── tasks.css
 │   │       └── tasks.js
-│   ├── tests/                 ← 52 unit tests across 3 files
-│   │   ├── conftest.py
-│   │   ├── test_brief_synthesizer.py   (10 tests)
-│   │   ├── test_email_matching.py      (20 tests)
-│   │   └── test_task_parsing.py        (22 tests)
+│   ├── tests/                 ← 128 unit tests across 6 files
+│   │   ├── conftest.py                     ← SQLite in-memory fixtures (db_engine, db_session, sample_*)
+│   │   ├── test_crm_db.py                  (52 tests — full postgres backend coverage)
+│   │   ├── test_tasks_api_key.py           (24 tests — API key auth on all 5 task endpoints)
+│   │   ├── test_brief_synthesizer.py       (10 tests)
+│   │   ├── test_email_matching.py          (20 tests)
+│   │   └── test_task_parsing.py            (22 tests)
 │   └── requirements.txt
 │
 ├── scripts/
+│   ├── seed_from_markdown.py  ← Seed Postgres from all markdown/JSON files (idempotent)
 │   ├── create_schema.py       ← Create PostgreSQL schema, seed stages + users
-│   ├── migrate_to_postgres.py ← Parse markdown files → insert into Postgres
+│   ├── migrate_to_postgres.py ← Parse markdown files → insert into Postgres (old migration)
 │   ├── verify_migration.py    ← Validate migration (count checks + spot checks)
 │   └── refresh_interested_briefs.py  ← Bulk brief refresh CLI (Stage 5 prospects)
 │
+├── requirements.txt           ← Repo-root copy of app/requirements.txt — required for Oryx to populate antenv
 ├── startup.sh                 ← Azure App Service startup script (Gunicorn)
 ├── DEPLOYMENT.md              ← Azure deployment guide (local testing + production deploy)
 │
 ├── crm/                       ← CRM data (markdown + JSON)
 │   ├── prospects.md           ← Prospect records
 │   ├── organizations.md       ← Organization registry
-│   ├── contacts_index.md      ← Contact name → org mapping
+│   ├── contacts_index.md      ← Contact name → org mapping (lookup table)
 │   ├── interactions.md        ← Interaction log
-│   ├── meeting_history.md     ← Meeting records
+│   ├── meeting_history.md     ← Meeting records (merged from memory/meetings.md)
+│   ├── org-locations.md       ← Org location data (moved from memory/)
 │   ├── config.md              ← Pipeline stages, org types, team roster
 │   ├── offerings.md           ← Deal targets
 │   ├── briefs.json            ← Cached relationship briefs
@@ -129,12 +136,11 @@ arec-crm/                        (~/Dropbox/projects/arec-crm/)
 │   ├── unmatched_review.json  ← Emails that couldn't be matched to orgs
 │   └── pending_interviews.json ← High-urgency prospects to debrief
 │
-├── memory/                    ← Claude knowledge base
-│   ├── context/me.md          ← Personal/professional context, people quick-ref
-│   ├── context/company.md     ← AREC company, team, tools
-│   ├── glossary.md            ← Acronyms, nicknames, investor universe
-│   ├── projects/              ← Active project notes
-│   └── people/{name}.md       ← Individual profiles (20+ files)
+├── contacts/                  ← Contact profile files (formerly memory/people/)
+│   └── {name}.md              ← Individual profiles, ~211 files, flat directory
+│
+├── projects/                  ← Project notes
+│   └── arec-fund-ii.md        ← (moved from memory/projects/)
 │
 ├── meeting-summaries/         ← Generated meeting notes (YYYY-MM-DD-slug.md)
 │   └── archive/               ← Meetings older than 7 days
@@ -178,11 +184,11 @@ crm@avilacapllc.com shared mailbox (unread)
 Outlook emails + calendar events (last 24h)
   → Two-tier matching:
       Tier 1: Domain fuzzy match → org (95% confidence)
-      Tier 2: Person email lookup in memory/people/ → org (90% confidence)
+      Tier 2: Person email lookup in contacts/ → org (90% confidence)
   → Log interaction to crm/interactions.md
   → Email enrichment (runs on every matched email):
       (a) Add Domain to org in organizations.md if missing
-      (b) Append to Email History on person file + org record
+      (b) Append Email History to contacts/ person file + org record
       (c) Discover contact emails: match display names to contacts, set Email field
   → High-urgency prospect → crm/pending_interviews.json
   → Unmatched → crm/unmatched_review.json
@@ -252,7 +258,7 @@ Extension 2: skills/email-scan.md
   → Append to crm/email_log.json (dedup by messageId)
   → Email enrichment pass (Step 6.5):
       (a) Set org Domain from sender email if missing
-      (b) Append Email History to person files + org records
+      (b) Append Email History to contacts/ person files + org records
       (c) Discover and set contact emails from domain matching
 ```
 
@@ -298,13 +304,13 @@ Extension 2: skills/email-scan.md
 
 ## Key Design Patterns
 
-**Dual backend architecture (Phase I1+)** — CRM data can run on markdown (`crm_reader.py`) OR PostgreSQL (`crm_db.py`). Both expose identical function signatures. Import swap controlled in blueprints. Local dev uses markdown; Azure production uses Postgres.
+**Dual backend architecture** — CRM data runs on markdown (`crm_reader.py`) on `deprecated-markdown` branch, OR PostgreSQL (`crm_db.py`) on `postgres-local` / `azure-migration` branches. Both expose identical function signatures. Import swap controlled in blueprints. `crm_reader.py` is preserved as source for `seed_from_markdown.py` and reference.
 
 **Centralized CRM data access** — `crm_reader.py` (markdown) or `crm_db.py` (Postgres) is the only place CRM data is read/written. All other modules import from one or the other. Drop-in replacement: same 45+ function signatures. Includes email enrichment helpers (`enrich_org_domain`, `append_person_email_history`, `append_org_email_history`, `discover_and_enrich_contact_emails`) and contact auto-linking (`ensure_contact_linked`).
 
 **Skills are instructional** — `meeting-debrief.md` and `email-scan.md` are step-by-step guides Claude executes using MCP tools (MS Graph, Notion). They are not Python scripts.
 
-**Two-tier matching** — Email/calendar participants matched to CRM orgs via domain (Tier 1) then person email (Tier 2). Unmatched queued for manual review.
+**Two-tier matching** — Email/calendar participants matched to CRM orgs via domain (Tier 1) then person email lookup in `contacts/` (Tier 2). Unmatched queued for manual review.
 
 **Brief synthesis JSON contract** — All Claude calls for briefs use a JSON suffix. `brief_synthesizer.py` handles parse fallbacks (markdown-fenced JSON, plain fenced JSON, raw text). Frontend `loadBrief()` also auto-detects JSON strings stored in the `relationship_brief` field and parses out `narrative` / `at_a_glance`.
 
@@ -313,6 +319,8 @@ Extension 2: skills/email-scan.md
 **Non-invasive auto-capture** — Logs interactions but never modifies source calendar or email data.
 
 **Idempotent email enrichment** — Every email scan (daily incremental, Deep Scan, auto-capture) runs the same three enrichment passes: (a) org domain, (b) email history, (c) contact email discovery. All operations are dedup-safe and skip-if-already-set, so running them repeatedly is harmless.
+
+**API key + session auth** — `@require_api_key_or_login` in `app/auth/decorators.py` accepts either a valid `X-API-Key` header (when `OVERWATCH_API_KEY` is set) or a `g.user` session (set by `before_request` from `session['user']` or `DEV_USER` env var). When `OVERWATCH_API_KEY` is unset, API key path is disabled entirely. Applied to all 5 task API routes.
 
 **Task sections** — TASKS.md is organized into four active sections plus Done: Fundraising - Me, Fundraising - Others, Other Work, Personal. `tasks_blueprint.py` enforces this structure.
 
@@ -348,7 +356,9 @@ All variables live in `app/.env`. No other env file is loaded.
 | `MS_USER_ID` | `422b3092-...` | Oscar's Graph API user ID (delegated flow, local only) |
 | `AI_INBOX_EMAIL` | `crm@avilacapllc.com` | Shared mailbox for AI inbox drain |
 | `DATABASE_URL` | `postgresql://...` | PostgreSQL connection string (Azure only) |
-| `FLASK_SECRET_KEY` | (random) | Flask session signing key (Azure only) |
+| `FLASK_SECRET_KEY` | `dev-secret-key-...` | Flask session signing key (set in `.env`; required for session auth) |
+| `OVERWATCH_API_KEY` | `overwatch-dev-key` | Shared secret for Overwatch machine-to-machine task API |
+| `DEV_USER` | `oscar@avilacapllc.com` | Local dev auth bypass — auto-populates `g.user` on every request |
 
 Dashboard env vars (read at runtime, not in `.env`):
 
@@ -382,6 +392,15 @@ Defined in `crm_graph_sync.py`, skipped during auto-capture matching:
 > See `docs/specs/azure-platform/ARCHITECTURE.md` for the full Azure migration architecture.
 > See `docs/specs/migration/PREREQUISITES.md` for the detailed migration inventory.
 
+### Oryx Build Behavior (Critical)
+
+Azure App Service uses **Oryx** to build the Python environment during deployment:
+- Oryx scans for `requirements.txt` at the **repo root** to create/populate `antenv`
+- Gunicorn's PYTHONPATH is set to `antenv/lib/python3.12/site-packages` by Oryx at startup
+- If `requirements.txt` is missing from the root, Oryx builds an empty `antenv` → app crashes with `ModuleNotFoundError` on every worker
+- `startup.sh` pip install is a safety net (runs after Oryx), but installs to the Oryx-managed antenv only if it's activated first
+- **Rule:** `requirements.txt` must exist at repo root. Keep it in sync with `app/requirements.txt`.
+
 ### What Changes for Azure
 
 **Secrets → Azure Key Vault:**
@@ -404,7 +423,7 @@ Defined in `crm_graph_sync.py`, skipped during auto-capture matching:
 - All `crm/*.md` files → PostgreSQL on Azure Flexible Server
 - `crm_reader.py` → `crm_db.py` (same function signatures, SQL backend)
 - JSON caches (`briefs.json`, `email_log.json`, etc.) → PostgreSQL tables
-- `memory/` files → PostgreSQL or Azure Blob Storage
+- `contacts/` profile files → PostgreSQL or Azure Blob Storage
 
 **Platform dependencies:**
 - `~/Library/Logs/` (macOS) → Azure App Service logging / Application Insights
@@ -420,7 +439,6 @@ Defined in `crm_graph_sync.py`, skipped during auto-capture matching:
 
 **Stale code references to clean up:**
 - `prompt_builder.py` variable `PRODUCTIVITY_ROOT` (leftover from ClaudeProductivity era)
-- `crm_reader.py` path comment referencing `ClaudeProductivity`
 
 ---
 
@@ -428,5 +446,6 @@ Defined in `crm_graph_sync.py`, skipped during auto-capture matching:
 
 - Meeting summaries: `meeting-summaries/YYYY-MM-DD-title-slug.md`
 - Specs: `docs/specs/SPEC_[FeatureName].md`
-- People profiles: `memory/people/[firstname-lastname].md`
+- People profiles: `contacts/[firstname-lastname].md`
 - Migration scripts: `app/scripts/` (historical, not actively run)
+- Project notes: `projects/[slug].md`

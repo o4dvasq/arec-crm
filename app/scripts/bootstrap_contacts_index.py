@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 One-time: bootstrap contacts_index.md from High/Med urgency prospects
-that have matching person files in memory/people/.
+that have matching person files in contacts/.
 
 Run from the app/ directory:
     python3 scripts/bootstrap_contacts_index.py
@@ -15,7 +15,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from sources.crm_reader import load_prospects, add_contact_to_index
 
 _PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-PEOPLE_DIR = os.path.join(_PROJECT_ROOT, 'memory', 'people')
+PEOPLE_DIR = os.path.join(_PROJECT_ROOT, 'contacts')
 
 
 def slugify(name: str) -> str:

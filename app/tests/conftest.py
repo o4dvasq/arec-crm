@@ -1,4 +1,4 @@
-"""conftest.py — pytest configuration for ClaudeProductivity tests."""
+"""conftest.py — pytest fixtures for arec-crm (markdown-local branch)."""
 
 import os
 import sys

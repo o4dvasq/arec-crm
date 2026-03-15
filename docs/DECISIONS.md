@@ -328,6 +328,133 @@
 
 ---
 
+## 2026-03-14 — postgres-local Branch: Single-User PostgreSQL Without Auth
+
+**Decision:** Created `postgres-local` branch off `deprecated-markdown` (not `azure-migration`) as a clean incremental migration path. Branch 1 scoped to: replace markdown backend with PostgreSQL, no auth, no multi-user, no Azure.
+
+**Key choices:**
+
+1. **No User model, no Enums** — `models.py` uses plain `String` for `urgency`, `closing`, `type`, `source` instead of SQLAlchemy `Enum`. No `User` table, no FK relationships to users. Avoids migration complexity and keeps the branch deployable locally without Azure AD.
+
+2. **Team hardcoded in `load_crm_config()`** — Rather than query a `users` table (which doesn't exist), team members are a hardcoded list in `crm_db.py`. Matches the `deprecated-markdown` branch behavior where team came from `config.md`.
+
+3. **SQLite-aware `db.py`** — `pool_size`/`max_overflow`/`pool_pre_ping` args are PostgreSQL-only. Detect `database_url.startswith('sqlite')` and skip them. Required for CI tests to work with `sqlite:///:memory:`.
+
+4. **`prospect_meetings` stays JSON** — No `prospect_meetings` DB table in Branch 1. `save_prospect_meeting` / `load_prospect_meetings` / `delete_prospect_meeting` remain JSON file wrappers using `crm/prospect_meetings.json`. Avoids expanding scope.
+
+5. **`seed_from_markdown.py` uses `crm_reader.py` as last consumer** — Seed script is the only remaining caller of `crm_reader.py`. All production routes use `crm_db.py`. The script imports `crm_reader` explicitly to parse markdown; writes to DB via direct model inserts (not `crm_db.py` write functions, which require an existing session context).
+
+6. **Prospect auto-creates orgs during seeding** — Some orgs appear in `prospects.md` but not `organizations.md`. `seed_prospects()` auto-creates them with blank type rather than skipping the prospect. Means the second `seed_from_markdown.py` run will also pick up contacts that were skipped on the first run.
+
+7. **Idempotent seed by structural key** — Each seed function checks existence by natural key (name for orgs/offerings, `(name, org_id)` for contacts, `(org_id, offering_id, disambiguator)` for prospects, `(brief_type, key)` for briefs, `message_id` for email log). No `--reset` flag needed; re-runs are safe.
+
+**For the next designer (Branch 2: Azure deploy):**
+- `conftest.py` uses `TEST_DATABASE_URL` env var, defaulting to `sqlite:///:memory:`. CI always uses SQLite.
+- `test_tasks_api_key.py` is an untracked file leaked from `azure-migration` via Dropbox. It will fail on `postgres-local` because `DEV_USER` and `OVERWATCH_API_KEY` auth don't exist in this branch. Exclude with `--ignore` or delete.
+- `auto_migrate.py` runs on every app startup — additive only, never drops columns. Safe to run in production.
+- The 4 task DB functions (`load_tasks_by_org`, `get_tasks_for_prospect`, `add_prospect_task`, `complete_prospect_task_by_id`) are DB-backed in `crm_db.py` on this branch, not TASKS.md-backed as in `deprecated-markdown`.
+
+**Impact:**
+- `app/models.py` (full rewrite — no User, no Enums)
+- `app/sources/crm_db.py` (User/Enum references removed, task functions DB-backed)
+- `app/db.py` (SQLite-safe pool args)
+- `app/auto_migrate.py` (new)
+- `app/delivery/dashboard.py` (DB init, crm_db imports, root → /crm redirect)
+- `app/delivery/crm_blueprint.py` (import swapped to crm_db)
+- `app/delivery/tasks_blueprint.py` (crm_db for CRM task routes)
+- `app/tests/conftest.py` (full rewrite with SQLite in-memory fixtures)
+- `app/tests/test_crm_db.py` (new, 52 tests)
+- `scripts/seed_from_markdown.py` (new)
+- `app/.env.example` (new)
+
+---
+
+## 2026-03-14 — postgres-local Import Cleanup: Short-Circuit Over Swap for Graph API Routes
+
+**Decision:** For the two Graph API routes (`email-scan`, `auto-capture`), replaced the entire route body with a 501 stub rather than swapping the import and letting it fail at the auth step (Option B over Option A from the spec).
+
+**Rationale:** Option A (swap import, fail at Graph auth) would have imported `auth.graph_auth` and `sources.ms_graph` — modules that may not exist cleanly on this branch. Option B avoids any risk of import-time errors on app startup while still returning a clear error message to any caller. The 501 stub is also self-documenting.
+
+**Confirmed present in `crm_db.py`:** All 5 functions required by the spec (`load_prospect_meetings`, `save_prospect_meeting`, `find_person_by_email`, `get_org_domains`, `add_emails_to_log`) already existed. No additions were needed.
+
+**For the next designer (Branch 2):** When re-enabling Graph API features, restore the full `email-scan` and `auto-capture` route bodies from `deprecated-markdown` or `azure-migration` branch. The 501 stubs are intentional placeholders, not permanent behavior.
+
+**Impact:** `app/delivery/crm_blueprint.py` (2 routes short-circuited), `app/sources/relationship_brief.py` (5 imports), `app/briefing/prompt_builder.py` (2 imports).
+
+---
+
+## 2026-03-14 — Task API Auth: require_api_key_or_login Decorator + DEV_USER Bypass
+
+**Decision:** Added `@require_api_key_or_login` to all 5 task API routes. Auth logic lives in `app/auth/decorators.py`. Browser sessions auto-populated via `before_request` hook using `DEV_USER` env var (local dev bypass) or `session['user']` (future SSO).
+
+**Key choices:**
+
+1. **DEV_USER bypass instead of no-auth** — Rather than leaving task routes open (no decorator), or requiring full SSO (not built yet), `DEV_USER=oscar@avilacapllc.com` in `.env` auto-populates `g.user` on every browser request. Tests set `DEV_USER=''` to disable it and test API key paths in isolation.
+
+2. **`OVERWATCH_API_KEY` unset = session required (not open)** — When the env var is unset, the API key path is skipped entirely. Session (`g.user`) is still required. This matches the spec: unset = disabled, not permissive. Consequence: on this branch, if `OVERWATCH_API_KEY` is unset AND `DEV_USER` is unset, all 5 routes return 401. Intentional.
+
+3. **Import aliases for mockability** — Functions are imported with `as` aliases (`get_tasks_for_prospect as get_tasks_for_prospect_db`, etc.) so tests can mock `delivery.crm_blueprint.get_tasks_for_prospect_db` directly. Tests already existed pre-written expecting these names.
+
+4. **`add_prospect_task_and_return` over refactoring `add_prospect_task`** — The original `add_prospect_task` returns `bool`. Callers in `tasks_blueprint.py` and `dashboard.py` treat the return as truthy. Adding a second function that returns a task dict avoids breaking existing callers and keeps the DB layer backward-compatible.
+
+5. **`PATCH /crm/api/tasks/complete` now uses `{id}` not `{org, task_text}`** — The old form did text-substring matching (`ILIKE '%text%'`) which could match wrong tasks. ID-based completion is exact. The `crm_tasks.html` page and the spec both use `{id}`.
+
+**For the next designer:**
+- Session auth via `session['user']` dict is the hook for Entra SSO (Branch 2). When SSO is added, `before_request` will set `g.user` from the SSO token instead of (or in addition to) `DEV_USER`.
+- `app/auth/decorators.py` is the right place for future decorators (`@require_admin`, `@require_login`, etc.).
+- `test_tasks_api_key.py` is now a tracked, first-class test file. Run it with the full suite: `pytest app/tests/ -v` (no `--ignore`).
+
+**Impact:** `app/auth/decorators.py` (new), `app/delivery/dashboard.py` (secret_key, before_request), `app/sources/crm_db.py` (2 new functions), `app/delivery/crm_blueprint.py` (imports, decorators, 2 new routes, envelope standardization), `app/templates/crm_tasks.html` (new), `app/templates/_nav.html` (brand, link), `app/templates/dashboard.html` (link).
+
+---
+
+## 2026-03-14 — Azure Deploy: Root requirements.txt for Oryx antenv Build
+
+**Decision:** Added `requirements.txt` at the repo root (identical copy of `app/requirements.txt`).
+
+**Rationale:** Oryx (Azure App Service's build engine) scans for `requirements.txt` at the repo root to populate the `antenv` virtual environment during the build phase. With `requirements.txt` only at `app/requirements.txt`, Oryx built an empty `antenv`. The `startup.sh` pip install ran against system Python (`/opt/python/3.12.12`), not `antenv`. Gunicorn's PYTHONPATH was set to `antenv/lib/python3.12/site-packages` by Oryx, so none of the system-installed packages were visible. Result: `ModuleNotFoundError: No module named 'dotenv'` on every worker.
+
+**Why the SCM restart error was misleading:** The deployment failure message said "Deployment has been stopped due to SCM container restart." This was a symptom — Azure restarted the container because the app kept crash-looping (gunicorn workers exiting with code 3). The actual error was in the docker log, not the deployment log.
+
+**How we found it:** `az webapp log download` → unpacked zip → tailed `2026_03_14_*_default_docker.log`.
+
+**Why the first boot worked:** The very first deployment succeeded because Oryx found a pre-existing `antenv` with packages already installed. After the failed redeployment, Oryx rebuilt `antenv` from scratch (empty), and the crash loop started.
+
+**Rejected:** Fixing `startup.sh` to activate `antenv` before pip install — this would also work, but the root `requirements.txt` is the canonical fix. Oryx should own the dependency install; `startup.sh` pip install is a safety net, not the primary mechanism.
+
+**For the next designer:** Keep `requirements.txt` at the repo root in sync with `app/requirements.txt`. When adding a new Python dependency, update both files. The root file exists purely for Oryx; the `app/` file is what `startup.sh` uses as its safety-net install.
+
+**Impact:** `requirements.txt` (new at repo root). No code changes.
+
+---
+
+## 2026-03-14 — Rename memory/ to contacts/: Remove Productivity Plugin Data from CRM
+
+**Decision:** Renamed `memory/people/` → `contacts/` (flat, no subdirectory). Removed `memory/context/`, `memory/glossary.md` from the CRM repo. Moved `memory/org-locations.md` → `crm/org-locations.md`, `memory/projects/arec-fund-ii.md` → `projects/arec-fund-ii.md`, and merged `memory/meetings.md` into `crm/meeting_history.md`.
+
+**Rationale:** The `memory/` directory was a holdover from the local productivity plugin. In the CRM context, `memory/people/{name}.md` files are contact profiles — not "memories." The name caused confusion between the deployed CRM app and the local Claude plugin, and was visible in the Azure deployment artifact. Renaming to `contacts/` makes the purpose unambiguous.
+
+**Key choices:**
+
+1. **Flat directory** — `memory/people/{name}.md` → `contacts/{name}.md` (no `contacts/people/` subdirectory). The extra nesting added no value.
+
+2. **Remove, don't migrate, plugin data** — `memory/context/me.md`, `memory/context/company.md`, and `memory/glossary.md` are productivity plugin files. They have no place in the deployed CRM and were removed entirely. They remain in the local plugin's `memory/` directory, which is a separate context.
+
+3. **Filename cleanup** — `darren-sutton-dsuttonsuttoncapitalgroupcom.md` → `darren-sutton.md`. The email domain suffix was historical noise from an auto-naming script.
+
+4. **Glossary path updated to `crm/glossary.md`** — `relationship_brief.py` checked for a glossary file. No glossary exists in CRM; the path now points to `crm/glossary.md` which gracefully returns `None` if absent, rather than silently never finding `memory/glossary.md`.
+
+5. **Deploy pipeline updated** — `.github/workflows/azure-deploy.yml` zip now includes `contacts/` and `projects/` instead of `memory/`. No `memory/` directory will appear in the deployment artifact.
+
+**For the next designer:**
+- Email-scan and related skills in `.skills/` (local plugin) may still reference `memory/people/`. Those are in the local plugin codebase and should be updated separately to point to `contacts/` for CRM operations.
+- `contacts/{name}.md` files follow the same naming convention: lowercase with hyphens.
+- `crm/contacts_index.md` (a flat lookup file) and `contacts/` (a directory of profiles) coexist cleanly — no naming collision.
+
+**Impact:** `contacts/` (211 files, new), `projects/arec-fund-ii.md` (new), `crm/org-locations.md` (new), `crm/meeting_history.md` (merged), `memory/` (deleted), `app/sources/crm_db.py` (`PEOPLE_ROOT`), `app/sources/crm_reader.py` (`MEMORY_ROOT`/`PEOPLE_ROOT`), `app/sources/relationship_brief.py` (3 path joins + glossary path), `app/briefing/prompt_builder.py` (intel file path), `app/delivery/crm_blueprint.py` (4 path joins), `app/scripts/bootstrap_contacts_index.py` (`PEOPLE_DIR`), `scripts/seed_from_markdown.py` (docstring), `scripts/migrate_to_postgres.py` (docstring), `.github/workflows/azure-deploy.yml` (zip contents).
+
+---
+
 ## 2026-03-11 — Entra ID SSO with Placeholder User Seeding
 
 **Decision:** Microsoft Entra ID (Azure AD) SSO implemented via MSAL confidential client flow. All 8 team members seeded in `users` table with placeholder Entra IDs (`placeholder-{name}`). On first login, SSO callback replaces placeholder with real `oid` claim and updates `last_login`.
