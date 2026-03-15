@@ -36,7 +36,7 @@ Create a new `overwatch` repository for Oscar's personal productivity system —
 - Meeting summaries stay exclusively in CRM. Overwatch does not have meeting-summaries/.
 - The meeting-debrief skill moves to Overwatch (it's about calendar gap detection + personal capture, not CRM data).
 - Both systems should "know the other exists" — CLAUDE.md in each repo references the other repo's location and purpose.
-- Morning briefing moves to Overwatch. It can read CRM data via filesystem path for investor intel, but the briefing engine lives in Overwatch.
+- The data-gathering and update orchestration (`main.py`) lives in Overwatch. It can read CRM data via filesystem path for investor intel. NOTE: "Morning briefing" refers ONLY to a future scheduled report delivery feature (see FUTURE_FEATURES.md) — it is NOT the interactive update flow.
 
 ## 4. Data Model
 
@@ -88,10 +88,10 @@ overwatch/
 │   ├── sources/
 │   │   ├── __init__.py
 │   │   └── memory_reader.py          # TASKS.md + inbox parser (copied from arec-crm)
-│   ├── briefing/
+│   ├── briefing/                      # FUTURE: scheduled report delivery (see FUTURE_FEATURES.md)
 │   │   ├── __init__.py
 │   │   ├── generator.py              # Claude API call (copied from arec-crm)
-│   │   └── prompt_builder.py         # Briefing prompt assembly (copied from arec-crm)
+│   │   └── prompt_builder.py         # Prompt assembly (copied from arec-crm)
 │   ├── templates/
 │   │   ├── _nav.html                 # Overwatch nav bar
 │   │   ├── dashboard.html            # Main dashboard (tasks + calendar)
@@ -108,7 +108,7 @@ overwatch/
 │   └── notes/                         # Notes (starts empty)
 ├── skills/
 │   └── meeting-debrief.md            # Moved from arec-crm
-├── main.py                            # Morning briefing entry point (moved from arec-crm/app/main.py)
+├── main.py                            # Update orchestrator entry point (moved from arec-crm/app/main.py)
 ├── TASKS.md                           # Oscar's personal task list (NEW — starts with Personal section from arec-crm TASKS.md)
 ├── inbox.md                           # Voice capture drop point
 ├── .env.example
@@ -162,7 +162,7 @@ Port: 3001 (arec-crm runs on 3001 too, so one at a time — or change one of the
 ```markdown
 # overwatch
 
-Personal productivity system for Oscar Vasquez. Manages tasks, people (personal network), projects, notes, and daily briefings. Markdown-backed, single-user, local deployment.
+Personal productivity system for Oscar Vasquez. Manages tasks, people (personal network), projects, and notes. Markdown-backed, single-user, local deployment.
 
 **Location:** `~/Dropbox/projects/overwatch/`
 **Branch:** `main`
@@ -173,7 +173,7 @@ Personal productivity system for Oscar Vasquez. Manages tasks, people (personal 
 ## Run Commands
 
 python3 app/delivery/dashboard.py                 # Web dashboard — http://localhost:3002
-python3 main.py                                    # Morning briefing
+python3 main.py                                    # Update orchestrator (data gathering + interactive triage)
 python3 -m pytest app/tests/ -v                    # Tests
 
 ## Key Files
@@ -183,7 +183,7 @@ python3 -m pytest app/tests/ -v                    # Tests
 | app/sources/memory_reader.py | TASKS.md + inbox parser |
 | app/delivery/dashboard.py | Flask app (dashboard + tasks) |
 | app/delivery/tasks_blueprint.py | Task routes |
-| main.py | Morning briefing orchestrator |
+| main.py | Update orchestrator (data gathering, interactive triage) |
 | TASKS.md | Task list (sections, priorities, assignees) |
 | data/people/ | Personal contact files |
 
@@ -207,7 +207,7 @@ python3 -m pytest app/tests/ -v                    # Tests
 - Do not break arec-crm. Copy files, don't move them. arec-crm cleanup of duplicates happens in a separate step after both repos are verified.
 - No new features. This is a scaffold — existing code in a new home.
 - Keep the same task line format (priority, status, assignee, org tag, completion date).
-- Morning briefing can degrade gracefully if arec-crm data files aren't available.
+- Update orchestrator (`main.py`) can degrade gracefully if arec-crm data files aren't available.
 
 ## 10. Acceptance Criteria
 

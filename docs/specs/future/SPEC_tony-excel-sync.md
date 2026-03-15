@@ -190,7 +190,7 @@ These CRM fields are **never overwritten** by Tony's sync:
 Primary sync module. See §6.
 
 ### Modified file: `app/main.py`
-- Add call to `tony_sync.run_sync()` in the 6 AM job sequence, after briefing generation
+- Add call to `tony_sync.run_sync()` in the update orchestrator sequence
 
 ---
 

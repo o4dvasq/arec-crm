@@ -119,7 +119,7 @@ Also create `docs/archive/azure-migration-march-2026/LESSONS_LEARNED.md` — see
 
 - Claude Desktop skills (`skills/email-scan.md`, `skills/meeting-debrief.md`) still work via MCP tools and are unaffected by this cleanup
 - `app/auth/graph_auth.py` and `app/sources/ms_graph.py` remain for skill use
-- Morning briefing (`app/main.py`) has lazy Graph imports — same treatment as above (try/except, degrade gracefully if no Graph token)
+- Update orchestrator (`app/main.py`) has lazy Graph imports — same treatment as above (try/except, degrade gracefully if no Graph token)
 
 ## 9. Constraints
 
@@ -149,7 +149,7 @@ Also create `docs/archive/azure-migration-march-2026/LESSONS_LEARNED.md` — see
 | `app/delivery/dashboard.py` | Guard Graph imports in calendar refresh |
 | `app/delivery/crm_blueprint.py` | Guard Graph imports in email scan + auto-capture routes |
 | `app/auth/decorators.py` | Make auth decorator a passthrough |
-| `app/main.py` | Guard Graph imports in morning briefing |
+| `app/main.py` | Guard Graph imports in update orchestrator |
 | `app/requirements.txt` | Remove Postgres/Azure deps |
 | `app/.env.example` | Simplify to local-only vars |
 | `CLAUDE.md` | Verify/update |

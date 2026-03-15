@@ -62,7 +62,7 @@ Ship order: 0A → 0B (can overlap)
 **0B. Overwatch Repo Scaffold**
 - Spec: `SPEC_overwatch-repo-scaffold.md` (written, ready)
 - New repo with tasks, people stubs, minimal Flask dashboard
-- Copy existing components (memory_reader, tasks_blueprint, briefing)
+- Copy existing components (memory_reader, tasks_blueprint, data-gathering modules)
 - Result: Overwatch runs on :3002 with task management
 
 ### Phase 1: Overwatch Core (NEXT)
@@ -139,7 +139,7 @@ Ship order: 4A
 - Overwatch CLAUDE.md knows arec-crm path; CRM CLAUDE.md knows overwatch path
 - Claude Desktop can read both repos in a single session
 - People dedup: If a person exists in both systems, Claude surfaces this during /update
-- Morning briefing (in Overwatch) can pull CRM prospect context for investor meetings
+- Overwatch /update can pull CRM prospect context read-only for investor meeting prep
 - No shared database, no API between systems — just filesystem reads
 
 ### Phase 5: Azure / Multi-User (FUTURE)
