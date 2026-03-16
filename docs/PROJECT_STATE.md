@@ -6,7 +6,7 @@
 ---
 
 ## Last Updated
-2026-03-16 — `/crm-update` Cowork skill implemented: 8-step CRM intelligence cycle covering Overwatch queue, 4-pass email scan, calendar, meeting summaries, enrichment, and stale org flagging.
+2026-03-16 — Primary Contact auto-fill + People Detail inline field editing implemented.
 
 **Active branch:** `main`
 
@@ -42,7 +42,9 @@
 
 ### Person Detail (`crm_person_detail.html`)
 - Person Brief section completely removed (CSS + HTML + all brief JS functions).
-- Shows only: Contact Info card + Interaction History + Meeting Summaries + Email History.
+- Shows: Contact Info card + Interaction History + Meeting Summaries + Email History.
+- **Title, Email, Phone always rendered** — shows `--` (muted italic) when empty. Click any field to inline-edit; blur/Enter saves via PATCH, Escape cancels and reverts.
+- Contact Info card is always visible (was previously hidden if all fields empty).
 
 ### Tasks Board (`app/static/tasks/`)
 - Owner-grouped Kanban (single-column, max-width 800px). Oscar first, then others alphabetically.
@@ -60,7 +62,7 @@
 
 ### Test Suite
 - `app/tests/test_brief_synthesizer.py`, `test_email_matching.py`, `test_task_parsing.py`
-- **52 tests passing**. No DB fixtures. No DATABASE_URL required.
+- **69 tests passing**. No DB fixtures. No DATABASE_URL required.
 
 ### Cowork Skills (Claude Desktop via MCP)
 - `~/.skills/skills/crm-update/SKILL.md` — **CRM intelligence update cycle** (8 steps: Overwatch queue, 4-pass email scan, calendar, meeting summaries, enrichment, stale org flagging). Main interactive workflow for keeping the CRM current.
@@ -72,6 +74,10 @@
 - `crm/ai_inbox_queue.md` — Shared queue between Overwatch and arec-crm. Overwatch writes `pending` entries; `/crm-update` processes them.
 - `crm/email_log.json` — Email scan audit trail. Dedup by `internetMessageId`. `lastScan` as of 2026-03-11.
 
+### Primary Contact Auto-Fill
+- `scripts/batch_primary_contact.py` — One-time batch script. Ran 2026-03-16; filled 1 prospect (Teachers Retirement System of Texas, single-contact). Idempotent; safe to re-run.
+- `_auto_set_primary_contact_for_org()` in `crm_reader.py` — Going-forward rule: when a contact is added to an org via `add_contact_to_index()`, auto-sets Primary Contact on all of that org's prospects where none is set.
+
 ### Sister Repo
 - `~/Dropbox/projects/overwatch/` — Personal productivity system (tasks, briefing, personal contacts). Separate repo, separate Flask app on port 3002.
 
@@ -79,20 +85,18 @@
 
 ## What Was Just Completed
 
-**SPEC_crm-update-workflow.md — `/crm-update` Cowork skill (2026-03-16)**
+**SPEC_primary-contact-autofill-people-detail.md (2026-03-16)**
 
-- **Spec audit pass** — Verified all 17 `crm_reader.py` dependency functions (line numbers + signatures), confirmed Tony's delegate mailbox in `crm/config.md`, identified the 5 internal AREC domains, documented the email-scan skill overlap.
-- **`crm/ai_inbox_queue.md` created** — Skeleton queue file. Overwatch will write entries; `/crm-update` processes them.
-- **`~/.skills/skills/crm-update/SKILL.md` implemented** — Full 8-step skill: queue consumption → 4-pass email scan → calendar scan → Excel (deferred) → meeting summaries → enrichment → stale org flagging → summary report.
-- **Skip rules corrected** — Added 3 missing internal domains (`encorefunds.com`, `builderadvisorgroup.com`, `south40capital.com`) and newsletter/automated-system skip rules aligned with the existing `/email-scan` skip list.
-- **Edge cases documented** — Duplicate interaction prevention, overlap handling between queue and email scan, first-run 14-day window batch processing, ambiguous meeting org handling.
+- **People Detail inline edit** — Title, Email, Phone always shown; `--` in muted italic when empty. Click to edit inline; blur/Enter saves via PATCH to `/crm/people/api/<slug>/contact`; Escape reverts.
+- **Contact Info card always visible** — Removed the `contactRows.length === 0` guard that hid the card when all fields were empty. Card now always shows.
+- **Going-forward auto-set** — `add_contact_to_index()` now calls `_auto_set_primary_contact_for_org()` after writing the index; auto-fills Primary Contact on prospects with no value set.
+- **Batch script** — `scripts/batch_primary_contact.py` with `--dry-run` support. Three-tier heuristic: single contact → interaction history → first in index (flagged for review). Updated 1 prospect; 130 already had Primary Contact.
 
 ---
 
 ## Known Issues
 
 - **`/api/task/complete` and `/api/tasks/prospect/<id>/complete` return 501** — ID-based task completion doesn't exist in the markdown layer.
-- **Interactions seeding** — `interactions.md` has only 1 entry using a person name as heading instead of org. Skipped on import. No data loss.
 - **Personal section in arec-crm TASKS.md** — Still present; Overwatch is now the confirmed home for personal tasks. Clean up when convenient.
 
 ---
@@ -108,7 +112,7 @@
 ```bash
 echo "DEV_USER=oscar" > app/.env     # First time only
 python3 app/delivery/dashboard.py    # http://localhost:8000
-python3.12 -m pytest app/tests/ -v  # 52 tests
+python3.12 -m pytest app/tests/ -v  # 69 tests
 ```
 
 ---

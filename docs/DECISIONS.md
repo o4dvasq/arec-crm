@@ -620,3 +620,60 @@
 - New: `app/sources/email_matching.py`
 - Archived: Azure/Postgres specs to `docs/archive/azure-migration-march-2026/`
 
+
+## 2026-03-16 — Shared Inbox Priority Elevation + Multi-User Attribution
+
+**Decision:** All emails forwarded to `crm@avilacapllc.com` write to `crm/ai_inbox_queue.md` (not `inbox.md`) with `Source: crm-shared-mailbox`, `Priority: high`, and `ForwardedBy: {first name or email}`. `inbox.md` returns to voice-capture-only duty.
+
+**Key implementation decisions:**
+
+1. **Unified queue, not a separate intake point** — Before this spec, `drain_inbox.py` wrote to `inbox.md` while Overwatch wrote to `ai_inbox_queue.md`. Two intake points meant `/crm-update` had to check both files. Unifying on `ai_inbox_queue.md` with `Source: crm-shared-mailbox` means a single loop in Step 2 handles all pending items.
+
+2. **`Priority: high` for all shared inbox items** — Forwarding to `crm@` is a deliberate human action; it's a stronger signal than passive email scanning. All shared inbox items get elevated priority regardless of content. Normal-priority items (Overwatch-originated) simply lack the `Priority` field — backward-compatible.
+
+3. **Forwarder from envelope sender, not original From** — The Graph API `message.from.emailAddress` on messages in the shared mailbox is the envelope sender (the person who hit Forward), not the original email's From header. This is the right field for attribution.
+
+4. **Name resolution via `crm/config.md → ## AREC Team`** — Team email → first name mapping is parsed at runtime (not hardcoded) so adding new team members to config.md automatically propagates. Falls back to raw email if unresolved — processing continues either way.
+
+5. **Org matching on original sender, not forwarder** — The forwarder is always an AREC internal address. Matching org on their email would always fail. Org matching uses the original email's From field (the external sender).
+
+6. **Non-forwarded emails to `crm@` still queued** — If someone sends directly to `crm@` (not a forward), the full body becomes the intent note. `is_forward: False`. These are likely teammates writing directly; they're queued with `Org: unknown` for interactive triage.
+
+**Rejected approaches:**
+- Writing shared inbox items to a separate high-priority queue file — adds another intake point to check; `Priority` field achieves the same ordering with one file.
+- Blocking on forwarder resolution failure — best-effort; unresolved email addresses are recorded and processing continues.
+
+**For the next designer:**
+- The `Priority` field is now part of the queue schema. Overwatch items don't include it; `/crm-update` Step 2 treats absent `Priority` as `normal`. Any new queue source should include `Priority: normal` explicitly.
+- `inbox.md` still exists for Siri Shortcut voice capture. Do not route any code output there except the iPhone Shortcut.
+- `crm/config.md → ## AREC Team` line format is `- First Last | email@domain.com`. Parser splits on ` | ` and takes the first word of the name as the display name.
+
+**Impact:** `app/drain_inbox.py` (modified), `app/tests/test_drain_inbox.py` (new — 17 tests), `skills/email-scan.md` (Pass 5 updated), `~/.skills/skills/crm-update/SKILL.md` (Step 2 priority ordering added), `crm/ai_inbox_queue.md` (new entries target).
+
+---
+
+## 2026-03-16 — Person Detail: Inline Edit Over Full Edit Modal
+
+**Decision:** Title, Email, and Phone on Person Detail are now always rendered and individually editable via click-to-inline-edit (replacing the full Edit form for per-field updates). The full Edit button remains for bulk edits.
+
+**Rationale:** The spec called for inline edit as the primary UX for empty-field discovery and quick fill. The existing full Edit form required loading all fields into a modal, saving all at once — too heavy for the common case of adding a single missing email or phone.
+
+**Key implementation choices:**
+
+1. **Always render all three fields** — `renderPersonCard()` renders Title, Email, Phone unconditionally. Empty fields show `--` in muted italic. Previously, empty fields were omitted entirely, hiding the fact that they could be edited. Card is also always shown (removed the `contactRows.length === 0` hide guard).
+
+2. **Reload full card on save, not optimistic update** — After a successful PATCH, `renderPersonCard()` is re-called with a fresh fetch of person data. This ensures the email/phone display (which linkifies values) is always correct. Considered optimistic update but the linkify logic made it non-trivial.
+
+3. **`saved` flag to prevent double-save** — `blur` fires after `Enter` keydown in some browsers. A `saved` boolean guards against the PATCH being called twice on Enter.
+
+4. **Going-forward auto-set hooks into `add_contact_to_index()`** — Rather than a separate trigger point, the auto-set fires inside `add_contact_to_index()`. This is the single chokepoint for all contact additions (direct calls + `ensure_contact_linked()`), so no case is missed.
+
+5. **Batch heuristic uses `Contact:` field in interactions** — Interactions have a `- **Contact:** Name` bullet. For multi-contact orgs, the batch script iterates interactions newest-first and takes the first one whose Contact field matches a known contact for that org. No brief parsing needed (complex, unreliable).
+
+6. **Batch script lives in `scripts/`, not `app/`** — One-time admin script. No Flask import needed; uses `sys.path.insert` to reach `app/sources/crm_reader`.
+
+**For the next designer:** The inline edit fields (Title, Email, Phone) share CSS class `.inline-edit-input`. Company field is intentionally NOT inline-editable — it's a relational link to an org record and uses a `<select>` dropdown in the full Edit form. Do not add inline edit to Company without thinking through org reassignment implications.
+
+**Impact:** `app/templates/crm_person_detail.html` (CSS, `renderPersonCard()`, new inline edit functions), `app/sources/crm_reader.py` (`add_contact_to_index()` + new `_auto_set_primary_contact_for_org()`), `scripts/batch_primary_contact.py` (new), `crm/prospects.md` (1 record updated).
+
+---
