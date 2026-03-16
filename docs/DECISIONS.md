@@ -27,6 +27,40 @@
 
 <!-- Add new entries below this line -->
 
+## 2026-03-15 — Tasks Board: Owner-Grouped Kanban (Replace 3-Column Layout)
+
+**Decision:** Replaced the 3-column layout (Fundraising-Me / Fundraising-Team / Other Work) with a single-scroll owner-grouped Kanban. All tasks from all sections are gathered, tagged with `_section`, regrouped by `ownerKey()`, and rendered as stacked owner groups. Oscar (`__oscar__`) always first; others alphabetical.
+
+**Rationale:** The 3-column layout forced a mental model split (section vs. assignee). The primary workflow question is "what does each person own?" not "which bucket is this in?" Section is preserved as a subtle label on each card for context without becoming the organizing axis.
+
+**Rejected:** Keeping columns and adding an owner filter. Adds complexity without fixing the fundamental grouping problem.
+
+**For the next designer:** `ownerKey()` normalizes `''`, `'oscar'`, and `'oscar vasquez'` → `'__oscar__'`. Other owners normalize to lowercase first name. If two people share a first name, they'll merge into one group — a known limitation acceptable for the current team size.
+
+**Impact:** `app/static/tasks/tasks.js` (full rewrite), `app/static/tasks/tasks.css` (full rewrite).
+
+---
+
+## 2026-03-15 — Prospect Detail: CURRENT_USER Injected Server-Side
+
+**Decision:** `config['current_user']` is set in the `prospect_detail` route in `crm_blueprint.py` using `getattr(g, 'user', None) or os.environ.get('DEV_USER', 'Oscar Vasquez')`. The Jinja template exposes it as `const CURRENT_USER = {{ config.current_user | tojson }};`. `submitNote()` uses `CURRENT_USER` directly instead of reading from an author input field.
+
+**Rationale:** `load_crm_config()` does not include the current user — it reads from `config.md` which contains team, stages, and org types. The user identity comes from `g.user` (set by `before_request` from `DEV_USER` env var). Adding it to the config dict in the route was the minimal change with no impact on other callers of `load_crm_config()`.
+
+**Rejected:** Reading author from a form input (removed), fetching from a `/me` endpoint (overkill for single-user), adding `current_user` to `load_crm_config()` itself (wrong layer — config.md is static team config, not runtime user identity).
+
+**Impact:** `app/delivery/crm_blueprint.py` (one line added in `prospect_detail`), `app/templates/crm_prospect_detail.html` (`CURRENT_USER` constant, `submitNote()` simplified).
+
+---
+
+## 2026-03-15 — Brief Initial State: Empty Div, No Spinner
+
+**Decision:** The static HTML for `#relationship-brief` on Prospect Detail is now an empty div. The loading spinner (`brief-loading`) only appears when the user clicks Refresh (triggered by `showBriefLoading()` inside `refreshBrief()`). On page load, `loadBrief(data)` is called after the data fetch completes and directly renders the saved brief or the "Generate Brief" placeholder.
+
+**Rationale:** The spec requires the brief to load "persistent from disk, no loading spinner on page load." The brief data is fetched as part of `loadPageData()` in a single `/brief` GET call — it arrives with the rest of the page data. Showing a spinner for data that's already in the response was misleading UX.
+
+**Impact:** `app/templates/crm_prospect_detail.html` (removed spinner from static HTML only; `showBriefLoading()` and `refreshBrief()` preserved for user-triggered refresh).
+
 ## 2026-03-11 — Global Search Bar: App-Level Context Processor
 
 **Decision:** Moved `search_index_json` injection from `crm_bp.context_processor` (blueprint-level) to `app.context_processor` (app-level, in `dashboard.py`). Blueprint-level processor removed to avoid double-loading data on CRM routes.
@@ -491,6 +525,34 @@
 
 ---
 
+## 2026-03-15 — Overwatch Repo Scaffold: Task Sections, No CRM Imports, Port 3002
+
+**Decision:** Created `~/Dropbox/projects/overwatch/` as a standalone Flask app with its own TASKS.md, `data/` directory, and briefing system. Task sections are `Work` and `Personal` (not CRM fundraising sections). App runs on port 3002.
+
+**Key implementation choices:**
+
+1. **Copy, don't move** — All source files copied from arec-crm; originals untouched. Cleanup of arec-crm duplicates (meeting-debrief skill, Personal section in TASKS.md) deferred to a later pass after Overwatch is in daily use.
+
+2. **tasks_blueprint.py stripped of CRM routes** — Removed `from sources.crm_reader import load_crm_config, get_tasks_for_prospect, add_prospect_task` and the 4 CRM-specific routes (`/api/tasks/for-org`, `/api/tasks/prospect*`). Overwatch tasks have no concept of prospect orgs.
+
+3. **prompt_builder.py simplified** — Removed investor intelligence section (prospect matching, `load_prospects()`, `load_interactions()`). Overwatch briefing covers schedule + work/personal tasks only. The CRM-flavored SYSTEM_PROMPT replaced with a personal productivity variant.
+
+4. **No shared Python modules** — CLAUDE.md constraint: Overwatch can read arec-crm _data files_ by filesystem path but never imports arec-crm Python modules. Protects against circular dependency and deployment coupling.
+
+5. **Pre-existing Dropbox files committed** — The overwatch directory already had `meeting-summaries/`, `memory/`, `docs/`, and other files from a prior Dropbox-synced prototype. These were included in the initial commit rather than deleted, since they may have context value.
+
+6. **Port 3002** — arec-crm uses 8000 (not 3001 as the spec draft said). Overwatch assigned 3002. CLAUDE.md corrects the port reference.
+
+**For the next designer:**
+- `~/Dropbox/projects/overwatch/app/main.py` (inside `app/`) is a legacy file from the Dropbox sync. The canonical entry point is `~/Dropbox/projects/overwatch/main.py` at project root.
+- iPhone Shortcut file path needs updating from arec-crm `inbox.md` → `~/Dropbox/projects/overwatch/inbox.md`.
+- Personal section still exists in arec-crm TASKS.md — leave until Overwatch is confirmed as daily driver, then delete from arec-crm.
+- Overwatch has no GitHub remote yet. Run `/leave-machine` from the overwatch project directory to push.
+
+**Impact:** New repo at `~/Dropbox/projects/overwatch/`. No arec-crm files modified.
+
+---
+
 ## 2026-03-15 — CRM Markdown Cleanup: Revert to Markdown-Only Local App
 
 **Decision:** Stripped all PostgreSQL, Azure App Service, Entra ID, and multi-user infrastructure from the codebase. The app returns to a clean markdown-only local CRM backed by `crm_reader.py`.
@@ -513,7 +575,7 @@
 - Keeping `crm_db.py` as a fallback (adds ~2000 lines of dead code with no user)
 - Moving to SQLite (same complexity win as just using markdown; adds a file to manage)
 
-**For the next designer:** The `postgres-local` branch still has the full SQLAlchemy schema and 128 tests in git history if a DB layer is ever needed again. The `docs/archive/azure-migration-march-2026/` folder has lessons learned and all archived specs.
+**For the next designer:** The branch formerly called `postgres-local` (renamed to `main` on 2026-03-15) still has the full SQLAlchemy schema and 128 tests in git history if a DB layer is ever needed again. The `docs/archive/azure-migration-march-2026/` folder has lessons learned and all archived specs.
 
 **Impact:**
 - Deleted: `crm_db.py`, `models.py`, `db.py`, `auto_migrate.py`, `crm_graph_sync.py`, `entra_auth.py`, all migration scripts, `startup.sh`, `DEPLOYMENT.md`, Azure workflow, Postgres test files

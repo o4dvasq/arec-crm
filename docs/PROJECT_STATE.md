@@ -6,9 +6,9 @@
 ---
 
 ## Last Updated
-2026-03-15 — Stripped all Postgres/Azure/Entra infrastructure; returned to markdown-only local CRM
+2026-03-15 — CRM UI cleanup round 2: 5-page UX sweep removing dead UI, fixing brief persistence, and redesigning the Tasks Board as an owner-grouped Kanban.
 
-**Active branch:** `postgres-local`
+**Active branch:** `main`
 
 ---
 
@@ -20,62 +20,82 @@
 
 ### Web Dashboard (Flask — local dev, port 8000)
 - `app/delivery/dashboard.py` — Flask app factory. No DB init. Loads env → registers blueprints → serves. `g.user` set from `DEV_USER` env var.
-- `app/delivery/crm_blueprint.py` — All CRM routes backed by `crm_reader.py`. Graph-dependent routes (`email-scan`, `auto-capture`) return 501 with helpful message.
-- `app/delivery/tasks_blueprint.py` — Tasks page. Markdown-backed task CRUD. ID-based prospect task routes return 501.
-- `app/auth/decorators.py` — `require_api_key_or_login` is a no-op passthrough for local dev. Decorator stays on all `/crm/api/tasks*` routes for pattern preservation.
-- Dark theme throughout. Pipeline, prospect detail, orgs, people, tasks pages all functional.
+- `app/delivery/crm_blueprint.py` — All CRM routes backed by `crm_reader.py`. `prospect_detail` route injects `config['current_user']` for the notes form. Graph-dependent routes return 501.
+- `app/delivery/tasks_blueprint.py` — Tasks page. Markdown-backed task CRUD.
+- `app/auth/decorators.py` — `require_api_key_or_login` is a no-op passthrough for local dev.
+- Dark theme throughout. Pipeline, prospect detail, org detail, person detail, tasks pages all functional.
 - Brief synthesis via Claude API (`brief_synthesizer.py`).
+
+### Pipeline Page (`crm_pipeline.html`)
+- Tasks column shows owner initials in blue before task text (e.g., `(TA) Schedule meeting...`).
+- Clicking task text opens the task-edit modal; clicking elsewhere on the row navigates to prospect detail.
+- At a Glance column: `#94a3b8` color, italic, no lightning bolt emoji.
+
+### Prospect Detail (`crm_prospect_detail.html`)
+- Quick Actions card completely removed.
+- Relationship Brief loads from disk on page load — no spinner. JS renders saved brief or "Generate Brief" button.
+- Notes Log: no author input field; author auto-set from `CURRENT_USER` JS constant (injected from `DEV_USER`).
+
+### Org Detail (`crm_org_detail.html`)
+- Notes section completely removed (HTML + JS).
+- Section order: Heading → Summary Card (Type + Domain) → Contacts → Meeting History → Brief → Prospects.
+
+### Person Detail (`crm_person_detail.html`)
+- Person Brief section completely removed (CSS + HTML + all brief JS functions).
+- Shows only: Contact Info card + Interaction History + Meeting Summaries + Email History.
+
+### Tasks Board (`app/static/tasks/`)
+- Owner-grouped Kanban (single-column, max-width 800px). Oscar first, then others alphabetically.
+- Each card: priority badge (Hi/Med/Lo, color-coded), task text, org link, section label.
+- Add form per owner group with section dropdown.
+- Done footer aggregates all completed tasks at the bottom.
 
 ### Task API (Overwatch-compatible)
 - `GET /crm/api/tasks/dashboard` — All open tasks, enriched.
 - `GET /crm/api/tasks?org=X` — Tasks for specific org.
 - `POST /crm/api/tasks` — Create task (markdown-backed, returns synthetic task object).
-- `PATCH /crm/api/tasks/complete` — Returns 501 (ID-based completion requires DB).
-- `PATCH /crm/api/tasks/<id>` — Returns 501 (ID-based update requires DB).
-
-### Morning Briefing (`app/main.py`)
-- Degrades gracefully if Graph dependencies unavailable. Skips calendar/email fetch; proceeds with local data only.
 
 ### Contact Profiles
 - `contacts/{name}.md` — 211 contact profile files (formerly `memory/people/`).
-- `crm/org-locations.md` — Org location data.
-- `projects/arec-fund-ii.md` — Project notes.
 
 ### Test Suite
 - `app/tests/test_brief_synthesizer.py`, `test_email_matching.py`, `test_task_parsing.py`
 - **52 tests passing**. No DB fixtures. No DATABASE_URL required.
 
 ### Skills (Claude Desktop via MCP — unaffected by cleanup)
-- `skills/email-scan.md`, `skills/meeting-debrief.md`
+- `skills/email-scan.md`
 - `app/auth/graph_auth.py`, `app/sources/ms_graph.py` — preserved for skill use
+
+### Sister Repo
+- `~/Dropbox/projects/overwatch/` — Personal productivity system (tasks, briefing, personal contacts). Separate repo, separate Flask app on port 3002.
 
 ---
 
 ## What Was Just Completed
 
-**crm-markdown-cleanup (2026-03-15)**
+**SPEC_crm-ui-cleanup-round2 + SPEC_prospect-detail-cleanup (2026-03-15)**
 
-- **Deleted 19 Postgres/Azure/Entra files** — `crm_db.py`, `models.py`, `db.py`, `auto_migrate.py`, `crm_graph_sync.py`, `entra_auth.py`, all migration scripts, Azure deploy workflow, `startup.sh`, `DEPLOYMENT.md`, Postgres-specific tests.
-- **Rewired all delivery layer imports** — `dashboard.py`, `crm_blueprint.py`, `tasks_blueprint.py` now import from `crm_reader.py`. DB-only routes (task complete/update by ID) return 501 with helpful messages.
-- **Made `decorators.py` a no-op passthrough** — `require_api_key_or_login` lets all requests through for local dev. Decorator stays in place for future auth.
-- **Guarded `main.py` Graph imports** — `try/except` at top level; `_GRAPH_AVAILABLE` flag gates all Graph calls. App gracefully skips calendar/email if Graph not available.
-- **Extracted `email_matching.py`** — The 3 pure utility functions from the deleted `crm_graph_sync.py` were needed by `test_email_matching.py`. Extracted to their own module, no Graph dependency.
-- **Archived Azure/Postgres docs** — Specs and architecture docs moved to `docs/archive/azure-migration-march-2026/`. `LESSONS_LEARNED.md` already existed there.
-- **App starts clean** with `python3 app/delivery/dashboard.py` and no env vars beyond `DEV_USER`.
+- **Pipeline**: Owner initials prepended to task text in blue; clicking task text opens task-edit modal with `stopPropagation`; at-a-glance color fixed to `#94a3b8`, lightning bolt removed.
+- **Prospect Detail**: Quick Actions card (Add Task / Add Quick Note) fully deleted; brief no longer shows loading spinner on page load; notes author field removed and replaced with auto-set `CURRENT_USER` constant injected by `prospect_detail` route.
+- **Org Detail**: Notes section (Section 4) completely removed from HTML and JS; Contacts card moved above Relationship Brief; `'notes'` removed from `EDITABLE_PROSPECT_FIELDS` and `PROSPECT_DISPLAY_FIELDS`.
+- **Person Detail**: Person Brief card and all related CSS/JS fully removed (`loadBrief`, `refreshBrief`, `showBriefLoading`, `showBriefError`, `submitPersonUpdate`, `cancelUpdate`, 9 functions total).
+- **Tasks Board**: Full rewrite to owner-grouped Kanban replacing the 3-column layout. `tasks.js` and `tasks.css` both rewritten from scratch.
 
 ---
 
 ## Known Issues
 
-- **`/api/task/complete` and `/api/tasks/prospect/<id>/complete` return 501** — ID-based task completion doesn't exist in the markdown layer. Workaround: complete by org + text substring via `complete_prospect_task(org, text)` in `crm_reader.py`.
+- **`/api/task/complete` and `/api/tasks/prospect/<id>/complete` return 501** — ID-based task completion doesn't exist in the markdown layer.
 - **Interactions seeding** — `interactions.md` has only 1 entry using a person name as heading instead of org. Skipped on import. No data loss.
+- **Personal section in arec-crm TASKS.md** — Still present; Overwatch is now the confirmed home for personal tasks. Clean up when convenient.
 
 ---
 
 ## Next Up
 
-1. Decide on next spec — candidates: `global-search-bar`, `people-detail-contact-box`, `overwatch-repo-scaffold`
-2. If restoring Overwatch task integration: implement `add_prospect_task_and_return` wrapper in `crm_reader.py` to return a synthetic task dict after adding (unblocks `POST /crm/api/tasks` returning a real task object).
+1. Remaining spec candidates: none currently in `docs/specs/` — check `docs/specs/future/` for next candidates
+2. Clean up Personal section from arec-crm TASKS.md
+3. Update iPhone Shortcut file path from `inbox.md` (arec-crm) → `~/Dropbox/projects/overwatch/inbox.md`
 
 **Local dev setup:**
 ```bash
@@ -98,3 +118,4 @@ python3.12 -m pytest app/tests/ -v  # 52 tests
 - Graph API features (`email-scan`, `auto-capture`) — work via Claude Desktop skill; disabled as in-app routes (return 501)
 - `arec-mobile/` PWA — functional, not actively iterated
 - `prospect_meetings` — JSON file-backed (`crm/prospect_meetings.json`); no DB table
+- Overwatch cross-repo task display in arec-crm dashboard — out of scope per spec; future read-only integration
