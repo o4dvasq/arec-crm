@@ -197,48 +197,6 @@
             border-radius: 10px;
         }
 
-        /* PERSON BRIEF */
-        .brief-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 1rem;
-            gap: 0.5rem;
-            flex-wrap: wrap;
-        }
-        .brief-actions { display: flex; gap: 0.5rem; align-items: center; }
-        .brief-narrative {
-            color: var(--text);
-            line-height: 1.7;
-            font-size: 14px;
-        }
-        .brief-narrative p { margin-bottom: 0.85rem; }
-        .brief-narrative p:last-child { margin-bottom: 0; }
-        .brief-ts {
-            font-size: 11px;
-            color: var(--muted);
-            font-weight: 400;
-            margin-left: 6px;
-            opacity: 0.7;
-        }
-        .brief-loading {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            color: var(--muted);
-            padding: 1.5rem 0;
-            font-size: 13px;
-        }
-        .loading-pulse {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background: var(--accent);
-            animation: pulse 1.2s ease-in-out infinite;
-            flex-shrink: 0;
-        }
-        @keyframes pulse { 0%, 100% { opacity: 0.3; } 50% { opacity: 1; } }
-
         .btn-sm {
             background: none;
             border: 1px solid #475569;
@@ -251,27 +209,8 @@
         }
         .btn-sm:hover { border-color: var(--accent); color: var(--accent); }
 
-        /* UPDATE INPUT */
-        .update-area { margin-top: 1rem; display: none; }
-        .update-area.visible { display: block; }
-        .update-textarea {
-            width: 100%;
-            background: #0f172a;
-            border: 1px solid var(--border);
-            border-radius: var(--radius);
-            color: var(--text);
-            font-family: inherit;
-            font-size: 13px;
-            padding: 0.75rem;
-            resize: vertical;
-            min-height: 80px;
-            outline: none;
-        }
-        .update-textarea:focus { border-color: var(--accent); }
-        .update-submit-row { display: flex; gap: 0.5rem; margin-top: 0.5rem; align-items: center; }
         .btn-primary { background: var(--accent); color: white; border-color: var(--accent); }
         .btn-primary:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
-        .update-status { font-size: 12px; color: var(--muted); }
 
         /* INTERACTIONS */
         .interaction-row {
@@ -412,29 +351,6 @@
         <div id="person-fields"></div>
     </div>
 
-    <!-- Person Brief -->
-    <div class="card" id="brief-card">
-        <div id="person-brief">
-            <div class="brief-header">
-                <div class="section-title">Person Brief</div>
-            </div>
-            <div class="brief-loading">
-                <div class="loading-pulse"></div>
-                <span>Synthesizing intelligence...</span>
-            </div>
-        </div>
-        <!-- Update textarea (hidden until Update clicked) -->
-        <div class="update-area" id="update-area">
-            <textarea class="update-textarea" id="update-input"
-                placeholder="Type context about this person — a call you had, something they said, changes to their role, or anything worth capturing..."
-                rows="3"></textarea>
-            <div class="update-submit-row">
-                <button class="btn btn-primary btn-sm" onclick="submitPersonUpdate()">Submit</button>
-                <button class="btn btn-sm" onclick="cancelUpdate()">Cancel</button>
-                <span class="update-status" id="update-status"></span>
-            </div>
-        </div>
-    </div>
 
     <!-- Interaction History (collapsible, starts expanded) -->
     <div class="card hidden" id="interactions-card">
@@ -492,7 +408,6 @@
 // ============================================
 const PERSON_NAME = {{ person.name | tojson }};
 const PERSON_SLUG = {{ slug | tojson }};
-const BRIEF_CACHE_PREFIX = 'arec_person_brief_v1_';
 const enc = encodeURIComponent;
 
 const TYPE_BADGE = {
@@ -523,11 +438,8 @@ async function loadPersonDetail() {
         renderMeetings(data.meeting_summaries);
         renderEmails(data.email_history);
 
-        await loadBrief(data);
-
     } catch (err) {
         console.error('Person detail load failed:', err);
-        showBriefError();
     }
 }
 
@@ -535,22 +447,13 @@ async function loadPersonDetail() {
 // PROFILE EDIT
 // ============================================
 function showProfileEdit() {
-    Promise.all([
-        fetch(`/crm/api/person-data?name=${enc(PERSON_NAME)}`).then(r => r.json()),
-        fetch('/crm/api/orgs').then(r => r.json()),
-    ]).then(([data, orgs]) => {
+    fetch(`/crm/api/person-data?name=${enc(PERSON_NAME)}`).then(r => r.json()).then(data => {
         const profile = data.profile || {};
-        const orgName = data.org_name || '';
-        const orgOptions = ['', ...orgs].map(o =>
-            `<option value="${esc(o)}"${o === orgName ? ' selected' : ''}>${esc(o) || '— None —'}</option>`
-        ).join('');
         document.getElementById('person-fields').innerHTML = `
             <div class="contact-edit-form">
                 <div class="contact-field-row">
-                    <label>Organization</label>
-                    <select id="edit-org" style="background:var(--bg-primary);border:1px solid var(--border);border-radius:4px;color:var(--text);padding:0.5rem 0.75rem;font-size:0.9rem;font-family:inherit;">
-                        ${orgOptions}
-                    </select>
+                    <label>Company</label>
+                    <input type="text" id="edit-company" value="${esc(profile.company || '')}">
                 </div>
                 <div class="contact-field-row">
                     <label>Title</label>
@@ -578,7 +481,7 @@ async function saveProfileEdit() {
     if (saveBtn) { saveBtn.textContent = 'Saving...'; saveBtn.disabled = true; }
 
     const payload = {
-        company: document.getElementById('edit-org').value.trim(),
+        company: document.getElementById('edit-company').value.trim(),
         title: document.getElementById('edit-title').value.trim(),
         email: document.getElementById('edit-email').value.trim(),
         phone: document.getElementById('edit-phone').value.trim(),
@@ -623,7 +526,7 @@ function renderPersonCard(data) {
     const contactRows = [];
     if (orgName) {
         contactRows.push(
-            `<span class="contact-label">Organization</span>` +
+            `<span class="contact-label">Company</span>` +
             `<span class="contact-value"><a href="/crm/org/${enc(orgName)}" class="page-subtitle-link">${esc(orgName)}</a></span>`
         );
     }
@@ -684,142 +587,6 @@ function renderPersonCard(data) {
     document.getElementById('person-fields').innerHTML = html;
 }
 
-// ============================================
-// BRIEF: SERVER-PERSISTED CACHE
-// ============================================
-async function loadBrief(rawData) {
-    const contentHash = rawData.content_hash;
-    const saved = rawData.saved_brief;
-
-    // Use server-persisted brief if hash matches current data
-    if (saved && saved.content_hash === contentHash) {
-        renderPersonBrief(saved.narrative, saved.generated_at);
-        return;
-    }
-
-    // No saved brief or stale — auto-synthesize
-    showBriefLoading();
-    await _synthesizePersonBrief();
-}
-
-async function refreshBrief() {
-    showBriefLoading();
-    await _synthesizePersonBrief();
-}
-
-async function _synthesizePersonBrief() {
-    try {
-        const resp = await fetch('/crm/api/synthesize-person-brief', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name: PERSON_NAME }),
-        });
-        if (!resp.ok) throw new Error('Synthesis failed');
-        const synth = await resp.json();
-        renderPersonBrief(synth.narrative);
-    } catch (err) {
-        showBriefError();
-    }
-}
-
-function narrativeToHtml(text) {
-    if (!text) return '';
-    return text.trim()
-        .split(/\n\n+/)
-        .filter(p => p.trim())
-        .map(p => `<p>${esc(p.trim().replace(/\n/g, ' '))}</p>`)
-        .join('');
-}
-
-function renderPersonBrief(narrative, generatedAt) {
-    const tsHtml = generatedAt
-        ? `<span class="brief-ts" title="Generated ${generatedAt}">
-             ${new Date(generatedAt).toLocaleDateString('en-US', {month:'short', day:'numeric'})}
-           </span>`
-        : '';
-    document.getElementById('person-brief').innerHTML = `
-        <div class="brief-header">
-            <div class="section-title">Person Brief ${tsHtml}</div>
-            <div class="brief-actions">
-                <button class="btn-sm" onclick="showUpdateInput()">Update</button>
-                <button class="btn-sm" onclick="refreshBrief()">⟳ Refresh</button>
-            </div>
-        </div>
-        <div class="brief-narrative">${narrativeToHtml(narrative)}</div>
-    `;
-}
-
-function showBriefLoading() {
-    document.getElementById('person-brief').innerHTML = `
-        <div class="brief-header">
-            <div class="section-title">Person Brief</div>
-        </div>
-        <div class="brief-loading">
-            <div class="loading-pulse"></div>
-            <span>Synthesizing intelligence...</span>
-        </div>
-    `;
-}
-
-function showBriefError() {
-    document.getElementById('person-brief').innerHTML = `
-        <div class="brief-header">
-            <div class="section-title">Person Brief</div>
-            <div class="brief-actions">
-                <button class="btn-sm" onclick="showUpdateInput()">Update</button>
-                <button class="btn-sm" onclick="refreshBrief()">Retry</button>
-            </div>
-        </div>
-        <div style="color:var(--muted);font-size:13px;padding:1rem 0;">
-            Brief generation unavailable. See reference sections below for full context.
-        </div>
-    `;
-}
-
-// ============================================
-// UPDATE BUTTON
-// ============================================
-function showUpdateInput() {
-    const area = document.getElementById('update-area');
-    area.classList.add('visible');
-    document.getElementById('update-input').focus();
-}
-
-function cancelUpdate() {
-    const area = document.getElementById('update-area');
-    area.classList.remove('visible');
-    document.getElementById('update-input').value = '';
-    document.getElementById('update-status').textContent = '';
-}
-
-async function submitPersonUpdate() {
-    const input = document.getElementById('update-input').value.trim();
-    if (!input) return;
-
-    const status = document.getElementById('update-status');
-    status.textContent = 'Saving...';
-
-    try {
-        const resp = await fetch('/crm/api/person-update', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name: PERSON_NAME, input }),
-        });
-        if (!resp.ok) throw new Error('Update failed');
-        const result = await resp.json();
-
-        const successCount = (result.actions || []).filter(a => a.status === 'success').length;
-        status.textContent = `Saved (${successCount} update${successCount !== 1 ? 's' : ''})`;
-
-        // Brief will auto-refresh on next loadPersonDetail (server hash will differ)
-        setTimeout(() => {
-            cancelUpdate();
-            loadPersonDetail();
-        }, 1200);
-    } catch (err) {
-        status.textContent = 'Error — please try again';
-    }
-}
 
 // ============================================
 // INTERACTION HISTORY

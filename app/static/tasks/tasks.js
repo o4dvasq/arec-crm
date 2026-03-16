@@ -1,4 +1,4 @@
-/* tasks.js — Kanban board for AREC Tasks */
+/* tasks.js — Owner-grouped Kanban board for AREC Tasks */
 
 'use strict';
 
@@ -6,7 +6,7 @@ let allTasks = {};
 let toastTimer = null;
 
 const PRIORITY_LABELS = ['Hi', 'Med', 'Low'];
-const PRIORITY_ORDER = { 'Hi': 0, 'Med': 1, 'Low': 2 };
+const PRIORITY_ORDER = { 'Hi': 0, 'Med': 1, 'Low': 2, 'Lo': 2 };
 
 // ---------------------------------------------------------------------------
 // Boot
@@ -15,7 +15,6 @@ const PRIORITY_ORDER = { 'Hi': 0, 'Med': 1, 'Low': 2 };
 document.addEventListener('DOMContentLoaded', () => {
   loadTasks();
 
-  // Close mobile action menus on outside click
   document.addEventListener('click', (e) => {
     if (!e.target.closest('.task-card')) {
       document.querySelectorAll('.task-card.active').forEach(c => c.classList.remove('active'));
@@ -35,337 +34,112 @@ async function loadTasks() {
 }
 
 // ---------------------------------------------------------------------------
-// Render
+// Render board — owner-grouped, Oscar first
 // ---------------------------------------------------------------------------
 
 function renderBoard() {
   const board = document.getElementById('board');
   board.innerHTML = '';
-  board.appendChild(renderFundraisingMeColumn());
-  board.appendChild(renderFundraisingOthersColumn());
-  board.appendChild(renderOtherWorkColumn());
-}
 
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
-function isOscarTask(t) {
-  const a = (t.assigned_to || '').toLowerCase().trim();
-  return !t.assigned_to || a === 'oscar' || a === 'oscar vasquez';
-}
-
-function firstName(name) {
-  // Normalize "Tony Avila", "tony", "@Tony" → "Tony"
-  return (name || '').trim().replace(/^@/, '').split(/\s+/)[0];
-}
-
-function buildAssigneeGroups(tasks) {
-  // Group open tasks by first name (normalizes "Tony Avila" and "Tony" into one group).
-  const byPerson = {};
-  for (const t of tasks) {
-    if (t.complete) continue;
-    const raw = t.assigned_to || '';
-    const name = raw ? firstName(raw) : '';
-    if (!byPerson[name]) byPerson[name] = [];
-    byPerson[name].push(t);
-  }
-  // Sort each person's tasks by priority
-  for (const name of Object.keys(byPerson)) {
-    byPerson[name].sort((a, b) => (PRIORITY_ORDER[a.priority] || 1) - (PRIORITY_ORDER[b.priority] || 1));
-  }
-  // Named assignees alphabetically, unassigned last
-  const named = Object.keys(byPerson).filter(n => n !== '').sort();
-  const names = byPerson[''] ? [...named, ''] : named;
-  return { byPerson, names };
-}
-
-function renderAssigneeGroups(taskList, byPerson, names, sectionHint) {
-  for (const name of names) {
-    const personHeader = document.createElement('div');
-    personHeader.className = 'team-person-header' + (names.indexOf(name) === 0 ? ' first' : '');
-    const label = name === '' ? 'Unassigned' : escHtml(name);
-    const initial = name === '' ? '?' : name.charAt(0).toUpperCase();
-    personHeader.innerHTML = `
-      <div class="avatar ${name === '' ? 'unassigned' : ''}">${initial}</div>
-      <span class="assignee-name">${label}</span>
-      <span class="team-person-count">${byPerson[name].length}</span>
-    `;
-    taskList.appendChild(personHeader);
-
-    for (const task of byPerson[name]) {
-      taskList.appendChild(renderCard(task, task._section || sectionHint));
-    }
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Column: Fundraising - Me  (Oscar-assigned tasks only, priority-grouped)
-// ---------------------------------------------------------------------------
-
-function renderFundraisingMeColumn() {
-  const section = 'Fundraising - Me';
-  const allSectionTasks = allTasks[section] || [];
-  const oscarTasks = allSectionTasks.filter(t => isOscarTask(t));
-  const openTasks = oscarTasks.filter(t => !t.complete);
-  const doneTasks = allSectionTasks.filter(t => t.complete);
-
-  const col = document.createElement('div');
-  col.className = 'column';
-  col.dataset.section = section;
-
-  col.innerHTML = `
-    <div class="col-header">
-      <div class="col-title-row">
-        <span>Fundraising — Me</span>
-        <span class="col-count">${openTasks.length}</span>
-      </div>
-      <div class="pri-bar"></div>
-      <div class="pri-summary"></div>
-    </div>
-  `;
-
-  const addBtn = document.createElement('button');
-  addBtn.className = 'col-add-btn';
-  addBtn.textContent = '+ Add task';
-  addBtn.addEventListener('click', () => showAddForm(col, section));
-  col.appendChild(addBtn);
-
-  const taskList = document.createElement('div');
-  taskList.className = 'col-tasks';
-
-  // Group by priority
-  const groups = { Hi: [], Med: [], Low: [] };
-  for (const task of openTasks) {
-    const p = groups[task.priority] ? task.priority : 'Med';
-    groups[p].push(task);
-  }
-  let firstGroup = true;
-  for (const pri of PRIORITY_LABELS) {
-    if (groups[pri].length === 0) continue;
-    const groupHeader = document.createElement('div');
-    groupHeader.className = 'priority-group-header pri-' + pri.toLowerCase() + (firstGroup ? ' first' : '');
-    groupHeader.innerHTML = `
-      <i data-lucide="chevron-down" style="width:14px;height:14px;" class="chevron"></i>
-      <span>${pri.toUpperCase()}</span>
-      <span class="group-count">${groups[pri].length}</span>
-    `;
-    lucide.createIcons();
-
-    const groupBody = document.createElement('div');
-    groupBody.className = 'priority-group-body';
-
-    // Check localStorage for collapsed state
-    const collapseKey = `pri-group-collapsed-${section}-${pri}`;
-    const isCollapsed = localStorage.getItem(collapseKey) === 'true';
-    if (isCollapsed) {
-      groupHeader.classList.add('collapsed');
-      groupBody.classList.add('collapsed');
-      groupBody.style.maxHeight = '0';
-    } else {
-      groupBody.style.maxHeight = 'none';
-    }
-
-    taskList.appendChild(groupHeader);
-
-    for (const task of groups[pri]) {
-      groupBody.appendChild(renderCard(task, section));
-    }
-    taskList.appendChild(groupBody);
-
-    // Add click handler
-    groupHeader.addEventListener('click', () => {
-      groupHeader.classList.toggle('collapsed');
-      groupBody.classList.toggle('collapsed');
-      const collapsed = groupHeader.classList.contains('collapsed');
-      localStorage.setItem(collapseKey, collapsed);
-      if (collapsed) {
-        groupBody.style.maxHeight = '0';
+  // Gather all tasks tagged with their section
+  const openTasks = [];
+  const doneTasks = [];
+  for (const [section, tasks] of Object.entries(allTasks)) {
+    for (const task of tasks) {
+      const tagged = { ...task, _section: section };
+      if (task.complete) {
+        doneTasks.push(tagged);
       } else {
-        groupBody.style.maxHeight = 'none';
+        openTasks.push(tagged);
       }
-    });
-
-    firstGroup = false;
+    }
   }
 
-  if (openTasks.length === 0) {
+  // Group open tasks by owner key
+  const byOwner = {};
+  for (const task of openTasks) {
+    const key = ownerKey(task.assigned_to);
+    if (!byOwner[key]) byOwner[key] = [];
+    byOwner[key].push(task);
+  }
+
+  // Sort each owner's tasks by priority
+  for (const key of Object.keys(byOwner)) {
+    byOwner[key].sort((a, b) => (PRIORITY_ORDER[a.priority] || 1) - (PRIORITY_ORDER[b.priority] || 1));
+  }
+
+  // Oscar first, then other owners alphabetically
+  const oscarKey = '__oscar__';
+  const otherKeys = Object.keys(byOwner)
+    .filter(k => k !== oscarKey)
+    .sort((a, b) => a.localeCompare(b));
+  const ownerOrder = byOwner[oscarKey] ? [oscarKey, ...otherKeys] : otherKeys;
+
+  for (const key of ownerOrder) {
+    board.appendChild(renderOwnerGroup(key, byOwner[key]));
+  }
+
+  if (ownerOrder.length === 0) {
     const empty = document.createElement('div');
-    empty.style.cssText = 'padding:16px;color:#94a3b8;font-size:13px;text-align:center';
-    empty.textContent = 'No tasks';
-    taskList.appendChild(empty);
+    empty.style.cssText = 'padding:40px;color:#94a3b8;font-size:14px;text-align:center';
+    empty.textContent = 'No open tasks.';
+    board.appendChild(empty);
   }
 
-  col.appendChild(taskList);
-
+  // Done footer at bottom (all done tasks)
   if (doneTasks.length > 0) {
-    col.appendChild(renderDoneFooter(doneTasks, section));
+    board.appendChild(renderDoneFooter(doneTasks));
   }
+}
 
-  // Render priority bar
-  renderPriorityBar(col, openTasks);
+function ownerKey(assignedTo) {
+  const a = (assignedTo || '').toLowerCase().trim();
+  if (!a || a === 'oscar' || a === 'oscar vasquez') return '__oscar__';
+  return a.split(/\s+/)[0];
+}
 
-  return col;
+function ownerDisplayName(key) {
+  if (key === '__oscar__') return 'Oscar Vasquez';
+  return key.charAt(0).toUpperCase() + key.slice(1);
 }
 
 // ---------------------------------------------------------------------------
-// Column: Fundraising - Others  (non-Oscar tasks from Fundraising - Me
-//                                + all tasks from Fundraising - Others)
+// Owner group
 // ---------------------------------------------------------------------------
 
-function renderFundraisingOthersColumn() {
-  // Collect non-Oscar open tasks from Fundraising - Me
-  const meSection = allTasks['Fundraising - Me'] || [];
-  const othersSection = allTasks['Fundraising - Others'] || [];
+function renderOwnerGroup(key, tasks) {
+  const displayName = ownerDisplayName(key);
+  const initial = displayName.charAt(0).toUpperCase();
 
-  const teamFundraisingTasks = meSection
-    .filter(t => !t.complete && !isOscarTask(t))
-    .map(t => ({ ...t, _section: 'Fundraising - Me' }));
+  const group = document.createElement('div');
+  group.className = 'owner-group';
+  group.dataset.ownerKey = key;
 
-  const othersSectionOpen = othersSection
-    .filter(t => !t.complete)
-    .map(t => ({ ...t, _section: 'Fundraising - Others' }));
-
-  const allOpen = [...teamFundraisingTasks, ...othersSectionOpen];
-  const doneTasks = othersSection.filter(t => t.complete);
-
-  const { byPerson, names } = buildAssigneeGroups(allOpen.map(t => ({ ...t, complete: false })));
-  // Rebuild with _section preserved
-  const byPersonWithSection = {};
-  for (const t of allOpen) {
-    const name = t.assigned_to ? firstName(t.assigned_to) : '';
-    if (!byPersonWithSection[name]) byPersonWithSection[name] = [];
-    byPersonWithSection[name].push(t);
-  }
-  for (const name of Object.keys(byPersonWithSection)) {
-    byPersonWithSection[name].sort((a, b) => (PRIORITY_ORDER[a.priority] || 1) - (PRIORITY_ORDER[b.priority] || 1));
-  }
-
-  const col = document.createElement('div');
-  col.className = 'column';
-  col.dataset.section = 'Fundraising - Others';
-
-  col.innerHTML = `
-    <div class="col-header">
-      <div class="col-title-row">
-        <span>Fundraising — Team</span>
-        <span class="col-count">${allOpen.length}</span>
-      </div>
-      <div class="pri-bar"></div>
-      <div class="pri-summary"></div>
-    </div>
+  const header = document.createElement('div');
+  header.className = 'owner-group-header';
+  header.innerHTML = `
+    <div class="avatar">${escHtml(initial)}</div>
+    <span class="owner-name">${escHtml(displayName)}</span>
+    <span class="owner-count">${tasks.length}</span>
+    <button class="owner-add-btn">+ Add</button>
   `;
+  group.appendChild(header);
 
-  const addBtn = document.createElement('button');
-  addBtn.className = 'col-add-btn';
-  addBtn.textContent = '+ Add task';
-  addBtn.addEventListener('click', () => showAddForm(col, 'Fundraising - Others'));
-  col.appendChild(addBtn);
+  header.querySelector('.owner-add-btn').addEventListener('click', (e) => {
+    e.stopPropagation();
+    const ownerName = key === '__oscar__' ? 'Oscar Vasquez' : displayName;
+    showAddFormForOwner(group, null, ownerName);
+  });
 
-  const taskList = document.createElement('div');
-  taskList.className = 'col-tasks';
+  const taskContainer = document.createElement('div');
+  taskContainer.className = 'owner-tasks';
 
-  renderAssigneeGroups(taskList, byPersonWithSection, names, 'Fundraising - Others');
-
-  if (allOpen.length === 0) {
-    const empty = document.createElement('div');
-    empty.style.cssText = 'padding:16px;color:#94a3b8;font-size:13px;text-align:center';
-    empty.textContent = 'No team tasks';
-    taskList.appendChild(empty);
+  for (const task of tasks) {
+    taskContainer.appendChild(renderCard(task, task._section));
   }
 
-  col.appendChild(taskList);
-
-  if (doneTasks.length > 0) {
-    col.appendChild(renderDoneFooter(doneTasks, 'Fundraising - Others'));
-  }
-
-  // Render priority bar
-  renderPriorityBar(col, allOpen);
-
-  return col;
-}
-
-// ---------------------------------------------------------------------------
-// Column: Other Work  (all tasks from Other Work, assignee-grouped)
-// ---------------------------------------------------------------------------
-
-function renderOtherWorkColumn() {
-  const section = 'Other Work';
-  const tasks = allTasks[section] || [];
-  const openTasks = tasks.filter(t => !t.complete);
-  const doneTasks = tasks.filter(t => t.complete);
-
-  const { byPerson, names } = buildAssigneeGroups(openTasks);
-
-  const col = document.createElement('div');
-  col.className = 'column';
-  col.dataset.section = section;
-
-  col.innerHTML = `
-    <div class="col-header">
-      <div class="col-title-row">
-        <span>Other Work</span>
-        <span class="col-count">${openTasks.length}</span>
-      </div>
-      <div class="pri-bar"></div>
-      <div class="pri-summary"></div>
-    </div>
-  `;
-
-  const addBtn = document.createElement('button');
-  addBtn.className = 'col-add-btn';
-  addBtn.textContent = '+ Add task';
-  addBtn.addEventListener('click', () => showAddForm(col, section));
-  col.appendChild(addBtn);
-
-  const taskList = document.createElement('div');
-  taskList.className = 'col-tasks';
-
-  renderAssigneeGroups(taskList, byPerson, names, section);
-
-  if (openTasks.length === 0) {
-    const empty = document.createElement('div');
-    empty.style.cssText = 'padding:16px;color:#94a3b8;font-size:13px;text-align:center';
-    empty.textContent = 'No tasks';
-    taskList.appendChild(empty);
-  }
-
-  col.appendChild(taskList);
-
-  if (doneTasks.length > 0) {
-    col.appendChild(renderDoneFooter(doneTasks, section));
-  }
-
-  // Render priority bar
-  renderPriorityBar(col, openTasks);
-
-  return col;
-}
-
-// ---------------------------------------------------------------------------
-// Priority bar helper
-// ---------------------------------------------------------------------------
-
-function renderPriorityBar(columnEl, tasks) {
-  const hi = tasks.filter(t => t.priority === 'Hi').length;
-  const med = tasks.filter(t => t.priority === 'Med').length;
-  const lo = tasks.length - hi - med;
-  const total = tasks.length || 1;
-
-  const bar = columnEl.querySelector('.pri-bar');
-  bar.innerHTML = `
-    <div class="pri-bar-hi" style="width:${(hi/total)*100}%"></div>
-    <div class="pri-bar-med" style="width:${(med/total)*100}%"></div>
-    <div class="pri-bar-low" style="width:${(lo/total)*100}%"></div>
-  `;
-
-  const summary = columnEl.querySelector('.pri-summary');
-  const parts = [];
-  if (hi) parts.push(`${hi} Hi`);
-  if (med) parts.push(`${med} Med`);
-  if (lo) parts.push(`${lo} Lo`);
-  summary.textContent = parts.join(' · ');
+  group.appendChild(taskContainer);
+  return group;
 }
 
 // ---------------------------------------------------------------------------
@@ -374,21 +148,30 @@ function renderPriorityBar(columnEl, tasks) {
 
 function renderCard(task, section) {
   const card = document.createElement('div');
-  const priorityCls = 'pri-' + (task.priority || 'Med').toLowerCase();
+  const pri = task.priority || 'Med';
+  const priorityCls = 'pri-' + pri.toLowerCase();
   card.className = 'task-card ' + priorityCls + (task.complete ? ' done' : '');
   card.dataset.index = task.index;
   card.dataset.section = section;
 
   const orgHtml = task.org
-    ? `<div class="task-org"><a href="/crm/org/${encodeURIComponent(task.org)}" class="org-link" onclick="event.stopPropagation()">${escHtml(task.org)}</a></div>`
+    ? `<a href="/crm/org/${encodeURIComponent(task.org)}" class="org-link" onclick="event.stopPropagation()">${escHtml(task.org)}</a>`
     : '';
 
-  // Show nudge button only if task has an assignee
+  const sectionLabel = section ? escHtml(section) : '';
+  const metaParts = [orgHtml, sectionLabel].filter(Boolean);
+  const metaHtml = metaParts.length
+    ? `<div class="task-meta-line">${metaParts.join(' · ')}</div>`
+    : '';
+
   const showNudge = task.assigned_to && task.assigned_to.trim() !== '';
 
   card.innerHTML = `
-    <div class="task-text">${escHtml(task.text)}</div>
-    ${orgHtml}
+    <div class="task-card-top">
+      <span class="pri-badge pri-badge-${pri.toLowerCase()}">${escHtml(pri)}</span>
+      <div class="task-text">${escHtml(task.text)}</div>
+    </div>
+    ${metaHtml}
     <div class="task-actions">
       ${task.complete
         ? `<button class="task-action-btn" data-action="restore" title="Restore"><i data-lucide="undo"></i></button>`
@@ -402,7 +185,6 @@ function renderCard(task, section) {
   `;
   lucide.createIcons();
 
-  // Mobile tap to reveal
   card.addEventListener('click', (e) => {
     if (window.innerWidth <= 768 && !e.target.closest('.task-actions')) {
       document.querySelectorAll('.task-card').forEach(c => c.classList.remove('active'));
@@ -449,7 +231,7 @@ function renderCard(task, section) {
   return card;
 }
 
-function renderDoneFooter(doneTasks, section) {
+function renderDoneFooter(doneTasks) {
   const footer = document.createElement('div');
   footer.className = 'done-footer';
 
@@ -462,7 +244,7 @@ function renderDoneFooter(doneTasks, section) {
   list.className = 'done-list';
 
   for (const task of doneTasks) {
-    list.appendChild(renderCard(task, section));
+    list.appendChild(renderCard(task, task._section));
   }
 
   toggle.addEventListener('click', () => {
@@ -481,41 +263,42 @@ function renderDoneFooter(doneTasks, section) {
 // Add form
 // ---------------------------------------------------------------------------
 
-function showAddForm(col, section) {
-  col.querySelectorAll('.inline-form').forEach(f => f.remove());
+function showAddFormForOwner(groupEl, defaultSection, ownerName) {
+  groupEl.querySelectorAll('.inline-form').forEach(f => f.remove());
+
+  const sections = window.TASK_MODAL_SECTIONS || ['Fundraising - Me', 'Fundraising - Others', 'Other Work'];
+  const slugId = slugify(ownerName);
 
   const form = document.createElement('div');
   form.className = 'inline-form';
-
   form.innerHTML = `
-    <div class="form-label">New task</div>
-    <textarea placeholder="Task description..." rows="2" id="form-text-${slugify(section)}"></textarea>
+    <div class="form-label">New task for ${escHtml(ownerName)}</div>
+    <textarea placeholder="Task description..." rows="2" id="form-text-${slugId}"></textarea>
     <div class="form-row">
-      <select id="form-pri-${slugify(section)}">
+      <select id="form-pri-${slugId}">
         ${PRIORITY_LABELS.map(p => `<option value="${p}"${p === 'Med' ? ' selected' : ''}>${p}</option>`).join('')}
       </select>
-      <select id="form-owner-${slugify(section)}">
-        <option value="">— unassigned —</option>
-        ${(CONFIG.team || []).map(t => `<option value="${t.name}">${t.name}</option>`).join('')}
+      <select id="form-section-${slugId}">
+        ${sections.map(s => `<option value="${s}"${s === defaultSection ? ' selected' : ''}>${s}</option>`).join('')}
       </select>
     </div>
     <div class="form-actions">
-      <button class="form-btn primary" id="form-submit-${slugify(section)}">Add</button>
+      <button class="form-btn primary" id="form-submit-${slugId}">Add</button>
       <button class="form-btn">Cancel</button>
     </div>
   `;
 
   form.querySelector('.form-btn:not(.primary)').addEventListener('click', () => form.remove());
-  form.querySelector(`#form-submit-${slugify(section)}`).addEventListener('click', async () => {
+  form.querySelector(`#form-submit-${slugId}`).addEventListener('click', async () => {
     const text = form.querySelector('textarea').value.trim();
-    const priority = form.querySelector('select').value;
-    const owner = form.querySelector(`#form-owner-${slugify(section)}`)?.value.trim() || '';
+    const priority = form.querySelector(`#form-pri-${slugId}`).value;
+    const section = form.querySelector(`#form-section-${slugId}`).value;
     if (!text) return;
-    await submitAdd(section, { text, priority, context: '', assigned_to: owner });
+    await submitAdd(section, { text, priority, context: '', assigned_to: ownerName });
   });
 
-  const addBtn = col.querySelector('.col-add-btn');
-  addBtn.insertAdjacentElement('afterend', form);
+  const header = groupEl.querySelector('.owner-group-header');
+  header.insertAdjacentElement('afterend', form);
   form.querySelector('textarea').focus();
 }
 
@@ -593,10 +376,9 @@ function showUndoToast(taskText, section, index) {
     toast.className = 'toast hidden';
     await loadTasks();
     const sectionTasks = allTasks[section] || [];
-    const doneTasks = sectionTasks.filter(t => t.complete);
-    if (doneTasks.length > 0) {
-      const lastDone = doneTasks[doneTasks.length - 1];
-      await restoreTask(section, lastDone.index);
+    const done = sectionTasks.filter(t => t.complete);
+    if (done.length > 0) {
+      await restoreTask(section, done[done.length - 1].index);
     }
   });
 
@@ -613,14 +395,11 @@ function showError(msg) {
   toastTimer = setTimeout(() => { toast.className = 'toast hidden'; }, 3000);
 }
 
-// Status dropdown removed in redesign - status management moved to edit modal
-
 // ---------------------------------------------------------------------------
 // Email Nudge
 // ---------------------------------------------------------------------------
 
 function showTaskNudgeOptions(assignedTo, org, taskText, section) {
-  // Close any existing dropdowns
   document.querySelectorAll('.task-nudge-dropdown').forEach(d => d.remove());
 
   if (!assignedTo || assignedTo.trim() === '') {
@@ -628,7 +407,6 @@ function showTaskNudgeOptions(assignedTo, org, taskText, section) {
     return;
   }
 
-  // Create dropdown
   const dropdown = document.createElement('div');
   dropdown.className = 'task-nudge-dropdown';
   dropdown.innerHTML = `
@@ -637,7 +415,6 @@ function showTaskNudgeOptions(assignedTo, org, taskText, section) {
     <div class="task-nudge-option" data-template="new">New assignment</div>
   `;
 
-  // Position dropdown
   dropdown.style.position = 'fixed';
   dropdown.style.top = (event.clientY + 4) + 'px';
   dropdown.style.left = event.clientX + 'px';
@@ -645,7 +422,6 @@ function showTaskNudgeOptions(assignedTo, org, taskText, section) {
 
   document.body.appendChild(dropdown);
 
-  // Handle option clicks
   dropdown.querySelectorAll('.task-nudge-option').forEach(opt => {
     opt.addEventListener('click', (e) => {
       e.stopPropagation();
@@ -655,7 +431,6 @@ function showTaskNudgeOptions(assignedTo, org, taskText, section) {
     });
   });
 
-  // Close on outside click
   setTimeout(() => {
     document.addEventListener('click', closeNudgeDropdown);
   }, 0);
@@ -669,7 +444,6 @@ function showTaskNudgeOptions(assignedTo, org, taskText, section) {
 }
 
 function buildTaskNudgeEmail(template, assignedTo, org, taskText, section) {
-  // Look up assignee's email from CONFIG
   const teamMember = CONFIG.team.find(m =>
     m.name.toLowerCase() === assignedTo.toLowerCase() ||
     assignedTo.toLowerCase().includes(m.name.toLowerCase()) ||
@@ -693,17 +467,14 @@ function buildTaskNudgeEmail(template, assignedTo, org, taskText, section) {
       subject = `Task Confirmation${orgContext}`;
       body = `Hey ${firstName},\n\nI wanted to confirm that you have this on your plate${orgContext}:\n\n${taskContext}\n\nLet me know if anything has changed or if you need support.\n\nThanks,\nOscar`;
       break;
-
     case 'followup':
       subject = `Status Check${orgContext}`;
       body = `Hey ${firstName},\n\nWanted to check in on the status of this${orgContext}:\n\n${taskContext}\n\nAny updates?\n\nThanks,\nOscar`;
       break;
-
     case 'new':
       subject = `New Task${orgContext}`;
       body = `Hey ${firstName},\n\nCan you please take this on${orgContext}:\n\n${taskContext}\n\nLet me know if you have any questions.\n\nThanks,\nOscar`;
       break;
-
     default:
       return;
   }

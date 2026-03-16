@@ -254,16 +254,6 @@
       </div>
     </div>
 
-    <!-- Section 2: Org Brief -->
-    <div class="card" id="org-brief-card">
-      <div class="card-body" id="org-brief">
-        <div class="brief-loading">
-          <div class="loading-pulse"></div>
-          <span>Loading brief...</span>
-        </div>
-      </div>
-    </div>
-
     <!-- Section 3: Contacts -->
     <div class="card">
       <div class="card-header">
@@ -363,6 +353,16 @@
       </div>
     </div>
 
+    <!-- Section 2: Org Brief -->
+    <div class="card" id="org-brief-card">
+      <div class="card-body" id="org-brief">
+        <div class="brief-loading">
+          <div class="loading-pulse"></div>
+          <span>Loading brief...</span>
+        </div>
+      </div>
+    </div>
+
     <!-- Section 3: Prospects -->
     <div class="card">
       <div class="card-header">
@@ -381,25 +381,6 @@
           </div>
           <button class="btn btn-primary btn-sm" onclick="addToOffering()">Add</button>
           <span class="error-msg" id="offering-error" style="display:none"></span>
-        </div>
-      </div>
-    </div>
-
-    <!-- Section 4: Notes -->
-    <div class="card">
-      <div class="card-header">
-        <span class="card-title">Notes</span>
-        <button class="btn btn-primary btn-sm" onclick="openAddNoteForm()">+ Add Note</button>
-      </div>
-      <div class="card-body">
-        <div id="notes-content"></div>
-        <div id="add-note-form" class="add-form" style="display:none">
-          <textarea id="new-note-text" rows="4" placeholder="Enter note..."
-            style="width:100%;padding:8px;border:1px solid #334155;border-radius:4px;font-size:13px;font-family:inherit;outline:none;background:#0f172a;color:#e2e8f0;resize:vertical;"></textarea>
-          <div style="display:flex;gap:8px;margin-top:8px;">
-            <button class="btn btn-primary btn-sm" onclick="submitNote()">Save</button>
-            <button class="btn btn-ghost btn-sm" onclick="closeAddNoteForm()">Cancel</button>
-          </div>
         </div>
       </div>
     </div>
@@ -423,7 +404,7 @@ let contacts = [];
 let prospects = [];
 let meetings = [];
 
-const EDITABLE_PROSPECT_FIELDS = ['stage', 'urgency', 'target', 'assigned_to', 'notes', 'closing'];
+const EDITABLE_PROSPECT_FIELDS = ['stage', 'urgency', 'target', 'assigned_to', 'closing'];
 const PROSPECT_DISPLAY_FIELDS = [
   { key: 'Stage', editable: true },
   { key: 'Urgency', editable: true },
@@ -431,7 +412,6 @@ const PROSPECT_DISPLAY_FIELDS = [
   { key: 'Primary Contact', editable: false },
   { key: 'Closing', editable: true },
   { key: 'Assigned To', editable: true },
-  { key: 'Notes', editable: true },
   { key: 'Last Touch', editable: false },
 ];
 const PROSPECT_DROPDOWNS = {
@@ -459,7 +439,6 @@ async function init() {
   renderContacts();
   renderProspects();
   renderOfferingDropdown();
-  renderNotes();
   loadMeetings();
   loadOrgBrief(data.saved_brief);
 }
@@ -567,53 +546,6 @@ function renderOrgProfile() {
 
   typeEl.onclick   = () => startOrgEdit('type',   typeEl);
   domainEl.onclick = () => startOrgEdit('domain', domainEl);
-}
-
-function renderNotes() {
-  const el = document.getElementById('notes-content');
-  const notesVal = orgData['Notes'] || '';
-  if (!notesVal) {
-    el.innerHTML = '<p class="muted">No notes yet.</p>';
-    return;
-  }
-  el.innerHTML = notesVal
-    .split('\n')
-    .map(line => line.trim()
-      ? `<p style="font-size:14px;color:#cbd5e1;line-height:1.6;margin-bottom:6px;">${escHtml(line)}</p>`
-      : '<div style="height:6px;"></div>'
-    )
-    .join('');
-}
-
-function openAddNoteForm() {
-  document.getElementById('add-note-form').style.display = 'block';
-  document.getElementById('new-note-text').value = '';
-  document.getElementById('new-note-text').focus();
-}
-
-function closeAddNoteForm() {
-  document.getElementById('add-note-form').style.display = 'none';
-}
-
-async function submitNote() {
-  const text = document.getElementById('new-note-text').value.trim();
-  if (!text) return;
-
-  const today = new Date().toISOString().slice(0, 10);
-  const newEntry = `[${today}] ${text}`;
-  const existing = orgData['Notes'] || '';
-  const combined = existing ? `${existing}\n\n${newEntry}` : newEntry;
-
-  const resp = await fetch(`/crm/api/org/${encodeURIComponent(ORG_NAME)}`, {
-    method: 'PATCH',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ notes: combined }),
-  });
-  if (resp.ok) {
-    orgData['Notes'] = combined;
-    renderNotes();
-    closeAddNoteForm();
-  }
 }
 
 function startOrgEdit(field, el) {

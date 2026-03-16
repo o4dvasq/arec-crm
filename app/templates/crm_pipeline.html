@@ -198,6 +198,14 @@
       vertical-align: middle;
     }
 
+    .task-owner-initials {
+      color: #60a5fa;
+      font-size: 11px;
+      font-weight: 600;
+      margin-right: 4px;
+      flex-shrink: 0;
+    }
+
     /* Context Menu */
     .ctx-menu {
       position: fixed;
@@ -1708,18 +1716,21 @@ function buildCellContent(col, p, idx) {
       const firstTask = allTasks[0];
       const firstText = firstTask.text || firstTask.task || '';
       const truncated = firstText.length > 50 ? firstText.slice(0, 50) + '…' : firstText;
+      const initials = getTaskOwnerInitials(firstTask.assigned_to);
 
       const badge = allTasks.length > 1
         ? `<span class="task-count-badge" onclick="showTaskPopover(event, ${escHtml(JSON.stringify(allTasks))})" title="Show all ${allTasks.length} tasks">+${allTasks.length - 1}</span>`
         : '';
 
-      return `<div class="tasks-cell">${badge}<span class="task-preview-text">${escHtml(truncated)}</span></div>`;
+      const initialsHtml = initials ? `<span class="task-owner-initials">${escHtml(initials)}</span>` : '';
+
+      return `<div class="tasks-cell">${badge}${initialsHtml}<span class="task-preview-text" style="cursor:pointer" data-text="${escHtml(firstText)}" data-priority="${escHtml(firstTask.priority || 'Med')}" data-owner="${escHtml(firstTask.assigned_to || '')}" data-section="${escHtml(firstTask.section || 'Fundraising - Me')}" data-index="${firstTask.index || 0}" data-org="${escHtml(p.org || '')}" onclick="event.stopPropagation(); openPipelineTaskEdit(this)">${escHtml(truncated)}</span></div>`;
     }
 
     case 'at_a_glance': {
       if (!val) return '<span style="color:#94a3b8">—</span>';
       const display = val.length > 60 ? val.slice(0, 60) + '…' : val;
-      return `<span title="${escHtml(val)}" style="color:#475569;font-style:italic">⚡ ${escHtml(display)}</span>`;
+      return `<span title="${escHtml(val)}" style="color:#94a3b8;font-style:italic">${escHtml(display)}</span>`;
     }
 
     case 'last_touch': {
@@ -1848,6 +1859,15 @@ function renderTable() {
   });
 
   tbody.innerHTML = html;
+}
+
+function getTaskOwnerInitials(assignedTo) {
+  if (!assignedTo || !assignedTo.trim()) return '';
+  const parts = assignedTo.trim().split(/\s+/);
+  if (parts.length >= 2) {
+    return '(' + parts[0].charAt(0).toUpperCase() + parts[1].charAt(0).toUpperCase() + ')';
+  }
+  return '(' + parts[0].charAt(0).toUpperCase() + '·)';
 }
 
 function escHtml(str) {

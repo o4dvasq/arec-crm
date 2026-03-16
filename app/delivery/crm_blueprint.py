@@ -13,7 +13,7 @@ from datetime import date, datetime
 from urllib.parse import quote as urlquote
 from flask import (
     Blueprint, jsonify, request, render_template,
-    redirect, url_for, abort, send_file,
+    redirect, url_for, abort, send_file, g,
 )
 
 _APP_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -67,7 +67,6 @@ def inject_search_index():
                 'name': p['org'],
                 'secondary': p['offering'],
                 'type': 'prospect',
-                'typeLabel': 'Prospect',
                 'url': f"/crm/prospect/{urlquote(p['offering'], safe='')}/{urlquote(p['org'], safe='')}/detail",
             })
         for person in load_all_persons():
@@ -75,7 +74,6 @@ def inject_search_index():
                 'name': person['name'],
                 'secondary': person.get('organization', ''),
                 'type': 'person',
-                'typeLabel': 'Person',
                 'url': f"/crm/people/{person['slug']}",
             })
         for org in load_organizations():
@@ -83,7 +81,6 @@ def inject_search_index():
                 'name': org['name'],
                 'secondary': '',
                 'type': 'org',
-                'typeLabel': 'Org',
                 'url': f"/crm/org/{urlquote(org['name'], safe='')}",
             })
         return {'search_index_json': json.dumps(entries)}
@@ -304,6 +301,7 @@ def prospect_detail(offering, org):
     if not prospect:
         abort(404)
     config = load_crm_config()
+    config['current_user'] = getattr(g, 'user', None) or os.environ.get('DEV_USER', 'Oscar Vasquez')
     urgent_raw = prospect.get('Urgent', '') or prospect.get('urgent', '')
     prospect['urgent_bool'] = str(urgent_raw).strip().lower() in ('yes', 'true', 'high', '1')
 
@@ -669,7 +667,7 @@ def api_prospects():
         excluded = {'8. Closed', '0. Not Pursuing', '0. Declined'}
         prospects = [p for p in prospects if p.get('Stage', '') not in excluded]
     tasks_by_org = load_tasks_by_org()
-    all_new_tasks = get_all_prospect_tasks()
+    all_new_tasks = get_all_tasks_for_dashboard()
     new_tasks_by_org: dict = {}
     for t in all_new_tasks:
         new_tasks_by_org.setdefault(t['org'], []).append(
