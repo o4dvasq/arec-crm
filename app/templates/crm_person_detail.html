@@ -145,6 +145,21 @@
             font-size: 0.9rem;
             font-style: italic;
         }
+        .contact-value.muted {
+            color: var(--muted);
+            font-style: italic;
+        }
+        .inline-edit-input {
+            background: var(--bg-primary);
+            border: 1px solid var(--accent);
+            border-radius: 4px;
+            color: var(--text);
+            padding: 0.25rem 0.5rem;
+            font-size: 0.95rem;
+            font-family: inherit;
+            width: 100%;
+            outline: none;
+        }
 
         /* PERSON CARD FIELDS */
         .person-fields {
@@ -514,6 +529,75 @@ async function saveProfileEdit() {
 }
 
 // ============================================
+// INLINE EDIT
+// ============================================
+function startInlineEdit(el, fieldKey) {
+    const currentText = el.textContent.trim();
+    const currentValue = currentText === '--' ? '' : currentText;
+    const input = document.createElement('input');
+    input.type = fieldKey === 'email' ? 'email' : 'text';
+    input.value = currentValue;
+    input.className = 'inline-edit-input';
+    input.dataset.field = fieldKey;
+    let saved = false;
+    input.addEventListener('blur', () => {
+        if (!saved) saveInlineEdit(el, input, fieldKey, currentValue);
+        saved = true;
+    });
+    input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') { saved = true; saveInlineEdit(el, input, fieldKey, currentValue); }
+        if (e.key === 'Escape') { saved = true; cancelInlineEdit(el, input, fieldKey, currentValue); }
+    });
+    el.replaceWith(input);
+    input.focus();
+    input.select();
+}
+
+async function saveInlineEdit(origEl, input, fieldKey, prevValue) {
+    const newValue = input.value.trim();
+
+    // Basic email validation
+    if (fieldKey === 'email' && newValue && !newValue.includes('@')) {
+        showInlineError(input, 'Invalid email address');
+        cancelInlineEdit(origEl, input, fieldKey, prevValue);
+        return;
+    }
+
+    try {
+        const resp = await fetch(`/crm/people/api/${PERSON_SLUG}/contact`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ [fieldKey]: newValue }),
+        });
+        if (!resp.ok) throw new Error('PATCH failed');
+        // Reload the full card to get fresh rendered state
+        const data = await (await fetch(`/crm/api/person-data?name=${enc(PERSON_NAME)}`)).json();
+        renderPersonCard(data);
+    } catch (err) {
+        console.error('Inline save failed:', err);
+        // Revert to previous value
+        input.replaceWith(origEl);
+        const errDiv = document.createElement('div');
+        errDiv.style.cssText = 'color:#ef4444;font-size:11px;grid-column:2;';
+        errDiv.textContent = 'Failed to save';
+        origEl.parentElement.appendChild(errDiv);
+        setTimeout(() => errDiv.remove(), 2000);
+    }
+}
+
+function cancelInlineEdit(origEl, input, fieldKey, prevValue) {
+    input.replaceWith(origEl);
+}
+
+function showInlineError(input, msg) {
+    const err = document.createElement('span');
+    err.style.cssText = 'color:#ef4444;font-size:11px;margin-left:6px;';
+    err.textContent = msg;
+    input.after(err);
+    setTimeout(() => err.remove(), 2000);
+}
+
+// ============================================
 // PERSON CARD
 // ============================================
 function renderPersonCard(data) {
@@ -522,7 +606,7 @@ function renderPersonCard(data) {
     const orgName = data.org_name || profile.company || '';
     const card = document.getElementById('person-card');
 
-    // Contact rows — only populated fields are rendered
+    // Contact rows — always render Company, Title, Email, Phone
     const contactRows = [];
     if (orgName) {
         contactRows.push(
@@ -530,24 +614,31 @@ function renderPersonCard(data) {
             `<span class="contact-value"><a href="/crm/org/${enc(orgName)}" class="page-subtitle-link">${esc(orgName)}</a></span>`
         );
     }
-    if (profile.title) {
-        contactRows.push(
-            `<span class="contact-label">Title</span>` +
-            `<span class="contact-value">${esc(profile.title)}</span>`
-        );
-    }
-    if (profile.email) {
-        contactRows.push(
-            `<span class="contact-label">Email</span>` +
-            `<span class="contact-value"><a href="mailto:${esc(profile.email)}">${esc(profile.email)}</a></span>`
-        );
-    }
-    if (profile.phone) {
-        contactRows.push(
-            `<span class="contact-label">Phone</span>` +
-            `<span class="contact-value"><a href="tel:${esc(profile.phone)}">${esc(profile.phone)}</a></span>`
-        );
-    }
+
+    // Always show these three fields; show "--" (muted, editable) when empty
+    const inlineFields = [
+        { label: 'Title', key: 'title', value: profile.title },
+        { label: 'Email', key: 'email', value: profile.email },
+        { label: 'Phone', key: 'phone', value: profile.phone },
+    ];
+    inlineFields.forEach(f => {
+        if (f.value) {
+            const display = f.key === 'email'
+                ? `<a href="mailto:${esc(f.value)}" onclick="event.stopPropagation()">${esc(f.value)}</a>`
+                : f.key === 'phone'
+                    ? `<a href="tel:${esc(f.value)}" onclick="event.stopPropagation()">${esc(f.value)}</a>`
+                    : esc(f.value);
+            contactRows.push(
+                `<span class="contact-label">${f.label}</span>` +
+                `<span class="contact-value" data-field="${f.key}" onclick="startInlineEdit(this, '${f.key}')" style="cursor:pointer">${display}</span>`
+            );
+        } else {
+            contactRows.push(
+                `<span class="contact-label">${f.label}</span>` +
+                `<span class="contact-value muted" data-field="${f.key}" onclick="startInlineEdit(this, '${f.key}')" style="cursor:pointer">--</span>`
+            );
+        }
+    });
 
     // Prospect connections
     let connectionsHtml = '';
@@ -572,17 +663,8 @@ function renderPersonCard(data) {
             </div>`;
     }
 
-    if (contactRows.length === 0 && !prospects.length) {
-        card.classList.add('hidden');
-        document.getElementById('person-fields').innerHTML = '';
-        return;
-    }
-
     card.classList.remove('hidden');
-    let html = '';
-    if (contactRows.length > 0) {
-        html += `<div class="contact-grid">${contactRows.join('')}</div>`;
-    }
+    let html = `<div class="contact-grid">${contactRows.join('')}</div>`;
     html += connectionsHtml;
     document.getElementById('person-fields').innerHTML = html;
 }

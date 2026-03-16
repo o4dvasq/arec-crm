@@ -587,6 +587,23 @@ def add_contact_to_index(org: str, slug: str) -> None:
 
     _write_file(index_path, '\n'.join(out))
 
+    # Auto-set Primary Contact on this org's prospects if none is set
+    _auto_set_primary_contact_for_org(org, slug)
+
+
+def _auto_set_primary_contact_for_org(org: str, slug: str) -> None:
+    """If this org's prospects have no Primary Contact, set the newly added contact as primary."""
+    person = load_person(slug)
+    if not person:
+        return
+    name = person.get('name', '')
+    if not name:
+        return
+    prospects = get_prospects_for_org(org)
+    for prospect in prospects:
+        if not prospect.get('Primary Contact', '').strip():
+            update_prospect_field(prospect['org'], prospect['offering'], 'Primary Contact', name)
+
 
 def ensure_contact_linked(name: str, org: str) -> None:
     """Ensure a Primary Contact name is linked to its org in contacts_index.

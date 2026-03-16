@@ -1191,14 +1191,14 @@
 - **Last Touch:** 2026-03-05
 
 ### U Penn Endowment
-- **Stage:** 4. Engaged
+- **Stage:** 0. Declined
 - **Target:** $100,000,000
-- **Primary Contact:**
-- **Closing:**
+- **Primary Contact:** 
+- **Closing:** 
 - **Urgent:** True
 - **Assigned To:** Anthony Albuquerque
 - **Notes:** VERY IMPORTANT REFERRAL — intro via Michael Wigrizer (Ira Lubert's contact at Belgravia). University of Pennsylvania endowment. Wigrizer to make the connection. 3/9: confirmed as high-priority Wigrizer referral.
-- **Last Touch:** 2026-03-09
+- **Last Touch:** 2026-03-16
 
 ### RXR Contacts
 - **Stage:** 3. Outreach
@@ -1273,7 +1273,7 @@
 ### Tim Phillips
 - **Stage:** 4. Engaged
 - **Target:** $0
-- **Primary Contact:** 
+- **Primary Contact:** Tim Phillips
 - **Closing:** 
 - **Urgent:** False
 - **Assigned To:** Oscar Vasquez
@@ -1377,14 +1377,14 @@
 - **Last Touch:** 2026-03-05
 
 ### Sutton Capital Group
-- **Stage:** 3. Presentation
+- **Stage:** 3. Outreach
 - **Target:** TBD
 - **Primary Contact:** Darren Sutton — dsutton@suttoncapitalgroup.com
-- **Closing:**
-- **Urgency:** Med
+- **Closing:** 
+- **Urgent:** False
 - **Assigned To:** Tony Avila
 - **Notes:** Tony called Darren today (2026-03-06); Fund II deck sent same day. Paige CC'd. Tony wants to "connect in person in the coming months." New prospect — warm intro, early stage.
-- **Last Touch:** 2026-03-06
+- **Last Touch:** 2026-03-16
 
 ### Bikaner Advisors
 - **Stage:** 3. Outreach
@@ -1492,7 +1492,7 @@
 ### Crestline Investors
 - **Stage:** 1. Prospect
 - **Target:** $0
-- **Primary Contact:** 
+- **Primary Contact:** John Cochran
 - **Closing:** 
 - **Urgent:** 
 - **Assigned To:** 
@@ -1599,20 +1599,20 @@
 - **Notes:** Materials sent 3/2: MH Co-Investment Overview. Call 3/3. Described as $350M co-invest, 20% LTV, 14% net IRR. Active Fund II prospect.
 - **Last Touch:** 2026-03-03
 
-### Teachers Retirement System of Texas (Texas Teachers)
+### Teachers Retirement System of Texas
 - **Stage:** 3. Outreach
 - **Target:** 
-- **Primary Contact:** 
+- **Primary Contact:** Lucas McNulty
 - **Closing:** 
 - **Urgent:** 
-- **Assigned To:** Tony Avila; Zach Reisner
+- **Assigned To:** Tony Avila
 - **Notes:** Materials sent ~1/19: Fund II (MH discussed). CRM note shows MH questions asked. Active Fund II prospect. Priority Texas LP.
-- **Last Touch:** 2026-01-19
+- **Last Touch:** 2026-03-16
 
 ### Future Fund
 - **Stage:** 3. Outreach
 - **Target:** 
-- **Primary Contact:** 
+- **Primary Contact:** Julia McArdle
 - **Closing:** 
 - **Urgent:** 
 - **Assigned To:** 
@@ -1622,7 +1622,7 @@
 ### Nomura
 - **Stage:** 1. Prospect
 - **Target:** 
-- **Primary Contact:** 
+- **Primary Contact:** Morgan Griff
 - **Closing:** 
 - **Urgent:** 
 - **Assigned To:** 
