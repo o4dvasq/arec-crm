@@ -553,6 +553,43 @@
 
 ---
 
+## 2026-03-16 — `/crm-update` Cowork Skill: 8-Step CRM Intelligence Cycle
+
+**Decision:** Implemented the `/crm-update` Cowork skill as a step-by-step instruction file at `~/.skills/skills/crm-update/SKILL.md`. The skill drives an 8-step interactive workflow: (1) load state, (2) process Overwatch queue, (3) 4-pass email scan, (4) calendar scan, (5) Tony's Excel deferred, (6) meeting summaries, (7) enrichment + stale flagging, (8) summary report.
+
+**Key implementation decisions:**
+
+1. **Skill-as-instructions, not a script** — Consistent with other skills in `~/.skills/`. The operations (MCP email/calendar calls, crm_reader.py writes) are orchestrated interactively. A Python script would require reimplementing MCP access patterns and would lose the interactive triage loop for unmatched items.
+
+2. **Queue takes highest priority (Step 2 before email scan)** — Overwatch queue items are already classified. Processing them first avoids double-counting: if an email was queued by Overwatch AND appears in the 4-pass email scan, the queue entry wins and the email scan skips it (overlap rule in Step 3d).
+
+3. **4 passes, not 5** — The existing `/email-scan` skill runs 5 passes (adds a CRM shared mailbox). `/crm-update` omits that pass for now. Reason: this is an incremental build; adding the 5th pass is a one-line addition when ready.
+
+4. **Tony's delegate access via `recipient:`/`sender:` params** — Tony's email accessed by filtering Oscar's MCP session by `recipient: tony@avilacapllc.com` and `sender: tony@avilacapllc.com`. No separate delegate session required. Confirmed working via the existing email-scan skill.
+
+5. **Omit `query` parameter on email search** — Passing `"*"` to `outlook_email_search` breaks the Microsoft 365 MCP connector. All email scan calls omit `query` entirely. Calendar search uses `query: "*"` (different connector behavior).
+
+6. **5 internal AREC domains, not 2** — Initial spec draft listed only `avilacapllc.com` and `avilacapital.com`. Audit found 3 more: `encorefunds.com` (Tony's alternate), `builderadvisorgroup.com`, `south40capital.com`. All 5 are in the skip rules.
+
+7. **`crm/ai_inbox_queue.md` created as empty skeleton** — File must exist for the skill to work on first run. Overwatch writes entries in queue format. The skill checks for the file and skips Step 2 if absent (defensive for early runs before Overwatch integration is live).
+
+8. **Idempotency via two dedup mechanisms** — Email scan: `email_log.json` messageIds. Queue processing: status check (never re-process `done`/`skipped` items). Calendar: check `crm/interactions.md` for existing entry with same org+date+type before writing a Scheduled Meeting.
+
+9. **Tony's Excel deferred, not removed** — Feature scaffolded as Step 5 with a config-gated skip. When `## Excel Tracker` appears in `crm/config.md`, the step activates. Keeps the skill design stable without requiring Oscar to track the Excel file path now.
+
+**Rejected approaches:**
+- Merging with `/email-scan` — email-scan enriches Overwatch `memory/people/` files; crm-update enriches CRM contacts. Different targets, different purposes. They run in different contexts (Overwatch vs. arec-crm).
+- Auto-creating CRM records without confirmation — All new org creation and contact creation requires Oscar's confirmation during interactive triage.
+
+**For the next designer:**
+- The queue format (`crm/ai_inbox_queue.md`) is a shared contract between Overwatch and arec-crm. If the format changes, update both `SPEC_crm-update-workflow.md` and the Overwatch ingress spec.
+- The skill is in `~/.skills/` (local machine), not in the arec-crm repo. It won't appear in git status. After machine switch, check that `~/.skills/skills/crm-update/SKILL.md` exists.
+- `crm/email_log.json` `lastScan` is `2026-03-11`. First run of `/crm-update` will scan the 5-day gap since then.
+
+**Impact:** `~/.skills/skills/crm-update/SKILL.md` (new), `crm/ai_inbox_queue.md` (new skeleton).
+
+---
+
 ## 2026-03-15 — CRM Markdown Cleanup: Revert to Markdown-Only Local App
 
 **Decision:** Stripped all PostgreSQL, Azure App Service, Entra ID, and multi-user infrastructure from the codebase. The app returns to a clean markdown-only local CRM backed by `crm_reader.py`.

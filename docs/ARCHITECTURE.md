@@ -1,6 +1,6 @@
 # Architecture
 
-> Last updated: 2026-03-15 (post crm-markdown-cleanup)
+> Last updated: 2026-03-16 (post crm-update-skill)
 
 ---
 
@@ -24,7 +24,8 @@ crm/
   unmatched_review.json
   prospect_meetings.json
   prospect_notes.json
-contacts/              # 211 contact profiles (one .md per person)
+  ai_inbox_queue.md    # Shared queue: Overwatch writes pending items; /crm-update processes them
+contacts/              # 213 contact profiles (one .md per person)
 projects/              # Deal notes (arec-fund-ii.md)
 TASKS.md               # Personal + team task list (all sections)
 ```
@@ -81,7 +82,7 @@ Browser → Flask (dashboard.py)
 | Claude API | `briefing/generator.py`, `brief_synthesizer.py` via `crm_blueprint.py` | Active |
 | MS Graph (email/calendar) | `auth/graph_auth.py` + `sources/ms_graph.py` | Skill-only (not in Flask app) |
 | Notion | Claude Desktop MCP | Skill-only |
-| Overwatch | `POST /crm/api/tasks` with `X-API-Key` | Decorator is passthrough; key check disabled |
+| Overwatch | `~/Dropbox/projects/overwatch/` — sister repo, port 3002 | Separate app; can read arec-crm data files by path, no shared Python modules |
 
 ---
 
@@ -111,10 +112,16 @@ Gracefully skips all Graph steps if `msal`/`ms_graph` import fails or token unav
 
 ---
 
-## Skills (Claude Desktop)
+## Cowork Skills (Claude Desktop via MCP)
 
-Not part of the Flask app. Operate via Claude Desktop + MCP tools.
-- `skills/email-scan.md` — uses `graph_auth.py`, `ms_graph.py`, `email_matching.py`
-- `skills/meeting-debrief.md` — uses Notion MCP
+Not part of the Flask app. Step-by-step instruction files stored at `~/.skills/skills/` (local machine, not in repo). Operate via Claude Desktop + MCP tools.
 
-Relevant files (`graph_auth.py`, `ms_graph.py`) are preserved in the repo for skill use.
+| Skill | Path | Purpose |
+|-------|------|---------|
+| `/crm-update` | `~/.skills/skills/crm-update/SKILL.md` | CRM intelligence cycle: queue → email scan → calendar → meeting summaries → enrichment |
+| `/meeting-debrief` | `~/.skills/skills/meeting-debrief/SKILL.md` | Post-meeting debrief via Notion MCP |
+| `/productivity-update` | `~/.skills/skills/productivity-update/SKILL.md` | Overwatch daily briefing (personal) |
+
+Graph-relevant files preserved in repo for skill use:
+- `app/auth/graph_auth.py` — MSAL token acquisition
+- `app/sources/ms_graph.py` — MS Graph API calls

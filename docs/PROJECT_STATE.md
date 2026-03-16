@@ -6,7 +6,7 @@
 ---
 
 ## Last Updated
-2026-03-15 — CRM UI cleanup round 2: 5-page UX sweep removing dead UI, fixing brief persistence, and redesigning the Tasks Board as an owner-grouped Kanban.
+2026-03-16 — `/crm-update` Cowork skill implemented: 8-step CRM intelligence cycle covering Overwatch queue, 4-pass email scan, calendar, meeting summaries, enrichment, and stale org flagging.
 
 **Active branch:** `main`
 
@@ -56,15 +56,21 @@
 - `POST /crm/api/tasks` — Create task (markdown-backed, returns synthetic task object).
 
 ### Contact Profiles
-- `contacts/{name}.md` — 211 contact profile files (formerly `memory/people/`).
+- `contacts/{name}.md` — 213 contact profile files (formerly `memory/people/`).
 
 ### Test Suite
 - `app/tests/test_brief_synthesizer.py`, `test_email_matching.py`, `test_task_parsing.py`
 - **52 tests passing**. No DB fixtures. No DATABASE_URL required.
 
-### Skills (Claude Desktop via MCP — unaffected by cleanup)
-- `skills/email-scan.md`
+### Cowork Skills (Claude Desktop via MCP)
+- `~/.skills/skills/crm-update/SKILL.md` — **CRM intelligence update cycle** (8 steps: Overwatch queue, 4-pass email scan, calendar, meeting summaries, enrichment, stale org flagging). Main interactive workflow for keeping the CRM current.
+- `~/.skills/skills/meeting-debrief/SKILL.md` — Post-meeting debrief via Notion MCP.
+- `~/.skills/skills/productivity-update/SKILL.md` — Overwatch daily briefing cycle.
 - `app/auth/graph_auth.py`, `app/sources/ms_graph.py` — preserved for skill use
+
+### Queue + Email Infrastructure
+- `crm/ai_inbox_queue.md` — Shared queue between Overwatch and arec-crm. Overwatch writes `pending` entries; `/crm-update` processes them.
+- `crm/email_log.json` — Email scan audit trail. Dedup by `internetMessageId`. `lastScan` as of 2026-03-11.
 
 ### Sister Repo
 - `~/Dropbox/projects/overwatch/` — Personal productivity system (tasks, briefing, personal contacts). Separate repo, separate Flask app on port 3002.
@@ -73,13 +79,13 @@
 
 ## What Was Just Completed
 
-**SPEC_crm-ui-cleanup-round2 + SPEC_prospect-detail-cleanup (2026-03-15)**
+**SPEC_crm-update-workflow.md — `/crm-update` Cowork skill (2026-03-16)**
 
-- **Pipeline**: Owner initials prepended to task text in blue; clicking task text opens task-edit modal with `stopPropagation`; at-a-glance color fixed to `#94a3b8`, lightning bolt removed.
-- **Prospect Detail**: Quick Actions card (Add Task / Add Quick Note) fully deleted; brief no longer shows loading spinner on page load; notes author field removed and replaced with auto-set `CURRENT_USER` constant injected by `prospect_detail` route.
-- **Org Detail**: Notes section (Section 4) completely removed from HTML and JS; Contacts card moved above Relationship Brief; `'notes'` removed from `EDITABLE_PROSPECT_FIELDS` and `PROSPECT_DISPLAY_FIELDS`.
-- **Person Detail**: Person Brief card and all related CSS/JS fully removed (`loadBrief`, `refreshBrief`, `showBriefLoading`, `showBriefError`, `submitPersonUpdate`, `cancelUpdate`, 9 functions total).
-- **Tasks Board**: Full rewrite to owner-grouped Kanban replacing the 3-column layout. `tasks.js` and `tasks.css` both rewritten from scratch.
+- **Spec audit pass** — Verified all 17 `crm_reader.py` dependency functions (line numbers + signatures), confirmed Tony's delegate mailbox in `crm/config.md`, identified the 5 internal AREC domains, documented the email-scan skill overlap.
+- **`crm/ai_inbox_queue.md` created** — Skeleton queue file. Overwatch will write entries; `/crm-update` processes them.
+- **`~/.skills/skills/crm-update/SKILL.md` implemented** — Full 8-step skill: queue consumption → 4-pass email scan → calendar scan → Excel (deferred) → meeting summaries → enrichment → stale org flagging → summary report.
+- **Skip rules corrected** — Added 3 missing internal domains (`encorefunds.com`, `builderadvisorgroup.com`, `south40capital.com`) and newsletter/automated-system skip rules aligned with the existing `/email-scan` skip list.
+- **Edge cases documented** — Duplicate interaction prevention, overlap handling between queue and email scan, first-run 14-day window batch processing, ambiguous meeting org handling.
 
 ---
 
@@ -93,9 +99,10 @@
 
 ## Next Up
 
-1. Remaining spec candidates: none currently in `docs/specs/` — check `docs/specs/future/` for next candidates
+1. Run `/crm-update` to validate the skill end-to-end (first live run)
 2. Clean up Personal section from arec-crm TASKS.md
 3. Update iPhone Shortcut file path from `inbox.md` (arec-crm) → `~/Dropbox/projects/overwatch/inbox.md`
+4. Check `docs/specs/future/` for next spec candidates
 
 **Local dev setup:**
 ```bash
@@ -119,3 +126,4 @@ python3.12 -m pytest app/tests/ -v  # 52 tests
 - `arec-mobile/` PWA — functional, not actively iterated
 - `prospect_meetings` — JSON file-backed (`crm/prospect_meetings.json`); no DB table
 - Overwatch cross-repo task display in arec-crm dashboard — out of scope per spec; future read-only integration
+- Tony's Excel pipeline tracker — no file found; `/crm-update` skips this step until path is configured in `crm/config.md`
