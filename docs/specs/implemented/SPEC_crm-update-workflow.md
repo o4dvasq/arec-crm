@@ -315,13 +315,24 @@ This is a Cowork skill (`/crm-update`), not a web UI feature. The interface is t
   │   ├── Read crm/email_log.json (lastScan + processed IDs)
   │   └── Read crm/ai_inbox_queue.md (pending items from Overwatch)
   │
-  ├── 2. Process Overwatch queue (highest priority — already classified)
-  │   ├── For each pending item:
+  ├── 2. Process queue (crm/ai_inbox_queue.md)
+  │   ├── Sort pending items: Priority: high first, then by Queued timestamp
+  │   │
+  │   ├── For each high-priority item (Source: crm-shared-mailbox, Priority: high):
+  │   │   ├── Display: "🔴 [ForwardedBy] forwarded: [Subject]"
+  │   │   ├── Show intent note (Summary field) prominently
+  │   │   ├── Verify org exists in CRM (Org field); if unknown: ask Oscar
+  │   │   ├── Create activity via append_interaction(), update contact
+  │   │   └── Mark as done/skipped with timestamp + CRM Action
+  │   │
+  │   ├── For each normal-priority item (Source: outlook-email etc., Priority: normal or absent):
+  │   │   ├── Display: "○ [Subject]"
   │   │   ├── Verify org exists in CRM
   │   │   ├── If yes: create activity via append_interaction(), update contact
   │   │   ├── If no: ask Oscar — "New org? Create? Skip?"
   │   │   └── Mark as done/skipped with timestamp + CRM Action
-  │   └── Report: "Processed 12 queue items: 10 activities created, 2 skipped"
+  │   │
+  │   └── Report: "Processed N queue items (K high-priority, M normal)"
   │
   ├── 3. Scan emails (4-pass)
   │   ├── Scan window: lastScan → now (cap 14 days; default 14d if first run)
