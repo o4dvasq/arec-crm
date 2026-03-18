@@ -17,6 +17,7 @@ PEOPLE_ROOT = os.path.join(PROJECT_ROOT, "contacts")
 TASKS_MD_PATH = os.path.join(PROJECT_ROOT, "TASKS.md")
 BRIEFS_PATH = os.path.join(CRM_ROOT, "briefs.json")
 PROSPECT_NOTES_PATH = os.path.join(CRM_ROOT, "prospect_notes.json")
+ORG_NOTES_PATH = os.path.join(CRM_ROOT, "org_notes.json")
 PROSPECT_MEETINGS_PATH = os.path.join(CRM_ROOT, "prospect_meetings.json")
 MEETINGS_PATH = os.path.join(CRM_ROOT, "meetings.json")
 
@@ -1316,6 +1317,97 @@ def get_all_prospect_tasks() -> list[dict]:
     return results
 
 
+def _normalize_priority(raw: str) -> str:
+    """Normalize various priority strings to Hi / Med / Lo."""
+    p = (raw or '').lower()
+    if p in ('hi', 'high'):
+        return 'Hi'
+    if p in ('lo', 'low'):
+        return 'Lo'
+    return 'Med'  # med, medium, normal, or anything unrecognized
+
+
+def get_tasks_grouped_by_prospect() -> list[dict]:
+    """Return open prospect tasks grouped by org, sorted by prospect target descending.
+
+    Each group: {'org': str, 'target': float, 'tasks': list[dict]}
+    Tasks within each group sorted Hi → Med → Lo.
+    """
+    all_tasks = [
+        t for t in get_all_prospect_tasks()
+        if t['status'] == 'open' and t.get('owner')
+    ]
+    prospects = load_prospects()
+    target_lookup: dict[str, float] = {}
+    for p in prospects:
+        key = p['org'].lower()
+        val = _parse_currency(str(p.get('Target', '') or ''))
+        if key not in target_lookup or val > target_lookup[key]:
+            target_lookup[key] = val
+
+    pri_order = {'hi': 0, 'med': 1, 'lo': 2, 'low': 2, 'high': 0,
+                 'medium': 1, 'normal': 1}
+    groups: dict[str, dict] = {}
+    for task in all_tasks:
+        org = task['org']
+        if org not in groups:
+            groups[org] = {
+                'org': org,
+                'target': target_lookup.get(org.lower(), 0.0),
+                'tasks': [],
+            }
+        t = dict(task)
+        t['priority'] = _normalize_priority(task['priority'])
+        groups[org]['tasks'].append(t)
+
+    for group in groups.values():
+        group['tasks'].sort(
+            key=lambda t: pri_order.get(t['priority'].lower(), 3)
+        )
+
+    return sorted(groups.values(), key=lambda g: g['target'], reverse=True)
+
+
+def get_tasks_grouped_by_owner() -> list[dict]:
+    """Return open prospect tasks grouped by owner, sorted by max prospect target descending.
+
+    Each group: {'owner': str, 'max_target': float, 'tasks': list[dict]}
+    Tasks within each group sorted Hi → Med → Lo.
+    """
+    all_tasks = [
+        t for t in get_all_prospect_tasks()
+        if t['status'] == 'open' and t.get('owner')
+    ]
+    prospects = load_prospects()
+    target_lookup: dict[str, float] = {}
+    for p in prospects:
+        key = p['org'].lower()
+        val = _parse_currency(str(p.get('Target', '') or ''))
+        if key not in target_lookup or val > target_lookup[key]:
+            target_lookup[key] = val
+
+    pri_order = {'hi': 0, 'med': 1, 'lo': 2, 'low': 2, 'high': 0,
+                 'medium': 1, 'normal': 1}
+    groups: dict[str, dict] = {}
+    for task in all_tasks:
+        owner = task['owner']
+        if owner not in groups:
+            groups[owner] = {'owner': owner, 'max_target': 0.0, 'tasks': []}
+        t = dict(task)
+        t['priority'] = _normalize_priority(task['priority'])
+        groups[owner]['tasks'].append(t)
+        org_target = target_lookup.get(task['org'].lower(), 0.0)
+        if org_target > groups[owner]['max_target']:
+            groups[owner]['max_target'] = org_target
+
+    for group in groups.values():
+        group['tasks'].sort(
+            key=lambda t: pri_order.get(t['priority'].lower(), 3)
+        )
+
+    return sorted(groups.values(), key=lambda g: g['max_target'], reverse=True)
+
+
 def add_prospect_task(org_name: str, text: str, owner: str,
                       priority: str = "Med", section: str = "IR / Fundraising") -> bool:
     """Append a new prospect task to TASKS.md under the specified section.
@@ -1841,7 +1933,7 @@ def _save_briefs(data: dict) -> None:
 
 
 def save_brief(brief_type: str, key: str, narrative: str, content_hash: str,
-               at_a_glance: str = '') -> None:
+               at_a_glance: str = '', generated_by: str = '') -> None:
     """Persist an AI-generated brief.
 
     Args:
@@ -1850,7 +1942,8 @@ def save_brief(brief_type: str, key: str, narrative: str, content_hash: str,
              for person use slug or name, for org use org name.
         narrative: the AI-generated markdown text
         content_hash: hash of the source data at generation time
-        at_a_glance: optional 10-word-max status line (prospect briefs only)
+        at_a_glance: optional status line or bullet points
+        generated_by: display name of the user who triggered the refresh
     """
     data = _load_briefs()
     bucket = data.setdefault(brief_type, {})
@@ -1861,6 +1954,7 @@ def save_brief(brief_type: str, key: str, narrative: str, content_hash: str,
         'generated_at': datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ'),
         # Preserve existing at_a_glance if no new one provided (auto-synthesis path)
         'at_a_glance': at_a_glance if at_a_glance else existing.get('at_a_glance', ''),
+        'generated_by': generated_by if generated_by else existing.get('generated_by', ''),
     }
     _save_briefs(data)
 
@@ -1917,6 +2011,51 @@ def save_prospect_note(org: str, offering: str, author: str, text: str) -> dict:
 
     os.makedirs(os.path.dirname(PROSPECT_NOTES_PATH), exist_ok=True)
     with open(PROSPECT_NOTES_PATH, 'w', encoding='utf-8') as f:
+        json.dump(data, f, indent=2, ensure_ascii=False)
+
+    return entry
+
+
+# ---------------------------------------------------------------------------
+# Org Notes Log
+# ---------------------------------------------------------------------------
+
+def load_org_notes(org_name: str) -> list:
+    """Load the freeform notes log for an organization.
+    Returns list of {'date': ISO str, 'author': str, 'text': str}, newest first."""
+    if not os.path.exists(ORG_NOTES_PATH):
+        return []
+    try:
+        with open(ORG_NOTES_PATH, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+        entries = data.get(org_name, [])
+        return list(reversed(entries))
+    except (json.JSONDecodeError, OSError):
+        return []
+
+
+def save_org_note(org_name: str, author: str, text: str) -> dict:
+    """Append a timestamped note entry to an org's notes log.
+    Returns the new entry dict {'date', 'author', 'text'}."""
+    now = datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ')
+    entry = {
+        'date': now,
+        'author': author.strip(),
+        'text': text.strip(),
+    }
+
+    data: dict = {}
+    if os.path.exists(ORG_NOTES_PATH):
+        try:
+            with open(ORG_NOTES_PATH, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+        except (json.JSONDecodeError, OSError):
+            data = {}
+
+    data.setdefault(org_name, []).append(entry)
+
+    os.makedirs(os.path.dirname(ORG_NOTES_PATH), exist_ok=True)
+    with open(ORG_NOTES_PATH, 'w', encoding='utf-8') as f:
         json.dump(data, f, indent=2, ensure_ascii=False)
 
     return entry

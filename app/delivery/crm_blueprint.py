@@ -38,7 +38,10 @@ from sources.crm_reader import (
     load_interactions, append_interaction,
     save_brief, load_saved_brief, load_all_briefs,
     load_prospect_notes, save_prospect_note,
+    load_org_notes, save_org_note,
     load_prospect_meetings, save_prospect_meeting, delete_prospect_meeting,
+    load_meetings, get_meeting, save_meeting, update_meeting, delete_meeting,
+    process_meeting_notes, approve_meeting_insight, dismiss_meeting_insight,
     append_person_email_history, append_org_email_history,
     discover_and_enrich_contact_emails, enrich_org_domain,
     find_person_by_email,
@@ -93,11 +96,20 @@ EDITABLE_FIELDS = {
 }
 
 ORG_BRIEF_SYSTEM = (
-    "You are a senior relationship intelligence analyst for Avila Real Estate Capital (AREC), "
-    "a private real estate credit fund manager. Write a concise 2-3 paragraph organizational "
-    "brief summarizing: who this organization is, their relationship with AREC, current status, "
-    "key contacts, and any open opportunities or risks. Be specific and actionable. "
-    "Write in plain prose — no headers, no bullets."
+    "You are a fundraising intelligence analyst for a real estate private equity firm "
+    "raising institutional capital. Generate a relationship brief for an organization "
+    "that may be considering multiple investment offerings.\n\n"
+    "Your brief MUST open with a sentence identifying which offerings the organization "
+    "is currently considering and at what stage/size.\n\n"
+    "Write in direct, specific prose. Use names, dates, and dollar amounts. No bullets "
+    "in the narrative — save structured info for at_a_glance. 2-4 paragraphs.\n\n"
+    "IMPORTANT: Respond with ONLY a valid JSON object — no preamble, no markdown fences — "
+    "in this exact format:\n"
+    '{"narrative": "<2-4 paragraph prose brief>", "at_a_glance": "<3-5 bullet points, newline-separated>"}\n\n'
+    "at_a_glance should be 3-5 concise bullet points separated by newlines. Example:\n"
+    "• Considering Fund II ($50M) and Mountain House co-invest ($10M)\n"
+    "• Primary contact: John Kim, CIO\n"
+    "• Last interaction: March 12 (email)"
 )
 
 
@@ -354,12 +366,19 @@ def api_prospect_brief(offering, org):
         brief_key = f"{org}::{offering}"
         saved = load_saved_brief('prospect', brief_key)
         prospect = raw_data.get('prospect', {})
+
+        # Add unified meetings data (replaces old upcoming_meetings and supplements meeting_summaries)
+        scheduled_meetings = load_meetings(org=org, offering=offering, status='scheduled', future_only=True)
+        past_meetings = load_meetings(org=org, offering=offering, status=['completed', 'reviewed'], past_only=True)
+
         return jsonify({
             **raw_data,
             'content_hash': content_hash,
             'saved_brief': saved,
             'relationship_brief': prospect.get('Relationship Brief', ''),
             'brief_refreshed': prospect.get('Brief Refreshed', ''),
+            'scheduled_meetings': scheduled_meetings,
+            'past_meetings': past_meetings,
         })
 
     # POST — synthesize and persist
@@ -805,11 +824,13 @@ def api_org_get(name):
     contacts = get_contacts_for_org(name)
     prospects = get_prospects_for_org(name)
     saved = load_saved_brief('org', name)
+    org_notes = load_org_notes(name)
     return jsonify({
         'org': org,
         'contacts': contacts,
         'prospects': prospects,
         'saved_brief': saved,
+        'org_notes': org_notes,
     })
 
 
@@ -841,65 +862,128 @@ def api_synthesize_org_brief():
     org_name = data.get('org', '').strip()
     if not org_name:
         return jsonify({'error': 'org required'}), 400
+
     org = get_organization(org_name) or {'name': org_name}
     contacts = get_contacts_for_org(org_name)
     prospects = get_prospects_for_org(org_name)
-    interactions = load_interactions(org=org_name, limit=10)
-    emails = get_emails_for_org(org_name)[:10]
+    interactions = load_interactions(org=org_name, limit=20)
+    emails = get_emails_for_org(org_name)[:20]
+    org_notes = load_org_notes(org_name)
+
     context_lines = [f"Organization: {org_name}"]
     if org.get('Type'):
         context_lines.append(f"Type: {org['Type']}")
     if org.get('Domain'):
         context_lines.append(f"Domain: {org['Domain']}")
-    if org.get('Notes'):
-        context_lines.append(f"Notes: {org['Notes']}")
+
     if contacts:
         context_lines.append(f"\nContacts ({len(contacts)}):")
         for c in contacts:
-            context_lines.append(f"  - {c.get('name', '')} ({c.get('role', '')})")
+            parts = [c.get('name', '')]
+            if c.get('role'):
+                parts.append(c['role'])
+            if c.get('email'):
+                parts.append(c['email'])
+            context_lines.append(f"  - {', '.join(p for p in parts if p)}")
+
     if prospects:
         context_lines.append(f"\nProspects ({len(prospects)}):")
         for p in prospects:
             context_lines.append(
-                f"  - {p.get('offering', '')} | Stage: {p.get('stage', '')} | "
-                f"Target: {p.get('target', '')}"
+                f"  - {p.get('offering', '')} | Stage: {p.get('Stage', p.get('stage', ''))} | "
+                f"Target: {p.get('Target', p.get('target', ''))} | "
+                f"Assigned To: {p.get('Assigned To', p.get('assigned_to', ''))} | "
+                f"Next Action: {p.get('Notes', p.get('notes', ''))}"
             )
+        # Include any cached prospect briefs for richer context
+        prospect_briefs = []
+        for p in prospects:
+            offering = p.get('offering', '')
+            pb = load_saved_brief('prospect', f"{org_name}::{offering}")
+            if pb and pb.get('narrative'):
+                prospect_briefs.append(f"  [{offering}]: {pb['narrative'][:400]}")
+        if prospect_briefs:
+            context_lines.append(f"\nProspect Briefs:")
+            context_lines.extend(prospect_briefs)
+
+    if org_notes:
+        context_lines.append(f"\nOrg Notes (newest first, {len(org_notes)} total):")
+        for n in org_notes[:10]:
+            context_lines.append(f"  - [{n.get('date', '')}] {n.get('author', '')}: {n.get('text', '')}")
+
     if interactions:
         context_lines.append(f"\nRecent Interactions ({len(interactions)}):")
-        for i in interactions[:5]:
+        for i in interactions[:20]:
             context_lines.append(f"  - [{i.get('date', '')}] {i.get('summary', '')}")
+
     if emails:
         context_lines.append(f"\nRecent Emails ({len(emails)}):")
-        for e in emails[:5]:
+        for e in emails[:20]:
             context_lines.append(
                 f"  - [{e.get('date', '')}] {e.get('subject', '')} — {e.get('summary', '')}"
             )
+
     context_block = "\n".join(context_lines)
     content_hash = hashlib.md5(context_block.encode()).hexdigest()[:12]
+    generated_by = (g.user or {}).get('display_name', '') if g.user else ''
+
+    narrative = ''
+    at_a_glance = ''
     try:
-        narrative, _ = call_claude_brief(
+        raw, _ = call_claude_brief(
             ORG_BRIEF_SYSTEM,
-            f"Generate an organizational brief for {org_name}.\n\n{context_block}",
-            max_tokens=800,
+            f"Generate an org brief for {org_name}.\n\n{context_block}",
+            max_tokens=1600,
             want_json=False,
         )
+        # Parse JSON response (ORG_BRIEF_SYSTEM includes the JSON instruction)
+        clean = raw.strip()
+        start = clean.find('{')
+        end = clean.rfind('}')
+        if start != -1 and end != -1 and end > start:
+            clean = clean[start:end + 1]
+        try:
+            parsed = json.loads(clean)
+            narrative = parsed.get('narrative', raw)
+            at_a_glance = (parsed.get('at_a_glance', '') or '').strip()
+        except (json.JSONDecodeError, AttributeError):
+            narrative = raw
     except Exception:
-        parts = [f"**{org_name}** is a {org.get('Type', 'organization')} in AREC's network."]
+        parts = [f"{org_name} is a {org.get('Type', 'organization')} in AREC's network."]
         if prospects:
-            p = prospects[0]
-            parts.append(
-                f"They are a prospect for {p.get('offering', 'Fund II')} "
-                f"(Stage: {p.get('stage', 'Unknown')})."
-            )
+            offerings = ', '.join(p.get('offering', '') for p in prospects if p.get('offering'))
+            if offerings:
+                parts.append(f"They are considering {offerings}.")
         if contacts:
-            names = ', '.join(c.get('name', '') for c in contacts[:3])
-            parts.append(f"Key contacts: {names}.")
+            names = ', '.join(c.get('name', '') for c in contacts[:3] if c.get('name'))
+            if names:
+                parts.append(f"Key contacts: {names}.")
         narrative = ' '.join(parts)
-    save_brief('org', org_name, narrative, content_hash)
+
+    save_brief('org', org_name, narrative, content_hash,
+               at_a_glance=at_a_glance, generated_by=generated_by)
     return jsonify({
         'narrative': narrative,
+        'at_a_glance': at_a_glance,
+        'generated_by': generated_by,
         'content_hash': content_hash,
     })
+
+
+# ---------------------------------------------------------------------------
+# Org Notes API
+# ---------------------------------------------------------------------------
+
+@crm_bp.route('/api/org/<path:org_name>/notes', methods=['POST'])
+def api_org_add_note(org_name):
+    """Append a timestamped note to an org's notes log."""
+    data = request.get_json(force=True)
+    text = (data.get('text') or '').strip()
+    if not text:
+        return jsonify({'error': 'text required'}), 400
+    author = (g.user or {}).get('display_name', 'Unknown') if g.user else 'Unknown'
+    entry = save_org_note(org_name, author, text)
+    return jsonify(entry), 201
 
 
 # ---------------------------------------------------------------------------
@@ -1384,3 +1468,132 @@ def api_followup_create():
     if not success:
         return jsonify({'error': 'Failed to write task'}), 500
     return jsonify({'ok': True}), 201
+
+
+# ---------------------------------------------------------------------------
+# Meetings — Page + API
+# ---------------------------------------------------------------------------
+
+@crm_bp.route('/meetings')
+def meetings_page():
+    config = load_crm_config()
+    config['current_user'] = getattr(g, 'user', None) or os.environ.get('DEV_USER', 'Oscar Vasquez')
+    return render_template('crm_meetings.html', config=config)
+
+
+@crm_bp.route('/api/meetings', methods=['GET'])
+def api_meetings_list():
+    """List meetings with optional filters: org, offering, status, future_only, past_only."""
+    org = request.args.get('org')
+    offering = request.args.get('offering')
+    status = request.args.get('status')
+    future_only = request.args.get('future_only', '').lower() == 'true'
+    past_only = request.args.get('past_only', '').lower() == 'true'
+
+    if status and status != 'all':
+        status_list = status.split(',')
+    else:
+        status_list = None
+
+    meetings = load_meetings(org=org, offering=offering, status=status_list,
+                             future_only=future_only, past_only=past_only)
+    return jsonify(meetings)
+
+
+@crm_bp.route('/api/meetings', methods=['POST'])
+@require_api_key_or_login
+def api_meetings_create():
+    """Create a new meeting."""
+    data = request.get_json(silent=True) or {}
+    org = data.get('org', '').strip()
+    offering = data.get('offering', '').strip()
+    meeting_date = data.get('meeting_date', '').strip()
+
+    if not org or not meeting_date:
+        return jsonify({'error': 'org and meeting_date are required'}), 400
+
+    meeting = save_meeting(
+        org=org,
+        offering=offering,
+        meeting_date=meeting_date,
+        meeting_time=data.get('meeting_time', ''),
+        title=data.get('title', ''),
+        attendees=data.get('attendees', ''),
+        source=data.get('source', 'manual'),
+        graph_event_id=data.get('graph_event_id'),
+        notes_raw=data.get('notes_raw'),
+        created_by=getattr(g, 'user', 'oscar'),
+    )
+    return jsonify(meeting), 201
+
+
+@crm_bp.route('/api/meetings/<meeting_id>', methods=['GET'])
+def api_meeting_detail(meeting_id):
+    """Get a single meeting by ID."""
+    meeting = get_meeting(meeting_id)
+    if not meeting:
+        abort(404)
+    return jsonify(meeting)
+
+
+@crm_bp.route('/api/meetings/<meeting_id>', methods=['PATCH'])
+@require_api_key_or_login
+def api_meeting_update(meeting_id):
+    """Update meeting fields."""
+    data = request.get_json(silent=True) or {}
+    meeting = update_meeting(meeting_id, **data)
+    if not meeting:
+        abort(404)
+    return jsonify(meeting)
+
+
+@crm_bp.route('/api/meetings/<meeting_id>', methods=['DELETE'])
+@require_api_key_or_login
+def api_meeting_delete(meeting_id):
+    """Delete a meeting."""
+    if delete_meeting(meeting_id):
+        return jsonify({'ok': True})
+    abort(404)
+
+
+@crm_bp.route('/api/meetings/<meeting_id>/notes', methods=['POST'])
+@require_api_key_or_login
+def api_meeting_add_notes(meeting_id):
+    """Attach notes to a meeting and optionally trigger AI processing."""
+    data = request.get_json(silent=True) or {}
+    notes_raw = data.get('notes_raw', '').strip()
+    process_ai = data.get('process_ai', False)
+
+    if not notes_raw:
+        return jsonify({'error': 'notes_raw is required'}), 400
+
+    meeting = update_meeting(meeting_id, notes_raw=notes_raw, status='completed')
+    if not meeting:
+        abort(404)
+
+    if process_ai:
+        meeting = process_meeting_notes(meeting_id)
+
+    return jsonify(meeting or get_meeting(meeting_id))
+
+
+@crm_bp.route('/api/meetings/<meeting_id>/insights/<insight_id>/approve', methods=['POST'])
+@require_api_key_or_login
+def api_meeting_insight_approve(meeting_id, insight_id):
+    """Approve a meeting insight — writes to prospect Notes."""
+    username = getattr(g, 'user', 'oscar')
+    meeting = approve_meeting_insight(meeting_id, insight_id, username)
+    if not meeting:
+        abort(404)
+    return jsonify(meeting)
+
+
+@crm_bp.route('/api/meetings/<meeting_id>/insights/<insight_id>/dismiss', methods=['POST'])
+@require_api_key_or_login
+def api_meeting_insight_dismiss(meeting_id, insight_id):
+    """Dismiss a meeting insight — does NOT write to prospect Notes."""
+    username = getattr(g, 'user', 'oscar')
+    meeting = dismiss_meeting_insight(meeting_id, insight_id, username)
+    if not meeting:
+        abort(404)
+    return jsonify(meeting)

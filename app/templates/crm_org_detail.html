@@ -146,6 +146,20 @@
     }
     .btn-brief-refresh:hover { border-color: #3b82f6; color: #60a5fa; }
 
+    /* ===== Brief At-A-Glance ===== */
+    .brief-glance-section { margin-bottom: 14px; }
+    .brief-glance-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #64748b; margin-bottom: 6px; }
+    .brief-glance-list { list-style: none; padding: 0; margin: 0; }
+    .brief-glance-list li { font-size: 13px; color: #94a3b8; padding: 2px 0 2px 14px; position: relative; }
+    .brief-glance-list li::before { content: '•'; position: absolute; left: 0; color: #475569; }
+    .brief-refreshed-ts { font-size: 11px; color: #64748b; margin-top: 12px; }
+
+    /* ===== Org Notes ===== */
+    .org-note-entry { padding: 10px 0; border-bottom: 1px solid #1e293b; }
+    .org-note-entry:last-child { border-bottom: none; }
+    .org-note-meta { font-size: 11px; color: #64748b; margin-bottom: 4px; font-weight: 500; }
+    .org-note-text { font-size: 13px; color: #cbd5e1; line-height: 1.5; }
+
     /* ===== Add Contact Panel ===== */
     .add-contact-panel {
       background: #1e293b;
@@ -326,30 +340,10 @@
     <div class="card">
       <div class="card-header">
         <span class="card-title">Meeting History</span>
-        <button class="btn btn-primary btn-sm" onclick="openAddMeetingForm()">+ Add Meeting</button>
       </div>
       <div class="card-body">
         <div id="meeting-list"></div>
-        <div id="add-meeting-form" class="add-form" style="display:none">
-          <div class="form-grid">
-            <div class="form-group">
-              <label>Date</label>
-              <input type="date" id="mtg-date">
-            </div>
-            <div class="form-group">
-              <label>Title</label>
-              <input type="text" id="mtg-title" placeholder="Meeting title">
-            </div>
-            <div class="form-group">
-              <label>Attendees</label>
-              <input type="text" id="mtg-attendees" placeholder="Oscar, Tony, ...">
-            </div>
-          </div>
-          <div style="display:flex;gap:8px;margin-top:8px;">
-            <button class="btn btn-primary btn-sm" onclick="submitMeeting()">Add</button>
-            <button class="btn btn-ghost btn-sm" onclick="closeAddMeetingForm()">Cancel</button>
-          </div>
-        </div>
+        <!-- Meeting creation removed — all meetings come from Graph calendar pull -->
       </div>
     </div>
 
@@ -385,6 +379,27 @@
       </div>
     </div>
 
+    <!-- Section 5: Org Notes -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">Notes</span>
+        <button class="btn btn-ghost btn-sm" id="btn-add-note" onclick="showAddNoteForm()">+ Add Note</button>
+      </div>
+      <div class="card-body">
+        <!-- Add Note inline form -->
+        <div id="add-note-form" style="display:none;margin-bottom:16px;">
+          <textarea id="note-textarea" rows="3" placeholder="Add a note..."
+            style="width:100%;padding:8px 10px;border:1px solid #334155;border-radius:4px;font-size:13px;font-family:inherit;outline:none;background:#0f172a;color:#e2e8f0;resize:vertical;"></textarea>
+          <div style="display:flex;gap:8px;margin-top:8px;align-items:center;">
+            <button class="btn btn-primary btn-sm" onclick="submitOrgNote()">Save</button>
+            <button class="btn btn-ghost btn-sm" onclick="hideAddNoteForm()">Cancel</button>
+            <span class="error-msg" id="note-error" style="display:none"></span>
+          </div>
+        </div>
+        <div id="org-notes-list"></div>
+      </div>
+    </div>
+
   </div>
 </div>
 
@@ -403,6 +418,7 @@ let orgData = {};
 let contacts = [];
 let prospects = [];
 let meetings = [];
+let orgNotes = [];
 
 const EDITABLE_PROSPECT_FIELDS = ['stage', 'urgency', 'target', 'assigned_to', 'closing'];
 const PROSPECT_DISPLAY_FIELDS = [
@@ -431,6 +447,7 @@ async function init() {
   orgData = data.org;
   contacts = data.contacts;
   prospects = data.prospects;
+  orgNotes = data.org_notes || [];
 
   document.getElementById('loading').style.display = 'none';
   document.getElementById('main-content').style.display = '';
@@ -441,6 +458,7 @@ async function init() {
   renderOfferingDropdown();
   loadMeetings();
   loadOrgBrief(data.saved_brief);
+  renderOrgNotes();
 }
 
 // ---------------------------------------------------------------------------
@@ -450,12 +468,11 @@ async function init() {
 async function loadOrgBrief(savedBrief) {
   // Use server-persisted brief if present
   if (savedBrief && savedBrief.narrative) {
-    renderOrgBrief(savedBrief.narrative, savedBrief.generated_at);
+    renderOrgBrief(savedBrief.narrative, savedBrief.at_a_glance, savedBrief.generated_at, savedBrief.generated_by);
     return;
   }
-  // No saved brief — auto-synthesize on first visit
-  showBriefLoading();
-  await _synthesizeOrgBrief();
+  // No saved brief — show empty state with refresh button
+  renderOrgBriefEmpty();
 }
 
 async function refreshOrgBrief() {
@@ -472,7 +489,7 @@ async function _synthesizeOrgBrief() {
     });
     if (!resp.ok) throw new Error('Synthesis failed');
     const synth = await resp.json();
-    renderOrgBrief(synth.narrative);
+    renderOrgBrief(synth.narrative, synth.at_a_glance, null, synth.generated_by);
   } catch (err) {
     renderOrgBriefError();
   }
@@ -487,24 +504,64 @@ function narrativeToHtml(text) {
     .join('');
 }
 
-function renderOrgBrief(narrative, generatedAt) {
-  const tsHtml = generatedAt
-    ? `<span class="brief-ts" title="Generated ${generatedAt}">
-         ${new Date(generatedAt).toLocaleDateString('en-US', {month:'short', day:'numeric'})}
-       </span>`
+function atAGlanceToHtml(text) {
+  if (!text) return '';
+  const lines = text.split('\n').map(l => l.trim()).filter(l => l);
+  if (!lines.length) return '';
+  const items = lines.map(l => {
+    const clean = l.replace(/^[•\-\*]\s*/, '');
+    return `<li>${escHtml(clean)}</li>`;
+  }).join('');
+  return `<ul class="brief-glance-list">${items}</ul>`;
+}
+
+function formatBriefAttribution(generatedAt, generatedBy) {
+  if (!generatedAt && !generatedBy) return '';
+  const parts = [];
+  if (generatedAt) {
+    try {
+      const d = new Date(generatedAt);
+      parts.push(d.toLocaleDateString('en-US', {month:'short', day:'numeric', year:'numeric'}));
+    } catch(_) { parts.push(generatedAt.slice(0, 10)); }
+  }
+  if (generatedBy) parts.push(`by ${generatedBy}`);
+  return parts.join(' ');
+}
+
+function renderOrgBrief(narrative, atAGlance, generatedAt, generatedBy) {
+  const glanceHtml = atAGlance ? `
+    <div class="brief-glance-section">
+      <div class="brief-glance-label">AT A GLANCE</div>
+      ${atAGlanceToHtml(atAGlance)}
+    </div>` : '';
+  const attribution = formatBriefAttribution(generatedAt, generatedBy);
+  const tsHtml = attribution
+    ? `<div class="brief-refreshed-ts">Last refreshed: ${escHtml(attribution)}</div>`
     : '';
   document.getElementById('org-brief').innerHTML = `
     <div class="brief-header">
-      <span class="brief-title">Relationship Brief ${tsHtml}</span>
+      <span class="brief-title">Org Brief</span>
       <button class="btn-brief-refresh" onclick="refreshOrgBrief()">⟳ Refresh</button>
     </div>
+    ${glanceHtml}
     <div class="brief-narrative">${narrativeToHtml(narrative)}</div>
+    ${tsHtml}
+  `;
+}
+
+function renderOrgBriefEmpty() {
+  document.getElementById('org-brief').innerHTML = `
+    <div class="brief-header">
+      <span class="brief-title">Org Brief</span>
+      <button class="btn-brief-refresh" onclick="refreshOrgBrief()">⟳ Refresh</button>
+    </div>
+    <div class="muted" style="padding:0.5rem 0">No org brief yet. Click Refresh to generate.</div>
   `;
 }
 
 function showBriefLoading() {
   document.getElementById('org-brief').innerHTML = `
-    <div class="brief-header"><span class="brief-title">Relationship Brief</span></div>
+    <div class="brief-header"><span class="brief-title">Org Brief</span></div>
     <div class="brief-loading">
       <div class="loading-pulse"></div>
       <span>Synthesizing intelligence...</span>
@@ -515,11 +572,71 @@ function showBriefLoading() {
 function renderOrgBriefError() {
   document.getElementById('org-brief').innerHTML = `
     <div class="brief-header">
-      <span class="brief-title">Relationship Brief</span>
+      <span class="brief-title">Org Brief</span>
       <button class="btn-brief-refresh" onclick="refreshOrgBrief()">Retry</button>
     </div>
     <div class="muted" style="padding:0.5rem 0">Brief generation unavailable.</div>
   `;
+}
+
+// ---------------------------------------------------------------------------
+// Org Notes
+// ---------------------------------------------------------------------------
+
+function renderOrgNotes() {
+  const list = document.getElementById('org-notes-list');
+  if (!list) return;
+  if (!orgNotes.length) {
+    list.innerHTML = '<p class="muted">No notes yet.</p>';
+    return;
+  }
+  list.innerHTML = orgNotes.map(n => {
+    const dateStr = n.date ? new Date(n.date).toLocaleDateString('en-US', {month:'short', day:'numeric', year:'numeric'}) : '';
+    return `
+      <div class="org-note-entry">
+        <div class="org-note-meta">${escHtml(dateStr)}${n.author ? ' · ' + escHtml(n.author) : ''}</div>
+        <div class="org-note-text">${escHtml(n.text)}</div>
+      </div>
+    `;
+  }).join('');
+}
+
+function showAddNoteForm() {
+  document.getElementById('add-note-form').style.display = 'block';
+  document.getElementById('btn-add-note').style.display = 'none';
+  document.getElementById('note-textarea').focus();
+}
+
+function hideAddNoteForm() {
+  document.getElementById('add-note-form').style.display = 'none';
+  document.getElementById('btn-add-note').style.display = '';
+  document.getElementById('note-textarea').value = '';
+  document.getElementById('note-error').style.display = 'none';
+}
+
+async function submitOrgNote() {
+  const text = document.getElementById('note-textarea').value.trim();
+  const errEl = document.getElementById('note-error');
+  errEl.style.display = 'none';
+  if (!text) {
+    errEl.textContent = 'Note cannot be empty.';
+    errEl.style.display = '';
+    return;
+  }
+  const resp = await fetch(`/crm/api/org/${encodeURIComponent(ORG_NAME)}/notes`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ text }),
+  });
+  if (resp.ok) {
+    const entry = await resp.json();
+    orgNotes.unshift(entry);
+    hideAddNoteForm();
+    renderOrgNotes();
+  } else {
+    errEl.textContent = 'Failed to save note.';
+    errEl.style.display = '';
+  }
 }
 
 function escHtml(str) {

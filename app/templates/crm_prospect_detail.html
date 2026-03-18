@@ -822,7 +822,7 @@
             </div>
         </div>
 
-        <!-- Relationship Brief (AI-synthesized, with caching) -->
+        <!-- Prospect Briefing (AI-synthesized, with caching) -->
         <div class="card" id="brief-card">
             <div id="relationship-brief">
             </div>
@@ -1194,7 +1194,7 @@
             : '';
         document.getElementById('relationship-brief').innerHTML = `
             <div class="brief-header">
-                <div class="section-title">Relationship Brief</div>
+                <div class="section-title">Prospect Briefing</div>
                 <button class="btn-refresh" onclick="refreshBrief()">⟳ Refresh</button>
             </div>
             <div class="brief-narrative">${narrativeToHtml(narrative)}</div>
@@ -1205,7 +1205,7 @@
     function showBriefPlaceholder() {
         document.getElementById('relationship-brief').innerHTML = `
             <div class="brief-header">
-                <div class="section-title">Relationship Brief</div>
+                <div class="section-title">Prospect Briefing</div>
                 <button class="btn-refresh" onclick="refreshBrief()">⟳ Generate Brief</button>
             </div>
             <div style="color:var(--muted);font-size:13px;padding:0.75rem 0;font-style:italic;">
@@ -1226,7 +1226,7 @@
     function showBriefLoading() {
         document.getElementById('relationship-brief').innerHTML = `
             <div class="brief-header">
-                <div class="section-title">Relationship Brief</div>
+                <div class="section-title">Prospect Briefing</div>
             </div>
             <div class="brief-loading">
                 <div class="loading-pulse"></div>
@@ -1238,7 +1238,7 @@
     function showBriefError() {
         document.getElementById('relationship-brief').innerHTML = `
             <div class="brief-header">
-                <div class="section-title">Relationship Brief</div>
+                <div class="section-title">Prospect Briefing</div>
                 <button class="btn-refresh" onclick="refreshBrief()">Retry</button>
             </div>
             <div style="color:var(--muted);font-size:13px;padding:1rem 0;">
