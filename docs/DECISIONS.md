@@ -677,3 +677,151 @@
 **Impact:** `app/templates/crm_person_detail.html` (CSS, `renderPersonCard()`, new inline edit functions), `app/sources/crm_reader.py` (`add_contact_to_index()` + new `_auto_set_primary_contact_for_org()`), `scripts/batch_primary_contact.py` (new), `crm/prospects.md` (1 record updated).
 
 ---
+
+## 2026-03-16 — Prospect Detail v2: AI Brief + Empty Field Hiding
+
+**Decision:** Completed `prospect-detail-v2-ai-brief.md` spec. The majority of the spec (AI synthesis infrastructure, server-side caching, collapsible sections, contacts merging, CSS badges) was already implemented in prior sessions. This session completed two remaining gaps: added `ANTHROPIC_API_KEY` to `app/.env`, and fixed prospect card empty field rendering.
+
+**Key implementation choices:**
+
+1. **Server-side brief caching over localStorage** — The spec called for localStorage keyed by `org + offering + content_hash`. The prior implementation used `crm/briefs.json` (server-side) instead. Decision: keep server-side approach. It's strictly better: survives browser clears, shared across machines, doesn't expose the content hash to the client, and allows server-side cache inspection. No change made.
+
+2. **Jinja2 `{% if %}` guards over JS hide logic** — Empty field hiding done in Jinja2 at render time, not in JS after load. This avoids flash of `—` on page load and keeps the HTML clean. The field-editable wrapper divs are only rendered when the field has data, which means empty fields aren't accessible via click-to-edit from the card — acceptable since the "Edit Prospect" button handles that.
+
+3. **Target `$0` treated as empty** — `{% if target_val and target_val != '$0' %}`. A $0 target is meaningless data equivalent to null; hiding it matches the spec's "no $0" rule.
+
+4. **`ANTHROPIC_API_KEY` in `app/.env` only** — Not added to shell rc or launchd. The Flask app loads `app/.env` via `python-dotenv` on startup. This keeps the key scoped to this app and visible only when inspecting the file.
+
+**For the next designer:** The At a Glance card (`#glance-card`) is hidden by default and only shown after a Refresh. It's populated by `at_a_glance` from the Claude API response (a short one-liner summary). If you regenerate the brief without `generate_glance: true`, the at-a-glance won't update. The Refresh button on the detail page always requests `generate_glance: false` (prose narrative only). To get a fresh at-a-glance, POST to `/crm/api/synthesize-brief` with `generate_glance: true`.
+
+**Impact:** `app/.env` (ANTHROPIC_API_KEY added), `app/templates/crm_prospect_detail.html` (5 prospect card fields wrapped in `{% if %}` guards).
+
+---
+
+## 2026-03-16 — Unified Meetings Object (meetings.json)
+
+**Decision:** Replaced the two legacy meeting stores (`crm/prospect_meetings.json` and `crm/meeting_history.md`) with a single unified `crm/meetings.json` backed by UUID-keyed meeting objects. Full CRUD API, two-tier dedup, status lifecycle (scheduled → completed → reviewed), and AI notes processing pipeline.
+
+**Rationale:** The legacy stores had no dedup, no status tracking, and split meeting data across two formats (JSON for scheduled, markdown for past). The calendar scan skill created duplicates every run. A unified model with Graph event ID dedup + fuzzy org+date matching eliminates this while supporting the full meeting lifecycle from scheduling through AI insight review.
+
+**Key implementation choices:**
+
+1. **UUID-based IDs** — Each meeting gets a `uuid4` string ID at creation. This replaces the timestamp-based IDs that `prospect_meetings.json` used, which were collision-prone and not addressable.
+
+2. **Two-tier dedup** — (a) Exact match on `graph_event_id` for calendar-synced meetings. (b) Fuzzy match on same org + date within ±1 day when the existing meeting is `scheduled` and the incoming has notes (attaches notes to the scheduled meeting). This covers the "calendar scan creates the meeting, debrief fills it in" workflow.
+
+3. **Auto-status transitions** — `load_meetings()` auto-transitions past `scheduled` meetings to `completed` on read. `save_meeting()` sets `completed` if `notes_raw` is provided. `_check_meeting_reviewed()` transitions to `reviewed` when all insights are approved/dismissed.
+
+4. **Insight approval writes to prospect Notes** — `approve_meeting_insight()` appends the insight text to the org's Notes section in `prospects.md`. This surfaces AI-extracted intelligence in the main pipeline view. Dismissed insights are simply marked and never written.
+
+5. **Removed "Add a Meeting" UI** — Meetings should only enter via Graph calendar scan (the `/crm-update` skill). The manual creation form was removed from both prospect detail and org detail pages. The POST API remains for skill use.
+
+6. **Migration script** — `scripts/migrate_meetings.py` ran once to convert 8 meetings from legacy stores. Old files renamed to `.bak`.
+
+**For the next designer:** The `crm/calendar_users.json` file lists email addresses to scan (Oscar + Tony). The calendar scan skill reads this to know whose calendars to pull. The `graph_event_id` field on meetings is critical for dedup — any calendar integration must set it.
+
+**Impact:** `app/sources/crm_reader.py` (~300 new lines: 12 new functions), `app/delivery/crm_blueprint.py` (11 new routes), `app/templates/crm_meetings.html` (new), `app/templates/crm_prospect_detail.html` (upcoming/past meetings, removed add-meeting form), `app/templates/crm_org_detail.html` (removed add-meeting), `app/templates/_nav.html` (Meetings tab), `crm/meetings.json` (new), `crm/calendar_users.json` (new), `scripts/migrate_meetings.py` (new), `app/tests/test_meetings.py` (14 tests), `docs/specs/implemented/SPEC_meetings-object.md` (moved from future/).
+
+---
+
+## 2026-03-16 — Pipeline Task Display: All Owner Initials + Clickable Popover Items
+
+**Decision:** Pipeline tasks column now shows ALL unique owner initials across a prospect's tasks (e.g., `(OV, TA)`) instead of just the first task's owner. Popover task items are clickable and open the task-edit modal directly.
+
+**Rationale:** The old behavior showed only the first task's owner, which was misleading for multi-owner prospects. Showing all initials gives a quick glance at who's involved. Making popover items clickable eliminates the extra click of navigating to prospect detail just to edit a task.
+
+**Impact:** `app/templates/crm_pipeline.html` (`getAllTaskOwnerInitials()`, `getTaskOwnerInitials()` refactored, `showTaskPopover()` updated with onclick handlers and data attributes).
+
+---
+
+## 2026-03-16 — Meeting Summary Filtering: Skip Placeholder Contact Names
+
+**Decision:** `find_meeting_summaries()` in `relationship_brief.py` now filters out placeholder contact names (tbd, n/a, unknown, none, empty, and strings ≤2 chars) before matching against meeting summary files.
+
+**Rationale:** Future Fund had "TBD" as a contact name, which matched inside every meeting summary file (since "tbd" appeared in various contexts). This caused all meetings to show under Future Fund's Meeting Summaries section. Filtering placeholders fixes false matches without changing the matching algorithm.
+
+**Impact:** `app/sources/relationship_brief.py` (`find_meeting_summaries()`), `app/sources/relationship_brief.py` (`merge_contacts_for_display()` — slug passthrough for contact linking).
+
+---
+
+## 2026-03-16 — Prospect Notes Cleanup: Batch Delete Transcript-Parsed Entries
+
+**Decision:** Deleted 13 broken notes from `crm/prospect_notes.json` that were individual sentences parsed from a meeting transcript (all dated 2026-03-09, all for "Future Fund"). Kept 3 legitimate manually-entered notes.
+
+**Rationale:** A prior session's meeting processing erroneously split a raw transcript into individual sentences and saved each as a separate note. These cluttered the Notes Log with unactionable fragments. Manual cleanup was the safest approach since no systematic fix could distinguish good notes from bad ones without human review.
+
+**Impact:** `crm/prospect_notes.json` (13 entries removed, 3 retained).
+
+---
+
+## 2026-03-18 — Org Brief: Self-Contained JSON Prompt, Not AT_A_GLANCE_JSON_SUFFIX
+
+**Decision:** `ORG_BRIEF_SYSTEM` in `crm_blueprint.py` embeds its own JSON format instruction (asking for 3-5 bullet points in `at_a_glance`). The route calls `call_claude_brief(..., want_json=False)` and parses the JSON response manually inline. `AT_A_GLANCE_JSON_SUFFIX` (used for prospect/person briefs) is NOT appended.
+
+**Rationale:** `AT_A_GLANCE_JSON_SUFFIX` specifies "10 words MAX" for `at_a_glance` — appropriate for prospect status lines ("Follow-up meeting scheduled for March 24"). Org briefs need 3-5 bullet points covering multiple offerings, contacts, and status. The two formats are incompatible. Rather than add a parameter to `call_claude_brief`, the org brief self-contains its format instruction, keeping the synthesis function unchanged and the distinction explicit.
+
+**Rejected:** Adding a `custom_json_suffix` parameter to `call_claude_brief`. Would generalize the function prematurely; the current pattern is clear enough with two callers.
+
+**For the next designer:** If a third brief type (e.g., person brief with bullets) needs a different `at_a_glance` format, add `want_json=False` + inline parse to that route too. Only extract to a shared parameter if 3+ types diverge.
+
+**Impact:** `app/delivery/crm_blueprint.py` (`ORG_BRIEF_SYSTEM`, `api_synthesize_org_brief`). No changes to `brief_synthesizer.py`.
+
+---
+
+## 2026-03-18 — Org Brief: Empty State Instead of Auto-Synthesis on First Visit
+
+**Decision:** The org detail page no longer auto-synthesizes the org brief on first visit. If no saved brief exists, it shows "No org brief yet. Click Refresh to generate." with the Refresh button. Auto-synthesis was removed.
+
+**Rationale:** The previous implementation called `_synthesizeOrgBrief()` automatically when no saved brief was found. This made a Claude API call on every first page visit — expensive and slow. The empty state respects intentionality: briefs are refreshed on demand when the user wants fresh intelligence. The Refresh button is prominent and the prompt is clear.
+
+**Impact:** `app/templates/crm_org_detail.html` (`loadOrgBrief()` no longer calls `_synthesizeOrgBrief()` on empty; added `renderOrgBriefEmpty()` function).
+
+---
+
+## 2026-03-18 — Org Notes: JSON File Mirroring Prospect Notes Pattern
+
+**Decision:** Org notes stored in `crm/org_notes.json` as `{ org_name: [entries] }` where each entry is `{date, author, text}`. `load_org_notes()` returns newest-first (reversed). `save_org_note()` appends to the array. Both functions in `crm_reader.py` mirror `load_prospect_notes` / `save_prospect_note` exactly.
+
+**Rationale:** The spec called for `org_notes` SQL table. This branch is markdown-only. The JSON pattern is already established for prospect notes and works identically. No migration script needed — file is created on first write.
+
+**Impact:** `app/sources/crm_reader.py` (new `ORG_NOTES_PATH`, `load_org_notes`, `save_org_note`). `crm/org_notes.json` created on first note.
+
+---
+
+## 2026-03-18 — save_brief: Added generated_by Field
+
+**Decision:** `save_brief()` in `crm_reader.py` gained an optional `generated_by: str = ''` parameter. The value is stored in `briefs.json` alongside `narrative`, `at_a_glance`, `content_hash`, and `generated_at`. Existing callers pass no `generated_by` (defaults to preserving previous value or empty string).
+
+**Rationale:** Org brief spec requires "Last refreshed: [date] by [user]" attribution. The user who clicked Refresh is `g.user['display_name']` in the route. Storing it alongside the brief in the same JSON entry avoids a separate lookup and keeps the brief self-contained.
+
+**For the next designer:** `generated_by` is now available on prospect and person briefs too (but never populated since those synthesis calls don't pass it). Wire it up if attribution is wanted there.
+
+**Impact:** `app/sources/crm_reader.py` (`save_brief` signature + storage), `app/delivery/crm_blueprint.py` (`api_synthesize_org_brief` passes `generated_by`).
+
+---
+
+## 2026-03-18 — Meetings Page: Two-Tab View (Past / Scheduled)
+
+**Decision:** Replaced the flat single-table meetings view with a two-tab layout (Past | Scheduled). All meetings are loaded in one fetch (`/crm/api/meetings` with no params) then partitioned client-side. Status dropdown and date range pickers removed; text search retained.
+
+**Rationale:** The old view defaulted to "Scheduled" via a `?status=scheduled` param — a server round-trip was needed to switch views. Client-side splitting loads all meetings once and partitions on tab switch with zero additional requests. The existing API already supported `future_only`/`past_only` params, but using them would require two fetches for a two-tab view.
+
+**Key implementation details:**
+
+1. **`getTodayPacific()` uses `en-CA` locale + `America/Los_Angeles` timezone** — `toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' })` returns a reliable `YYYY-MM-DD` string. `en-CA` locale is the reliable way to get ISO date format from the Intl API without manual string building.
+
+2. **`formatDate()` uses `new Date(year, month-1, day)` (local constructor, not ISO string parse)** — Parsing `YYYY-MM-DD` as an ISO string (`new Date(dateStr)`) interprets it as UTC midnight, which shifts the displayed date by one day in Pacific time. The local constructor avoids this.
+
+3. **Notes `<th>` visibility toggled via `setTab()` JS; Notes `<td>` cells only generated when `activeTab === 'past'`** — No server-side column switching needed. The colspan in empty-state rows is tab-aware (5 for Past, 4 for Scheduled).
+
+4. **Meeting detail modal is untouched** — Source and Status are still shown in the modal (removed from table list view only).
+
+**Rejected approaches:**
+- Using `?future_only` / `?past_only` API params — would require two fetches for the two-tab view.
+- URL hash tab state (`#past` / `#scheduled`) — not required by spec; `setTab()` is the single entry point so it's trivial to add later if needed.
+
+**For the next designer:** If URL-hash tab persistence is added, read the hash on page load and call `setTab(hash)` before `loadMeetings()`. The `setTab()` function is the sole entry point for tab switching (updates buttons, column visibility, and rerenders). Do not bypass it.
+
+**Impact:** `app/templates/crm_meetings.html` (sole file changed — frontend-only).
+
+---
