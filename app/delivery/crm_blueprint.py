@@ -32,6 +32,7 @@ from sources.crm_reader import (
     delete_prospect, load_meeting_history, add_meeting_entry,
     get_tasks_for_prospect as get_tasks_for_prospect_db,
     get_all_prospect_tasks as get_all_tasks_for_dashboard,
+    get_tasks_grouped_by_prospect, get_tasks_grouped_by_owner,
     add_prospect_task,
     complete_prospect_task,
     load_email_log, get_emails_for_org, find_email_by_message_id,
@@ -766,7 +767,22 @@ def api_patch_prospect_field():
 @crm_bp.route('/tasks')
 def crm_tasks_page():
     config = load_crm_config()
-    return render_template('crm_tasks.html', config=config)
+    active_view = request.args.get('view', 'prospect')
+    if active_view not in ('prospect', 'owner'):
+        active_view = 'prospect'
+    groups_by_prospect = get_tasks_grouped_by_prospect()
+    groups_by_owner = get_tasks_grouped_by_owner()
+    all_prospect_orgs = sorted({p['org'] for p in load_prospects()})
+    total_tasks = sum(len(g['tasks']) for g in groups_by_prospect)
+    return render_template(
+        'crm_tasks.html',
+        config=config,
+        active_view=active_view,
+        groups_by_prospect=groups_by_prospect,
+        groups_by_owner=groups_by_owner,
+        all_prospect_orgs=all_prospect_orgs,
+        total_tasks=total_tasks,
+    )
 
 
 @crm_bp.route('/api/tasks/dashboard', methods=['GET'])
@@ -803,7 +819,15 @@ def api_crm_tasks_create():
 @crm_bp.route('/api/tasks/complete', methods=['PATCH'])
 @require_api_key_or_login
 def api_crm_tasks_complete():
-    return jsonify({'ok': False, 'error': 'Task completion by ID requires a database. Use /crm/api/prospect/.../tasks to complete by org and text.'}), 501
+    data = request.get_json(force=True)
+    org = data.get('org', '').strip()
+    text = data.get('text', '').strip()
+    if not org or not text:
+        return jsonify({'ok': False, 'error': 'org and text are required'}), 400
+    ok = complete_prospect_task(org, text)
+    if not ok:
+        return jsonify({'ok': False, 'error': 'Task not found'}), 404
+    return jsonify({'ok': True})
 
 
 @crm_bp.route('/api/tasks/<int:task_id>', methods=['PATCH'])
