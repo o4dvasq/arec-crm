@@ -382,49 +382,35 @@
         }
         .show-more-btn:hover { color: var(--accent-hover); }
 
-        /* DEEP SCAN BUTTON + STATUS */
-        .btn-scan {
-            background: none;
-            border: 1px solid #475569;
-            color: var(--muted);
-            font-size: 11px;
-            padding: 3px 10px;
-            border-radius: 4px;
-            cursor: pointer;
-            transition: var(--transition);
-            white-space: nowrap;
-        }
-        .btn-scan:hover:not(:disabled) { border-color: #22c55e; color: #22c55e; }
-        .btn-scan:disabled { opacity: 0.5; cursor: default; }
-        .scan-status {
-            font-size: 11px;
-            padding: 3px 8px;
-            border-radius: 4px;
-            margin-left: 6px;
-        }
-        .scan-status.running { color: #60a5fa; }
-        .scan-status.success { color: #22c55e; }
-        .scan-status.error   { color: #ef4444; }
-
-        /* EMAIL HISTORY ROWS (reused from old template) */
-        .email-row {
-            display: grid;
-            grid-template-columns: 90px 1fr 150px;
+        /* EMAIL THREAD ROWS */
+        .thread-row {
+            display: flex;
+            align-items: flex-start;
             gap: 8px;
-            padding: 7px 0;
+            padding: 9px 0;
             border-bottom: 1px solid #1e293b;
             font-size: 13px;
             cursor: pointer;
             transition: var(--transition);
         }
-        .email-row:last-child { border-bottom: none; }
-        .email-row:hover { background: rgba(37,99,235,.05); }
-        .email-date-col { color: var(--muted); font-variant-numeric: tabular-nums; }
-        .email-subject-col { color: #60a5fa; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-        .email-from-col { color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-        .email-detail-row { display: none; padding: 0.75rem 0; border-bottom: 1px solid #1e293b; }
-        .email-detail-row.open { display: block; }
-        .email-detail-row .detail-summary { color: var(--text); font-size: 13px; line-height: 1.6; margin-bottom: 0.5rem; }
+        .thread-row:last-of-type { border-bottom: none; }
+        .thread-row:hover { background: rgba(37,99,235,.05); }
+        .thread-arrow { color: var(--muted); font-size: 10px; width: 12px; flex-shrink: 0; padding-top: 2px; }
+        .thread-row-content { flex: 1; min-width: 0; }
+        .thread-row-top { display: flex; align-items: center; gap: 8px; margin-bottom: 3px; }
+        .thread-subject { color: #60a5fa; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
+        .thread-count { color: #475569; font-size: 11px; white-space: nowrap; flex-shrink: 0; }
+        .thread-row-meta { color: var(--muted); font-size: 12px; }
+        .email-dir-badge { font-size: 11px; padding: 1px 5px; border-radius: 3px; margin-right: 2px; }
+        .email-dir-badge.sent { color: #34d399; background: rgba(52,211,153,.1); }
+        .email-dir-badge.received { color: #60a5fa; background: rgba(96,165,250,.1); }
+        .email-via { font-size: 11px; color: #475569; }
+        .thread-expanded { padding: 4px 0 4px 20px; border-bottom: 1px solid #1e293b; }
+        .thread-expanded.hidden { display: none; }
+        .email-thread-item { padding: 7px 0; border-bottom: 1px solid #0f172a; }
+        .email-thread-item:last-child { border-bottom: none; }
+        .email-thread-meta { color: var(--muted); font-size: 12px; margin-bottom: 4px; }
+        .email-thread-body { color: #cbd5e1; font-size: 13px; line-height: 1.5; margin-bottom: 4px; }
         .email-view-link { color: var(--accent); font-size: 12px; text-decoration: none; }
         .email-view-link:hover { color: var(--accent-hover); }
 
@@ -764,46 +750,58 @@
                     </div>
                 </div>
 
-                <!-- Org Type — always present -->
+                <!-- Org Type — only show if populated -->
+                {% if org_data.Type %}
                 <div class="field-editable" data-field="org_type" data-type="select" data-options="{{ config.org_types | join('||') }}">
                     <div class="field-label">Type</div>
-                    <div class="field-value">{{ org_data.Type or '—' }}</div>
+                    <div class="field-value">{{ org_data.Type }}</div>
                 </div>
+                {% endif %}
 
-                <!-- Primary Contact -->
+                <!-- Primary Contact — only show if populated -->
+                {% set primary_contact = prospect.get('Primary Contact', '').split(';')[0].strip() %}
+                {% if primary_contact %}
                 <div>
                     <div class="field-label">Primary Contact</div>
-                    <div class="field-value">{{ prospect.get('Primary Contact', '').split(';')[0].strip() or '—' }}</div>
+                    <div class="field-value">{{ primary_contact }}</div>
                 </div>
+                {% endif %}
 
-                <!-- Assigned To -->
+                <!-- Assigned To — only show if populated -->
+                {% if prospect.get('Assigned To') %}
                 <div class="field-editable" data-field="assigned_to" data-type="select" data-options="{{ config.team | map(attribute='name') | join('||') }}">
                     <div class="field-label">Assigned To</div>
-                    <div class="field-value">{{ prospect.get('Assigned To') or '—' }}</div>
+                    <div class="field-value">{{ prospect.get('Assigned To') }}</div>
                 </div>
+                {% endif %}
 
-                <!-- Target -->
+                <!-- Target — only show if populated and non-zero -->
+                {% set target_val = prospect.get('Target', '') %}
+                {% if target_val and target_val != '$0' %}
                 <div class="field-editable" data-field="target" data-type="text">
                     <div class="field-label">Target</div>
-                    <div class="field-value">{{ prospect.get('Target') or '—' }}</div>
+                    <div class="field-value">{{ target_val }}</div>
                 </div>
+                {% endif %}
 
-                <!-- Last Touch -->
+                <!-- Last Touch — only show if populated -->
+                {% if prospect.get('Last Touch') %}
                 <div>
                     <div class="field-label">Last Touch</div>
                     <div class="field-value">
-                        {% if prospect.get('Last Touch') %}
                         <span data-relative-date="{{ prospect['Last Touch'] }}">{{ prospect['Last Touch'] }}</span>
                         <span class="staleness-dot" data-stale-date="{{ prospect['Last Touch'] }}"></span>
-                        {% else %}—{% endif %}
                     </div>
                 </div>
+                {% endif %}
 
-                <!-- Closing -->
+                <!-- Closing — only show if populated -->
+                {% if prospect.get('Closing') %}
                 <div class="field-editable" data-field="closing" data-type="select" data-options="{{ config.closing_options | join('||') }}">
                     <div class="field-label">Closing</div>
-                    <div class="field-value">{{ prospect.get('Closing') or '—' }}</div>
+                    <div class="field-value">{{ prospect.get('Closing') }}</div>
                 </div>
+                {% endif %}
 
                 <!-- Urgent — only show if truly urgent -->
                 {% if prospect.urgent_bool %}
@@ -949,20 +947,16 @@
             <div id="upcoming-meetings-body">
                 <div class="notes-empty">No upcoming meetings scheduled.</div>
             </div>
-            <div class="upcoming-meeting-form">
-                <div class="upcoming-meeting-form-row">
-                    <input type="date" id="um-date" class="upcoming-meeting-input upcoming-meeting-input-date">
-                    <input type="time" id="um-time" class="upcoming-meeting-input upcoming-meeting-input-time" placeholder="Time">
-                    <input type="text" id="um-attendees" class="upcoming-meeting-input upcoming-meeting-input-attendees"
-                           placeholder="Attendees (e.g. Oscar, Trent, Scott)" maxlength="200">
-                </div>
-                <input type="text" id="um-purpose" class="upcoming-meeting-input upcoming-meeting-input-purpose"
-                       placeholder="Purpose / agenda" maxlength="300">
-                <div style="display:flex;gap:10px;align-items:center;">
-                    <span class="note-save-status hidden" id="um-status"></span>
-                    <button class="btn-add-note" id="btn-add-meeting" onclick="submitUpcomingMeeting()">Schedule Meeting</button>
-                </div>
+            <!-- Meeting creation removed — all meetings come from Graph calendar pull -->
+        </div>
+
+        <!-- Past Meetings (from unified meetings.json) -->
+        <div class="card hidden" id="past-meetings-card">
+            <div class="section-header">
+                <div class="section-title">Past Meetings</div>
+                <span class="section-count" id="past-meetings-count"></span>
             </div>
+            <div id="past-meetings-body"></div>
         </div>
 
         <!-- Email History (collapsible, starts collapsed) -->
@@ -972,13 +966,7 @@
                     <div class="section-title">Email History</div>
                     <span class="section-count" id="emails-count"></span>
                 </div>
-                <div style="display:flex;align-items:center;gap:6px;" onclick="event.stopPropagation()">
-                    <button class="btn-scan" id="deep-scan-btn" onclick="runDeepEmailScan()">
-                        ⟳ Deep Scan (90d)
-                    </button>
-                    <span class="scan-status hidden" id="scan-status"></span>
-                    <span class="collapsible-toggle" id="emails-toggle" onclick="toggleSection('emails')" style="cursor:pointer">▼</span>
-                </div>
+                <span class="collapsible-toggle" id="emails-toggle" onclick="toggleSection('emails')" style="cursor:pointer">▼</span>
             </div>
             <div class="collapsible-body collapsed" id="emails-body"></div>
         </div>
@@ -1116,7 +1104,8 @@
             renderMeetings(data.meeting_summaries);
             renderEmails(data.email_history);
             renderNotesLog(data.notes_log || []);
-            renderUpcomingMeetings(data.upcoming_meetings || []);
+            renderUpcomingMeetings(data.scheduled_meetings || data.upcoming_meetings || []);
+            renderPastMeetings(data.past_meetings || []);
 
             // Render At a Glance if available from saved brief
             if (data.saved_brief && data.saved_brief.at_a_glance) {
@@ -1378,12 +1367,36 @@
     // ============================================
     // MEETING SUMMARIES
     // ============================================
+    function stripMeetingHeaderLines(content) {
+        // Remove redundant H1 title, Date, Participants, Format, Source lines
+        // and leading HR (---) since these are already in the filename-derived title
+        const lines = content.split('\n');
+        let startIdx = 0;
+        for (let i = 0; i < Math.min(lines.length, 12); i++) {
+            const line = lines[i].trim();
+            if (line.startsWith('# ') ||
+                line.startsWith('**Date') ||
+                line.startsWith('**Participants') ||
+                line.startsWith('**Format') ||
+                line.startsWith('**Source') ||
+                line.startsWith('**Attendees') ||
+                line === '---' ||
+                line === '') {
+                startIdx = i + 1;
+            } else {
+                break;
+            }
+        }
+        return lines.slice(startIdx).join('\n');
+    }
+
     function renderMeetings(summaries) {
         if (!summaries || summaries.length === 0) return;
         const body = document.getElementById('meetings-body');
         body.innerHTML = summaries.map((ms, i) => {
             const title = parseFilenameToTitle(ms.filename);
-            const contentHtml = renderMarkdown(ms.content);
+            const strippedContent = stripMeetingHeaderLines(ms.content);
+            const contentHtml = renderMarkdown(strippedContent);
             const id = `meeting-${i}`;
             return `<div class="meeting-item">
                 <div class="meeting-date-title">${esc(title)}</div>
@@ -1437,44 +1450,111 @@
     }
 
     // ============================================
-    // EMAIL HISTORY
+    // EMAIL HISTORY (THREAD-GROUPED)
     // ============================================
     function renderEmails(emails) {
+        const countEl = document.getElementById('emails-count');
+        const card = document.getElementById('emails-card');
+        card.classList.remove('hidden');
+
         if (!emails || emails.length === 0) {
-            document.getElementById('emails-count').textContent = '0';
-            document.getElementById('emails-card').classList.remove('hidden');
+            countEl.textContent = '0';
             return;
         }
-        const body = document.getElementById('emails-body');
-        body.innerHTML = emails.map((e, i) => {
-            const detailId = `email-detail-${i}`;
-            // Extract first name from delegate mailbox for "via Tony" indicator
-            let viaBadge = '';
-            if (e.mailbox && e.mailbox.includes('@')) {
-                const localPart = e.mailbox.split('@')[0];
-                const firstName = localPart.charAt(0).toUpperCase() + localPart.slice(1);
-                viaBadge = ` <span style="font-size:10px;color:#94a3b8;font-weight:normal;">via ${firstName}</span>`;
+
+        countEl.textContent = emails.length;
+
+        // Group by conversationId; emails with null/missing conversationId are ungrouped
+        const threadMap = {};
+        const threadOrder = [];
+        emails.forEach(e => {
+            const cid = e.conversationId || null;
+            const key = cid || `__no_conv__${e.messageId || Math.random()}`;
+            if (!threadMap[key]) {
+                threadMap[key] = { conversationId: cid, emails: [] };
+                threadOrder.push(key);
             }
-            return `<div class="email-row" onclick="toggleEmailDetail('${detailId}')">
-                <span class="email-date-col">${esc(e.date || '')}</span>
-                <span class="email-subject-col">${esc(e.subject || '')}</span>
-                <span class="email-from-col">${esc(e.fromName || e.from || '')}${viaBadge}</span>
+            threadMap[key].emails.push(e);
+        });
+
+        // Sort each thread newest first; sort threads by latest date descending
+        const threads = threadOrder.map(k => {
+            const t = threadMap[k];
+            t.emails.sort((a, b) =>
+                (b.timestamp || b.date || '') > (a.timestamp || a.date || '') ? 1 : -1
+            );
+            return t;
+        });
+        threads.sort((a, b) => {
+            const ad = a.emails[0]?.timestamp || a.emails[0]?.date || '';
+            const bd = b.emails[0]?.timestamp || b.emails[0]?.date || '';
+            return bd > ad ? 1 : -1;
+        });
+
+        const body = document.getElementById('emails-body');
+        body.innerHTML = threads.map((t, i) => {
+            const latest = t.emails[0];
+            const count = t.emails.length;
+            const threadId = `thread-${i}`;
+            const countLabel = count === 1 ? '1 email' : `${count} emails`;
+
+            const dirBadge = latest.direction
+                ? `<span class="email-dir-badge ${esc(latest.direction)}">${esc(latest.direction)}</span>`
+                : '';
+            const viaName = mailboxFirstName(latest.mailboxSource || latest.mailbox);
+            const viaLabel = viaName ? ` <span class="email-via">via ${esc(viaName)}</span>` : '';
+            const arrow = count > 1
+                ? `<span class="thread-arrow" id="${threadId}-arrow">▶</span>`
+                : `<span class="thread-arrow"></span>`;
+
+            const expandedItems = t.emails.map(e => {
+                const eDirBadge = e.direction
+                    ? `<span class="email-dir-badge ${esc(e.direction)}">${esc(e.direction)}</span>`
+                    : '';
+                const eVia = mailboxFirstName(e.mailboxSource || e.mailbox);
+                const eViaLabel = eVia ? ` <span class="email-via">via ${esc(eVia)}</span>` : '';
+                const outlookLink = e.outlookUrl
+                    ? `<a href="${esc(e.outlookUrl)}" target="_blank" rel="noopener" class="email-view-link">View in Outlook →</a>`
+                    : '';
+                return `<div class="email-thread-item">
+                    <div class="email-thread-meta">${esc(e.date || '')} ${eDirBadge}${eViaLabel} — ${esc(e.fromName || e.from || '')}</div>
+                    <div class="email-thread-body">${esc(e.summary || e.subject || '')}</div>
+                    ${outlookLink}
+                </div>`;
+            }).join('');
+
+            const expanded = `<div class="thread-expanded hidden" id="${threadId}-expanded">${expandedItems}</div>`;
+            const clickAttr = count > 1 ? `onclick="toggleThread('${threadId}')"` : '';
+
+            return `<div class="thread-row" ${clickAttr}>
+                ${arrow}
+                <div class="thread-row-content">
+                    <div class="thread-row-top">
+                        <span class="thread-subject">${esc(latest.subject || '')}</span>
+                        <span class="thread-count">${countLabel}</span>
+                    </div>
+                    <div class="thread-row-meta">${esc(latest.date || '')} ${dirBadge}${viaLabel}</div>
+                </div>
             </div>
-            <div class="email-detail-row" id="${detailId}">
-                <div class="detail-summary">${esc(e.summary || '')}</div>
-                ${e.outlookUrl ? `<a href="${esc(e.outlookUrl)}" target="_blank" rel="noopener" class="email-view-link">View in Outlook →</a>` : ''}
-            </div>`;
+            ${expanded}`;
         }).join('');
-        document.getElementById('emails-count').textContent = emails.length;
-        document.getElementById('emails-card').classList.remove('hidden');
-        // starts collapsed — don't set maxHeight
     }
 
-    function toggleEmailDetail(id) {
-        const el = document.getElementById(id);
-        if (!el) return;
-        el.classList.toggle('open');
-        // Re-measure parent
+    function mailboxFirstName(upn) {
+        if (!upn) return '';
+        const known = { ovasquez: 'Oscar', tavila: 'Tony', tony: 'Tony', oscar: 'Oscar' };
+        const local = upn.split('@')[0].toLowerCase();
+        return known[local] || (local.charAt(0).toUpperCase() + local.slice(1));
+    }
+
+    function toggleThread(threadId) {
+        const expanded = document.getElementById(`${threadId}-expanded`);
+        const arrow = document.getElementById(`${threadId}-arrow`);
+        if (!expanded) return;
+        const isHidden = expanded.classList.contains('hidden');
+        expanded.classList.toggle('hidden', !isHidden);
+        if (arrow) arrow.textContent = isHidden ? '▼' : '▶';
+        // Re-measure collapsible parent
         const body = document.getElementById('emails-body');
         if (!body.classList.contains('collapsed') && body.style.maxHeight) {
             body.style.maxHeight = body.scrollHeight + 'px';
@@ -1674,17 +1754,64 @@
 
         body.innerHTML = meetings.map(m => {
             const dateStr = formatMeetingDateTime(m.meeting_date, m.meeting_time);
+            const sourceBadge = m.source === 'calendar'
+                ? '<span style="font-size:10px;color:#60a5fa;margin-left:6px">Calendar</span>'
+                : m.source === 'email'
+                ? '<span style="font-size:10px;color:#94a3b8;margin-left:6px">Email</span>'
+                : '';
             return `<div class="upcoming-meeting-entry">
                 <div class="upcoming-meeting-info">
-                    <div class="upcoming-meeting-date">${esc(dateStr)}</div>
-                    ${m.purpose ? `<div class="upcoming-meeting-purpose">${esc(m.purpose)}</div>` : ''}
+                    <div class="upcoming-meeting-date">${esc(dateStr)}${sourceBadge}</div>
+                    ${m.title ? `<div class="upcoming-meeting-purpose">${esc(m.title)}</div>` : (m.purpose ? `<div class="upcoming-meeting-purpose">${esc(m.purpose)}</div>` : '')}
                     ${m.attendees ? `<div class="upcoming-meeting-attendees">With: ${esc(m.attendees)}</div>` : ''}
                 </div>
                 <button class="upcoming-meeting-delete" title="Remove"
-                        onclick="deleteUpcomingMeeting(${esc(JSON.stringify(m.id))})">✕</button>
+                        onclick="deleteUpcomingMeeting('${esc(m.id)}')">✕</button>
             </div>`;
         }).join('');
         countEl.textContent = meetings.length;
+    }
+
+    function renderPastMeetings(meetings) {
+        // Render past meetings from the unified meetings.json model
+        if (!meetings || meetings.length === 0) return;
+        const card = document.getElementById('past-meetings-card');
+        const body = document.getElementById('past-meetings-body');
+        const countEl = document.getElementById('past-meetings-count');
+        if (!card || !body) return;
+
+        const limit = 3;
+        const hasMore = meetings.length > limit;
+        const shown = hasMore ? meetings.slice(0, limit) : meetings;
+
+        body.innerHTML = shown.map(m => {
+            const dateStr = formatMeetingDateTime(m.meeting_date, m.meeting_time);
+            const statusCls = m.status === 'reviewed' ? 'color:#4ade80' : 'color:#fbbf24';
+            const pendingCount = (m.insights || []).filter(i => i.status === 'pending').length;
+            let notesPreview = m.notes_summary ? m.notes_summary.slice(0, 100) + (m.notes_summary.length > 100 ? '…' : '') : 'No notes yet';
+            let insightsBadge = pendingCount > 0 ? `<span style="color:#fbbf24;font-size:11px;margin-left:6px">(${pendingCount} insights pending)</span>` : '';
+
+            return `<div class="upcoming-meeting-entry" style="cursor:pointer" onclick="window.open('/crm/meetings','_self')">
+                <div class="upcoming-meeting-info">
+                    <div class="upcoming-meeting-date">
+                        ${esc(dateStr)}
+                        <span class="badge" style="font-size:10px;${statusCls};margin-left:6px">${esc(m.status)}</span>
+                        ${insightsBadge}
+                    </div>
+                    ${m.title ? `<div class="upcoming-meeting-purpose">${esc(m.title)}</div>` : ''}
+                    <div style="color:#94a3b8;font-size:12px">${esc(notesPreview)}</div>
+                </div>
+            </div>`;
+        }).join('');
+
+        if (hasMore) {
+            body.innerHTML += `<div style="text-align:center;padding:8px">
+                <a href="/crm/meetings" style="color:#60a5fa;font-size:12px;text-decoration:none">Show all ${meetings.length} past meetings →</a>
+            </div>`;
+        }
+
+        countEl.textContent = meetings.length;
+        card.classList.remove('hidden');
     }
 
     function formatMeetingDateTime(dateStr, timeStr) {
@@ -1761,62 +1888,17 @@
         if (!confirm('Remove this upcoming meeting?')) return;
         try {
             const resp = await fetch(
-                `/crm/api/prospect/${enc(OFFERING)}/${enc(ORG)}/delete-meeting`,
-                {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ id: meetingId }),
-                }
+                `/crm/api/meetings/${encodeURIComponent(meetingId)}`,
+                { method: 'DELETE' }
             );
             if (!resp.ok) throw new Error('Delete failed');
             const briefResp = await fetch(`/crm/api/prospect/${enc(OFFERING)}/${enc(ORG)}/brief`);
             if (briefResp.ok) {
                 const data = await briefResp.json();
-                renderUpcomingMeetings(data.upcoming_meetings || []);
+                renderUpcomingMeetings(data.scheduled_meetings || data.upcoming_meetings || []);
             }
         } catch (err) {
             alert('Could not remove meeting — try again.');
-        }
-    }
-
-    // ============================================
-    // DEEP EMAIL SCAN
-    // ============================================
-    async function runDeepEmailScan() {
-        const btn = document.getElementById('deep-scan-btn');
-        const status = document.getElementById('scan-status');
-
-        btn.disabled = true;
-        status.className = 'scan-status running';
-        status.textContent = 'Scanning…';
-        status.classList.remove('hidden');
-
-        try {
-            const resp = await fetch(
-                `/crm/api/prospect/${enc(OFFERING)}/${enc(ORG)}/email-scan`,
-                { method: 'POST' }
-            );
-            const data = await resp.json();
-            if (!resp.ok) throw new Error(data.error || 'Scan failed');
-
-            status.className = 'scan-status success';
-            status.textContent = data.message || `+${data.added} emails found`;
-
-            // Refresh email list if new emails were found
-            if (data.added > 0) {
-                const briefResp = await fetch(
-                    `/crm/api/prospect/${enc(OFFERING)}/${enc(ORG)}/brief`
-                );
-                if (briefResp.ok) {
-                    const briefData = await briefResp.json();
-                    renderEmails(briefData.email_history);
-                }
-            }
-        } catch (err) {
-            status.className = 'scan-status error';
-            status.textContent = err.message || 'Scan failed';
-        } finally {
-            btn.disabled = false;
         }
     }
 

@@ -7,6 +7,7 @@ All downstream consumers import from here. No parsing logic elsewhere.
 import os
 import re
 import json
+import uuid
 from datetime import date, datetime, timedelta
 
 APP_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))  # .../app
@@ -17,6 +18,7 @@ TASKS_MD_PATH = os.path.join(PROJECT_ROOT, "TASKS.md")
 BRIEFS_PATH = os.path.join(CRM_ROOT, "briefs.json")
 PROSPECT_NOTES_PATH = os.path.join(CRM_ROOT, "prospect_notes.json")
 PROSPECT_MEETINGS_PATH = os.path.join(CRM_ROOT, "prospect_meetings.json")
+MEETINGS_PATH = os.path.join(CRM_ROOT, "meetings.json")
 
 # Field write order for prospects
 PROSPECT_FIELD_ORDER = [
@@ -1541,6 +1543,64 @@ def add_emails_to_log(emails: list[dict]) -> int:
     return added
 
 
+def get_emails_for_org_grouped(org_name: str) -> list[dict]:
+    """Return emails for an org grouped by conversationId.
+
+    Returns a list of thread dicts, each containing:
+      - conversationId: str | None
+      - emails: list[dict] (sorted newest first)
+      - count: int
+      - latest_date: str
+      - latest_subject: str
+      - latest_direction: str
+      - latest_mailbox_source: str
+
+    Threads sorted by most recent email date, descending.
+    Emails with no conversationId appear as single-email threads.
+    """
+    emails = get_emails_for_org(org_name)
+
+    thread_map: dict[str, list] = {}
+    ungrouped: list[dict] = []
+
+    for email in emails:
+        cid = email.get("conversationId")
+        if cid:
+            if cid not in thread_map:
+                thread_map[cid] = []
+            thread_map[cid].append(email)
+        else:
+            ungrouped.append(email)
+
+    threads = []
+    for cid, thread_emails in thread_map.items():
+        thread_emails.sort(key=lambda e: e.get("timestamp", ""), reverse=True)
+        latest = thread_emails[0]
+        threads.append({
+            "conversationId": cid,
+            "emails": thread_emails,
+            "count": len(thread_emails),
+            "latest_date": latest.get("date", ""),
+            "latest_subject": latest.get("subject", ""),
+            "latest_direction": latest.get("direction", ""),
+            "latest_mailbox_source": latest.get("mailboxSource", ""),
+        })
+
+    for email in ungrouped:
+        threads.append({
+            "conversationId": None,
+            "emails": [email],
+            "count": 1,
+            "latest_date": email.get("date", ""),
+            "latest_subject": email.get("subject", ""),
+            "latest_direction": email.get("direction", ""),
+            "latest_mailbox_source": email.get("mailboxSource", ""),
+        })
+
+    threads.sort(key=lambda t: t["latest_date"], reverse=True)
+    return threads
+
+
 def get_org_domains(prospect_only: bool = False) -> dict:
     """Return map of org name -> domain (e.g. 'NEPC' -> 'nepc.com').
     Extracted from the Domain field in organizations.md.
@@ -1933,3 +1993,340 @@ def delete_prospect_meeting(org: str, offering: str, meeting_id: str) -> bool:
     with open(PROSPECT_MEETINGS_PATH, 'w', encoding='utf-8') as f:
         json.dump(data, f, indent=2, ensure_ascii=False)
     return True
+
+
+# ---------------------------------------------------------------------------
+# Meetings — First-Class Object (unified meetings.json)
+# ---------------------------------------------------------------------------
+
+MEETING_STATUSES = ('scheduled', 'completed', 'reviewed')
+MEETING_SOURCES = ('calendar', 'email', 'manual')
+
+
+def _load_meetings_raw() -> list:
+    """Load all meetings from meetings.json. Returns list of dicts."""
+    if not os.path.exists(MEETINGS_PATH):
+        return []
+    try:
+        with open(MEETINGS_PATH, 'r', encoding='utf-8') as f:
+            return json.load(f)
+    except (json.JSONDecodeError, OSError):
+        return []
+
+
+def _save_meetings_raw(meetings: list) -> None:
+    """Write all meetings to meetings.json."""
+    os.makedirs(os.path.dirname(MEETINGS_PATH), exist_ok=True)
+    with open(MEETINGS_PATH, 'w', encoding='utf-8') as f:
+        json.dump(meetings, f, indent=2, ensure_ascii=False)
+
+
+def load_meetings(org: str = None, offering: str = None,
+                  status: str | list = None,
+                  future_only: bool = False, past_only: bool = False) -> list:
+    """Load meetings with optional filters.
+    Args:
+        org: Filter by organization name (case-insensitive)
+        offering: Filter by offering name
+        status: Single status string or list of statuses to include
+        future_only: Only meetings with meeting_date >= today
+        past_only: Only meetings with meeting_date < today
+    Returns list of meeting dicts, sorted by meeting_date (asc for future, desc for past).
+    """
+    meetings = _load_meetings_raw()
+    today = date.today().isoformat()
+
+    # Auto-transition: mark past 'scheduled' meetings as 'completed'
+    changed = False
+    for m in meetings:
+        if m.get('status') == 'scheduled' and m.get('meeting_date', '') < today:
+            if not m.get('notes_raw'):
+                m['status'] = 'completed'
+                m['updated_at'] = datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ')
+                changed = True
+    if changed:
+        _save_meetings_raw(meetings)
+
+    if org:
+        meetings = [m for m in meetings if m.get('org', '').lower() == org.lower()]
+    if offering:
+        meetings = [m for m in meetings if m.get('offering', '').lower() == offering.lower()]
+    if status:
+        statuses = [status] if isinstance(status, str) else status
+        meetings = [m for m in meetings if m.get('status') in statuses]
+    if future_only:
+        meetings = [m for m in meetings if m.get('meeting_date', '') >= today]
+    if past_only:
+        meetings = [m for m in meetings if m.get('meeting_date', '') < today]
+
+    # Sort: future meetings ascending, past meetings descending
+    if future_only:
+        meetings.sort(key=lambda m: m.get('meeting_date', ''))
+    else:
+        meetings.sort(key=lambda m: m.get('meeting_date', ''), reverse=True)
+
+    return meetings
+
+
+def get_meeting(meeting_id: str) -> dict | None:
+    """Get a single meeting by UUID."""
+    for m in _load_meetings_raw():
+        if m.get('id') == meeting_id:
+            return m
+    return None
+
+
+def save_meeting(org: str, offering: str, meeting_date: str,
+                 meeting_time: str = '', title: str = '',
+                 attendees: str = '', source: str = 'manual',
+                 graph_event_id: str = None, notes_raw: str = None,
+                 created_by: str = 'oscar') -> dict:
+    """Create a new meeting record. Enforces graph_event_id uniqueness
+    and fuzzy dedup (same org + date ±24h).
+    Returns the new or matched meeting dict."""
+    meetings = _load_meetings_raw()
+    now = datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ')
+
+    # Tier 1 dedup: graph_event_id exact match
+    if graph_event_id:
+        for m in meetings:
+            if m.get('graph_event_id') == graph_event_id:
+                return m  # Already exists
+
+    # Tier 2 dedup: same org + date within ±24h (only for notes without event ID)
+    if not graph_event_id and notes_raw:
+        match = _find_meeting_by_fuzzy(meetings, org, meeting_date)
+        if match:
+            # Attach notes to existing meeting
+            if notes_raw and not match.get('notes_raw'):
+                match['notes_raw'] = notes_raw
+                match['updated_at'] = now
+                if match.get('status') == 'scheduled':
+                    match['status'] = 'completed'
+                _save_meetings_raw(meetings)
+            return match
+
+    entry = {
+        'id': str(uuid.uuid4()),
+        'org': org,
+        'offering': offering,
+        'meeting_date': meeting_date.strip(),
+        'meeting_time': (meeting_time or '').strip(),
+        'title': (title or '').strip(),
+        'attendees': (attendees or '').strip(),
+        'graph_event_id': graph_event_id,
+        'source': source if source in MEETING_SOURCES else 'manual',
+        'status': 'scheduled',
+        'notes_raw': notes_raw,
+        'notes_summary': None,
+        'transcript_url': None,
+        'insights': [],
+        'created_by': created_by,
+        'created_at': now,
+        'updated_at': now,
+    }
+
+    # If notes provided, auto-set to completed
+    if notes_raw:
+        entry['status'] = 'completed'
+
+    meetings.append(entry)
+    _save_meetings_raw(meetings)
+    return entry
+
+
+def update_meeting(meeting_id: str, **fields) -> dict | None:
+    """Update fields on a meeting. Returns updated meeting or None."""
+    meetings = _load_meetings_raw()
+    for m in meetings:
+        if m.get('id') == meeting_id:
+            for key, val in fields.items():
+                if key != 'id':  # never overwrite id
+                    m[key] = val
+            m['updated_at'] = datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ')
+            _save_meetings_raw(meetings)
+            return m
+    return None
+
+
+def delete_meeting(meeting_id: str) -> bool:
+    """Delete a meeting by UUID. Returns True if found and removed."""
+    meetings = _load_meetings_raw()
+    new_meetings = [m for m in meetings if m.get('id') != meeting_id]
+    if len(new_meetings) == len(meetings):
+        return False
+    _save_meetings_raw(new_meetings)
+    return True
+
+
+def _find_meeting_by_fuzzy(meetings: list, org: str, meeting_date: str) -> dict | None:
+    """Fuzzy match: find an existing meeting for the same org
+    with a date within ±1 day."""
+    try:
+        target = datetime.strptime(meeting_date, '%Y-%m-%d')
+    except ValueError:
+        return None
+
+    for m in meetings:
+        if m.get('org', '').lower() != org.lower():
+            continue
+        try:
+            m_date = datetime.strptime(m.get('meeting_date', ''), '%Y-%m-%d')
+        except ValueError:
+            continue
+        if abs((m_date - target).days) <= 1:
+            return m
+    return None
+
+
+def approve_meeting_insight(meeting_id: str, insight_id: str,
+                            username: str = 'oscar') -> dict | None:
+    """Approve a meeting insight. Writes to prospect Notes field.
+    Returns updated meeting or None."""
+    meetings = _load_meetings_raw()
+    for m in meetings:
+        if m.get('id') != meeting_id:
+            continue
+        for insight in m.get('insights', []):
+            if insight.get('id') != insight_id:
+                continue
+            insight['status'] = 'approved'
+            insight['reviewed_by'] = username
+            insight['reviewed_at'] = datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ')
+
+            # Write approved insight to prospect Notes
+            prefix = f"[Meeting {m.get('meeting_date', '')}] "
+            notes_text = prefix + insight['text']
+            org = m.get('org', '')
+            offering = m.get('offering', '')
+            if org and offering:
+                prospect = get_prospect(org, offering)
+                if prospect:
+                    existing_notes = prospect.get('Notes', '')
+                    new_notes = (existing_notes + '\n' + notes_text).strip() if existing_notes else notes_text
+                    update_prospect_field(org, offering, 'notes', new_notes)
+
+            # Check if all insights are reviewed
+            _check_meeting_reviewed(m)
+            m['updated_at'] = datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ')
+            _save_meetings_raw(meetings)
+            return m
+    return None
+
+
+def dismiss_meeting_insight(meeting_id: str, insight_id: str,
+                            username: str = 'oscar') -> dict | None:
+    """Dismiss a meeting insight (does NOT write to prospect).
+    Returns updated meeting or None."""
+    meetings = _load_meetings_raw()
+    for m in meetings:
+        if m.get('id') != meeting_id:
+            continue
+        for insight in m.get('insights', []):
+            if insight.get('id') != insight_id:
+                continue
+            insight['status'] = 'dismissed'
+            insight['reviewed_by'] = username
+            insight['reviewed_at'] = datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ')
+            _check_meeting_reviewed(m)
+            m['updated_at'] = datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ')
+            _save_meetings_raw(meetings)
+            return m
+    return None
+
+
+def _check_meeting_reviewed(meeting: dict) -> None:
+    """If all insights are approved or dismissed, set status to 'reviewed'."""
+    insights = meeting.get('insights', [])
+    if not insights:
+        return
+    if all(i.get('status') in ('approved', 'dismissed') for i in insights):
+        meeting['status'] = 'reviewed'
+
+
+def process_meeting_notes(meeting_id: str) -> dict | None:
+    """Run AI processing on meeting notes. Generates summary + insights.
+    Returns updated meeting or None.
+
+    Uses Claude API (same pattern as brief_synthesizer.py).
+    """
+    meeting = get_meeting(meeting_id)
+    if not meeting or not meeting.get('notes_raw'):
+        return None
+
+    try:
+        import anthropic
+    except ImportError:
+        return None
+
+    client = anthropic.Anthropic()
+    prompt = f"""Meeting: {meeting.get('title', 'Untitled')} with {meeting.get('org', '')} on {meeting.get('meeting_date', '')}
+Attendees: {meeting.get('attendees', 'Unknown')}
+
+NOTES:
+{meeting['notes_raw']}
+
+Return JSON only:
+{{
+  "summary": "2-3 paragraph narrative summary of the meeting",
+  "insights": [
+    "Specific actionable insight about this investor's interest, concerns, or next steps",
+    ...
+  ]
+}}
+Insights should be specific, concise (1-2 sentences each), and relevant to fundraising
+relationship management. Do not include generic observations. Max 5 insights."""
+
+    try:
+        response = client.messages.create(
+            model='claude-sonnet-4-6',
+            max_tokens=1000,
+            system="You are an analyst extracting intelligence from meeting notes for a real estate private equity fundraising CRM.",
+            messages=[{'role': 'user', 'content': prompt}],
+        )
+        content = response.content[0].text.strip()
+
+        # Parse JSON from response (handle markdown code blocks)
+        if '```' in content:
+            content = re.search(r'```(?:json)?\s*(.*?)\s*```', content, re.DOTALL)
+            content = content.group(1) if content else '{}'
+        result = json.loads(content)
+    except Exception:
+        # Fallback: no AI processing
+        result = {'summary': meeting['notes_raw'][:500], 'insights': []}
+
+    now = datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ')
+    insights = []
+    for text in result.get('insights', []):
+        insights.append({
+            'id': str(uuid.uuid4()),
+            'text': str(text),
+            'status': 'pending',
+            'reviewed_by': None,
+            'reviewed_at': None,
+            'created_at': now,
+        })
+
+    meetings = _load_meetings_raw()
+    for m in meetings:
+        if m.get('id') == meeting_id:
+            m['notes_summary'] = result.get('summary', '')
+            m['insights'] = insights
+            if m.get('status') == 'scheduled':
+                m['status'] = 'completed'
+            m['updated_at'] = now
+
+            # Write interaction log breadcrumb
+            append_interaction({
+                'date': m.get('meeting_date', date.today().isoformat()),
+                'org': m.get('org', ''),
+                'type': 'Meeting',
+                'offering': m.get('offering', ''),
+                'Subject': m.get('title') or 'Meeting',
+                'Summary': f"Meeting with {m.get('attendees', '')} — {(m.get('notes_summary') or 'Notes pending')[:100]}",
+                'Source': 'meeting',
+            })
+            break
+
+    _save_meetings_raw(meetings)
+    return get_meeting(meeting_id)

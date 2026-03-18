@@ -10,8 +10,7 @@ description: Scan Oscar's Archive + Sent Items AND Tony's delegate mailbox since
 - Automatically after every `/productivity:update` (default and `--comprehensive`)
 - Can also be triggered manually: "scan emails for CRM", "update email log"
 
-## Deep Scan (Per-Org, On-Demand)
-A separate 90-day deep scan per org is available via the **⟳ Deep Scan (90d)** button on each prospect's detail page in the dashboard. Use that for thorough historical backfill. This skill handles the incremental daily scan only.
+This skill handles the incremental daily scan only. For historical backfill, use `scripts/backfill_emails.py`.
 
 ## Prerequisites
 - CRM context loaded (organizations with Domain field, contacts_index, people files)
@@ -33,10 +32,13 @@ A separate 90-day deep scan per org is available via the **⟳ Deep Scan (90d)**
 - If `lastScan` exists: scan from `lastScan` date to now
 - Cap at 14 days maximum to keep incremental scans fast
 
-### Step 3: Broad Scan (Four Passes)
+### Step 3: Broad Scan (Five Passes)
 Do a single broad pull per mailbox — do NOT query per org/domain. Let the matching step handle attribution.
 
+Each pass has a known `mailboxSource` (the UPN being scanned) and `direction` (sent or received). Capture `conversationId` from each email — it is returned by `outlook_email_search` results and by `read_resource`. These three values must be included in every log entry (see Step 5).
+
 **Pass 1 — Oscar Archive (incoming):**
+- `mailboxSource`: `ovasquez@avilacapllc.com` | `direction`: `received`
 ```
 outlook_email_search(
   folderName: "Archive",
@@ -47,6 +49,7 @@ outlook_email_search(
 ⚠️ Do NOT include a `query` parameter — omitting it returns all emails. Using `"*"` causes a syntax error with this tool.
 
 **Pass 2 — Oscar Sent Items (outgoing):**
+- `mailboxSource`: `ovasquez@avilacapllc.com` | `direction`: `sent`
 ```
 outlook_email_search(
   folderName: "Sent Items",
@@ -57,6 +60,8 @@ outlook_email_search(
 ⚠️ Same — omit `query` entirely.
 
 **Pass 3 — Tony Delegate (received):**
+- `mailboxSource`: `tavila@avilacapllc.com` | `direction`: `received`
+
 Oscar has delegate access to tony@avilacapllc.com. Scan emails Tony received from external contacts:
 ```
 outlook_email_search(
@@ -67,6 +72,8 @@ outlook_email_search(
 ```
 
 **Pass 4 — Tony Delegate (sent):**
+- `mailboxSource`: `tavila@avilacapllc.com` | `direction`: `sent`
+
 Scan emails Tony sent to external contacts:
 ```
 outlook_email_search(
@@ -76,7 +83,15 @@ outlook_email_search(
 )
 ```
 
-Collect all email metadata (subject, sender, recipients, date, messageId URI) across all four passes.
+**Pass 5 — CRM Shared Mailbox (`crm@avilacapllc.com`):**
+Run `drain_inbox.py` (or `make inbox`) to drain the shared mailbox. This is NOT an inline scan — it routes items to `crm/ai_inbox_queue.md` for processing by `/crm-update` Step 2:
+```
+python3 app/drain_inbox.py
+# or: make inbox
+```
+Items written to the queue get `Source: crm-shared-mailbox`, `Priority: high`, and `ForwardedBy: {name}`. They are processed by `/crm-update` — not inline here. This pass has no output to `email_log.json`.
+
+Collect all email metadata (subject, sender, recipients, date, messageId URI) across Passes 1–4 (shared mailbox items are handled separately via Pass 5).
 
 **Dedup across passes:** A single email thread may appear in multiple passes (e.g., an email CC'ing both Oscar and Tony). Dedup by messageId before matching — first occurrence wins.
 
@@ -119,9 +134,15 @@ https://outlook.office365.com/mail/id/{URL-encoded messageId}
 ```
 
 4. **Construct log entry:**
+
+   Include `conversationId` (from the email metadata), `direction` (known from which pass this email came from — see Step 3), and `mailboxSource` (the UPN of the scanned mailbox — see Step 3). These three fields are required on every entry.
+
 ```json
 {
   "messageId": "...",
+  "conversationId": "AAQk...",
+  "direction": "received",
+  "mailboxSource": "ovasquez@avilacapllc.com",
   "date": "2026-03-04",
   "timestamp": "2026-03-04T09:15:00Z",
   "subject": "Re: AREC Fund II Follow-up",
@@ -180,6 +201,6 @@ Email scan complete:
 - **Archive folder:** Oscar keeps Inbox Zero — all received emails are in Archive, not Inbox.
 - **Rate limits:** If `outlook_email_search` returns errors, log warning and continue with partial results.
 - **First run (14-day window):** May return 100+ emails. Match all, batch summaries 10 at a time.
-- **Per-org deep history:** Use the ⟳ Deep Scan button on the Prospect detail page (searches 90 days back using Microsoft Graph KQL search across Archive + Sent Items).
+- **Historical backfill:** Run `python3 scripts/backfill_emails.py` locally to do a 90-day backfill across Oscar + Tony mailboxes (sent + received).
 - **Tony delegate access:** Oscar has been granted delegate access to tony@avilacapllc.com. Passes 3 and 4 use `recipient`/`sender` filters rather than `folderName`. If a pass fails (permissions error), log a warning and continue — do not abort the full scan.
 - **Internal Tony emails (Oscar↔Tony):** Skip emails where both sender and all recipients are avilacapllc.com domains (internal coordination). These have no CRM value.
