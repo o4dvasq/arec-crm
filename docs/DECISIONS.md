@@ -825,3 +825,29 @@
 **Impact:** `app/templates/crm_meetings.html` (sole file changed — frontend-only).
 
 ---
+
+## 2026-03-18 — Tasks Page: Server-Rendered Grouped Views (By Prospect / By Owner)
+
+**Decision:** The new tasks page uses server-side Jinja2 rendering for both grouped views. Both panels (`#view-prospect` and `#view-owner`) are rendered on page load with `display:none` / `.active` toggled by JS. `?view=prospect|owner` query param controls which panel is active at render time; JS updates it via `history.pushState` without a page reload.
+
+**Rationale:** The old template fetched tasks via `/crm/api/tasks` and rendered entirely client-side. The new grouped views require joining task data with prospect `target` amounts (for sort order) — this aggregation is cleaner in Python (`get_tasks_grouped_by_prospect()`, `get_tasks_grouped_by_owner()`) than in JS. Server rendering eliminates an extra fetch, and both views are small enough that rendering both on load has no meaningful cost.
+
+**Key implementation details:**
+
+1. **Priority normalization in Python, not template** — `_normalize_priority()` in `crm_reader.py` converts `high`/`normal`/`Hi`/`Med`/`Lo`/`Low` to canonical `Hi`/`Med`/`Lo`. This handles the real TASKS.md data which uses legacy `**[normal]**` and `**[high]**` priority markers from the Overwatch task format.
+
+2. **`PATCH /crm/api/tasks/complete` now works** — Changed from a 501 stub to an implementation that accepts `{org, text}` and calls `complete_prospect_task(org, text)`. The function already existed in `crm_reader.py` but was never wired to this route.
+
+3. **Orphan tasks won't appear in the new view** — 55 existing tasks use legacy `assigned:Name` format without `[org:]` or `[owner:]` tags. They're excluded from both grouped views until manually tagged. `scripts/audit_orphan_tasks.py` generated the report.
+
+4. **`+ Add` form pre-fill**: In By Prospect view, org is a `<input type="hidden">` and owner is a `<select>` from `config.team`. In By Owner view, owner is `<input type="hidden">` and prospect is a `<select>` from `all_prospect_orgs` (all prospects, not just those with open tasks).
+
+**Rejected approaches:**
+- New API endpoints returning grouped JSON — adds an extra fetch and moves aggregation logic out of the clean Python layer where it belongs.
+- Client-side grouping in JS — would require either fetching all tasks + all prospects, or accepting wrong sort order.
+
+**For the next designer:** The `?view=` param is preserved by `history.pushState` and by the route handler (passed to template). If a third sub-tab is ever added, follow the same pattern: add a new `groups_by_X` variable from a new `crm_reader.py` function, add the panel to the template, add the button to the sub-tab bar.
+
+**Impact:** `app/templates/crm_tasks.html` (full rewrite), `app/delivery/crm_blueprint.py` (route + complete endpoint), `app/sources/crm_reader.py` (`_normalize_priority`, `get_tasks_grouped_by_prospect`, `get_tasks_grouped_by_owner`), `scripts/audit_orphan_tasks.py` (new), `app/tests/test_tasks_api_key.py` (new, 15 tests).
+
+---

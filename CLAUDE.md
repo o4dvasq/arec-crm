@@ -13,7 +13,7 @@ CRM and fundraising platform for the AREC team. Manages investor pipeline, relat
 ```bash
 echo "DEV_USER=oscar" > app/.env                       # First time only
 python3 app/delivery/dashboard.py                     # Web dashboard — http://localhost:8000
-python3 -m pytest app/tests/ -v                       # 83 tests
+python3 -m pytest app/tests/ -v                       # 98 tests
 ```
 
 ## Key Files

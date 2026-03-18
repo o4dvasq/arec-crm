@@ -6,7 +6,7 @@
 ---
 
 ## Last Updated
-2026-03-18 — Two sessions: meetings page two-tab redesign + org detail enhancements (Org Brief upgrade, Org Notes, Prospect Briefing rename).
+2026-03-18 — Tasks screen overhaul: grouped By Prospect / By Owner views, orphan audit script, complete endpoint fix.
 
 **Active branch:** `main`
 
@@ -21,7 +21,7 @@
 ### Web Dashboard (Flask — local dev, port 8000)
 - `app/delivery/dashboard.py` — Flask app factory. No DB init. Loads env → registers blueprints → serves. `g.user` set from `DEV_USER` env var.
 - `app/delivery/crm_blueprint.py` — All CRM routes backed by `crm_reader.py`. Includes pipeline, prospect detail, orgs, people, meetings, and tasks API. Graph-dependent routes return 501.
-- `app/delivery/tasks_blueprint.py` — Tasks page. Markdown-backed task CRUD.
+- `app/delivery/tasks_blueprint.py` — General task CRUD on TASKS.md (Overwatch-compatible).
 - `app/auth/decorators.py` — `require_api_key_or_login` is a no-op passthrough for local dev.
 - Dark theme throughout. Pipeline, prospect detail, org detail, person detail, meetings, and tasks pages all functional.
 
@@ -32,14 +32,14 @@
 
 ### Prospect Detail (`crm_prospect_detail.html`)
 - **Prospect card hides empty fields** — Type, Primary Contact, Assigned To, Target ($0 also hidden), Last Touch, Closing are all hidden when not populated. Stage always shown. Urgent shown only when true.
-- **Prospect Briefing with AI synthesis** — Loads from `crm/briefs.json` on page load (instant). Refresh button calls Claude Sonnet → persists to briefs.json. Fallback summary if API unavailable. (Was "Relationship Brief" — renamed to "Prospect Briefing".)
+- **Prospect Briefing with AI synthesis** — Loads from `crm/briefs.json` on page load (instant). Refresh button calls Claude Sonnet → persists to briefs.json. Fallback summary if API unavailable.
 - **At a Glance card** — Populated on Refresh only; hidden until first Refresh.
 - **Contacts** — Merged from CRM contacts + contacts/*.md intel files. Contact names link to Person Detail via slug.
 - **Interaction History** — Collapsible (starts expanded), CSS type badges, no emojis.
-- **Meeting Summaries** — Collapsible, filtered to prospect-relevant meetings only (placeholder contact names like "TBD" excluded from matching). Redundant header lines stripped from display.
+- **Meeting Summaries** — Collapsible, filtered to prospect-relevant meetings only.
 - **Notes Log** — Freeform team notes with author auto-set from CURRENT_USER.
 - **Upcoming/Past Meetings** — From unified `meetings.json`. No manual "Add Meeting" form.
-- **Email History** — Collapsible (starts collapsed). Graph API errors show user-friendly message.
+- **Email History** — Collapsible (starts collapsed).
 - **Active Tasks** — Opens task-edit modal on click; "Add Task" button.
 
 ### Meetings Page (`crm_meetings.html`)
@@ -63,23 +63,28 @@
 ### Org Detail (`crm_org_detail.html`)
 - Top card: Type + Domain only. Notes field never rendered.
 - Section order: Heading → Summary Card → Contacts → Meeting History → **Org Brief** → Prospects → **Org Notes**.
-- **Org Brief** — AI-synthesized org-level brief. Opens with which offerings the org is considering. Renders AT A GLANCE bullet list + narrative prose + "Last refreshed: [date] by [user]" attribution. Cached in `crm/briefs.json` under `org` bucket. Refresh on demand (no auto-synthesis — shows empty state on first visit).
-- **Org Notes** — Append-only timestamped log. "+ Add Note" opens inline textarea. Notes newest-first. Author from session user. Backed by `crm/org_notes.json`.
+- **Org Brief** — AI-synthesized org-level brief. AT A GLANCE bullet list + narrative prose + "Last refreshed: [date] by [user]" attribution. Cached in `crm/briefs.json` under `org` bucket. Refresh on demand.
+- **Org Notes** — Append-only timestamped log. "+ Add Note" opens inline textarea. Notes newest-first. Backed by `crm/org_notes.json`.
 
 ### Person Detail (`crm_person_detail.html`)
 - Shows: Contact Info card + Interaction History + Meeting Summaries + Email History.
 - Title, Email, Phone always rendered — shows `--` (muted italic) when empty. Click any field to inline-edit.
 
-### Tasks Board (`app/static/tasks/`)
-- Owner-grouped Kanban (single-column, max-width 800px). Oscar first, then others alphabetically.
-- Each card: priority badge (Hi/Med/Lo, color-coded), task text, org link, section label.
-- Add form per owner group with section dropdown.
-- Done footer aggregates all completed tasks at the bottom.
+### Tasks Page (`crm_tasks.html` — `/crm/tasks`)
+- **Two sub-tab views:** By Prospect (default) and By Owner.
+- Both views server-rendered (Jinja2). Sub-tab switching via `history.pushState` — `?view=prospect` or `?view=owner` persists on refresh.
+- **By Prospect:** Tasks grouped under prospect name headers, sorted by prospect `target` descending. Task card subtitle shows owner name.
+- **By Owner:** Tasks grouped under owner name headers, sorted by max prospect `target` descending. Task card subtitle shows prospect/org name.
+- Priority normalized to Hi / Med / Lo regardless of raw format (`high`, `normal`, `Hi`, etc.).
+- `+ Add` on each group header pre-fills the context field (prospect or owner). Owner dropdown from `config.team`; prospect dropdown from `load_prospects()`.
+- Complete button calls `PATCH /crm/api/tasks/complete` with `{org, text}` — now functional.
+- No "Fundraising - Me" or category labels in UI.
 
 ### Task API (Overwatch-compatible)
 - `GET /crm/api/tasks/dashboard` — All open tasks, enriched.
 - `GET /crm/api/tasks?org=X` — Tasks for specific org.
-- `POST /crm/api/tasks` — Create task (markdown-backed, returns synthetic task object).
+- `POST /crm/api/tasks` — Create task. Returns 400 if `org`, `text`, or `owner` missing/empty.
+- `PATCH /crm/api/tasks/complete` — Complete task by `{org, text}`. Now works (was 501).
 
 ### AI Brief Infrastructure
 - `app/briefing/brief_synthesizer.py` — `call_claude_brief()` with JSON parse fallbacks. `AT_A_GLANCE_JSON_SUFFIX` for prospect/person briefs (10-word status). Org briefs use a self-contained system prompt with bullet-format at_a_glance.
@@ -90,8 +95,8 @@
 - `contacts/{name}.md` — 213+ contact profile files.
 
 ### Test Suite
-- `app/tests/test_meetings.py`, `test_brief_synthesizer.py`, `test_email_matching.py`, `test_task_parsing.py`, `test_drain_inbox.py`
-- **83 tests passing**. No DB fixtures. No DATABASE_URL required.
+- `app/tests/test_meetings.py`, `test_brief_synthesizer.py`, `test_email_matching.py`, `test_task_parsing.py`, `test_drain_inbox.py`, `test_tasks_api_key.py`
+- **98 tests passing**. No DB fixtures. No DATABASE_URL required.
 
 ### Cowork Skills (Claude Desktop via MCP)
 - `~/.skills/skills/crm-update/SKILL.md` — CRM intelligence update cycle.
@@ -114,41 +119,35 @@
 
 ## What Was Just Completed
 
-**Meetings page two-tab redesign (2026-03-18)**
-- Replaced flat single-table meetings view with Past / Scheduled two-tab layout; Scheduled is the default tab.
-- Removed Source and Status columns from both tabs; Notes column retained on Past tab only (Review link / summary preview / dash).
-- Added human-friendly date formatting: `Mar 18` within current year, `Feb 7, 2025` cross-year.
-- Replaced status dropdown + date range pickers with tab switcher + single search bar (filters within active tab only).
-- Tab-specific sort: Past = most recent first (descending); Scheduled = soonest first (ascending).
-- Tab classification uses Pacific time (`America/Los_Angeles`); tab-specific empty states.
-
-**Org detail enhancements (2026-03-18)**
-- **Org Brief upgraded**: New system prompt opens with offerings sentence; `at_a_glance` is 3-5 bullets (not 10-word status); context includes prospect briefs + org notes + 20 interactions/emails. `save_brief()` stores `generated_by`. Empty state instead of auto-synthesis on first visit.
-- **Org Notes section added**: Append-only log backed by `crm/org_notes.json`. Route: `POST /crm/api/org/<name>/notes`. Inline add-note form. Notes newest-first.
-- **Prospect Briefing rename**: "Relationship Brief" → "Prospect Briefing" on prospect detail page (heading text only).
-- **Data model**: `ORG_NOTES_PATH`, `load_org_notes()`, `save_org_note()` added to crm_reader.py; `save_brief()` gains `generated_by` parameter.
+**Tasks screen overhaul (2026-03-18)**
+- Replaced two-column My Tasks / Team Tasks layout with grouped By Prospect / By Owner sub-tab views, both sorted by prospect `target` descending.
+- Added `get_tasks_grouped_by_prospect()` and `get_tasks_grouped_by_owner()` to `crm_reader.py`; priority normalized to Hi/Med/Lo from legacy formats.
+- `PATCH /crm/api/tasks/complete` now works — accepts `{org, text}` and calls `complete_prospect_task()`. Was previously a 501 stub.
+- `scripts/audit_orphan_tasks.py` — read-only script that reports tasks missing `[org:]` or `[owner:]` tags. Found 55 orphans (all legacy `assigned:Name` format) — review `docs/orphan_tasks_report.md` before deploying.
+- Added `test_tasks_api_key.py` with 15 tests covering 400 enforcement and both grouping functions. Full suite: 98 passing.
 
 ---
 
 ## Known Issues
 
-- **`/api/task/complete` and `/api/tasks/prospect/<id>/complete` return 501** — ID-based task completion doesn't exist in the markdown layer.
+- **55 orphan tasks in TASKS.md** — Tasks in legacy `assigned:Name` sections (Fundraising - Me, Fundraising - Others, etc.) missing `[org:]` and `[owner:]` tags. They won't appear in the new grouped view until manually tagged. See `docs/orphan_tasks_report.md`.
 - **Personal section in arec-crm TASKS.md** — Still present; Overwatch is the confirmed home for personal tasks. Clean up when convenient.
 
 ---
 
 ## Next Up
 
-1. Implement `SPEC_tasks-screen-overhaul.md` (in `docs/specs/local-crm/`)
-2. Create calendar scan skill file (`skills/calendar-scan.md`) — referenced in meetings spec but not yet built
-3. Clean up Personal section from arec-crm TASKS.md
-4. Update iPhone Shortcut file path: `inbox.md` (arec-crm) → `~/Dropbox/projects/overwatch/inbox.md`
+1. Tag orphan tasks in TASKS.md (review `docs/orphan_tasks_report.md`) — old sections need `[org:]` + `[owner:]` added manually
+2. Implement `SPEC_meetings-tab-view.md` or `SPEC_org-detail-enhancements.md` (remaining specs in `docs/specs/local-crm/`)
+3. Create calendar scan skill file (`skills/calendar-scan.md`) — referenced in meetings spec but not yet built
+4. Clean up Personal section from arec-crm TASKS.md
+5. Update iPhone Shortcut file path: `inbox.md` (arec-crm) → `~/Dropbox/projects/overwatch/inbox.md`
 
 **Local dev setup:**
 ```bash
 echo "DEV_USER=oscar" > app/.env     # First time only — also add ANTHROPIC_API_KEY
 python3 app/delivery/dashboard.py    # http://localhost:8000
-python3 -m pytest app/tests/ -v      # 83 tests
+python3 -m pytest app/tests/ -v      # 98 tests
 ```
 
 ---
@@ -161,7 +160,6 @@ python3 -m pytest app/tests/ -v      # 83 tests
 
 ## Deferred / Parked
 
-- Prospect task completion by ID — requires either a DB or a slug/index scheme in the markdown layer
 - Graph API features (`email-scan`, `auto-capture`) — work via Claude Desktop skill; disabled as in-app routes (return 501)
 - `arec-mobile/` PWA — functional, not actively iterated
 - Overwatch cross-repo task display in arec-crm dashboard — out of scope; future read-only integration

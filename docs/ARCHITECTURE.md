@@ -1,6 +1,6 @@
 # Architecture
 
-> Last updated: 2026-03-18 (org detail enhancements: org brief upgrade, org notes, Prospect Briefing rename)
+> Last updated: 2026-03-18 (tasks screen overhaul: grouped views, audit script, complete endpoint fix)
 
 ---
 
@@ -34,6 +34,7 @@ TASKS.md               # Personal + team task list (all sections)
 scripts/
   batch_primary_contact.py  # One-time backfill: set Primary Contact on prospects missing it
   migrate_meetings.py       # One-time: prospect_meetings.json + meeting_history.md → meetings.json
+  audit_orphan_tasks.py     # One-time read-only: report tasks missing [org:] or [owner:] tags → docs/orphan_tasks_report.md
 ```
 
 **Single reader:** `app/sources/crm_reader.py` is the only module that reads/writes these files. All production code imports from here. `~2100 lines, 70+ functions`.
@@ -76,6 +77,8 @@ Browser → Flask (dashboard.py)
   before_request: g.user = DEV_USER env var
   / → redirect → /crm/pipeline
   /crm/* → crm_blueprint.py → crm_reader.py → markdown files
+  /crm/tasks → crm_blueprint.py → get_tasks_grouped_by_prospect/owner() → crm_tasks.html (server-rendered)
+  /crm/api/tasks → GET list / POST create (400 if org|owner|text missing) / PATCH complete (org+text)
   /crm/meetings → crm_blueprint.py → meetings list view (standalone tab)
   /crm/api/meetings/* → CRUD + notes + insights → crm_reader.py → meetings.json
   /crm/api/org/<name>/notes → POST — append timestamped note → crm_reader.py → org_notes.json
@@ -136,8 +139,9 @@ Unified meeting data model backed by `crm/meetings.json`. Replaces legacy `prosp
 These routes exist in the codebase but always return `501 Not Implemented`:
 - `POST /crm/api/prospect/<offering>/<org>/email-scan` — use Claude Desktop `/email-scan` skill
 - `POST /crm/api/auto-capture` — use Claude Desktop skill
-- `PATCH /crm/api/tasks/complete` — ID-based; no ID scheme in markdown
-- `PATCH /crm/api/tasks/<id>` — ID-based; no ID scheme in markdown
+- `PATCH /crm/api/tasks/<id>` — ID-based update; no ID scheme in markdown
+
+Note: `PATCH /crm/api/tasks/complete` was previously a 501 stub and is now functional — accepts `{org, text}`.
 
 ---
 
