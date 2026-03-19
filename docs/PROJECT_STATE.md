@@ -6,7 +6,7 @@
 ---
 
 ## Last Updated
-2026-03-19 — SPEC_prospect-org-page-redesign color-coding implementation
+2026-03-19 — SPEC_primary-contact-field-order implementation
 
 ---
 
@@ -48,6 +48,7 @@
 - **Task Grouping APIs**: `/crm/api/tasks/by-prospect` and `/crm/api/tasks/by-owner` fully functional with filtering, sorting, and enrichment
 - **Drain Inbox Hardening**: `drain_inbox.py` runs safely as unattended launchd process — dedup via `drain_seen_ids.json`, last-run metadata in `drain_last_run.json`, `Mail.ReadWrite.Shared` scope added to fix 403 on mark-as-read
 - **Primary Contact on Org**: Primary contact is now an org-level attribute. `contacts/{slug}.md` files carry `Primary: true`. Star toggle on org detail page. Prospect detail + pipeline resolve primary through org, not the prospect record.
+- **Primary Contact Field Persistence**: `Primary Contact` added to `PROSPECT_FIELD_ORDER` in `crm_reader.py`. Prospect-level Primary Contact values now survive write/read round trips. Different prospects for the same org can have different primary contacts.
 - **Pipeline Type Column**: Type column now correctly displays org Type for each prospect. Type filter works on pipeline view.
 - **Email Scan**: Header "Scan Email" button on prospect detail uses the `/crm/api/prospect/.../email-scan` route (via `runScanEmail()`). The per-prospect "Deep Scan (90d)" button has been removed — email scanning is now handled exclusively by the `/email-scan` Cowork skill.
 
@@ -55,38 +56,20 @@
 
 ## What Was Just Completed (March 19, 2026)
 
-### Prospect/Org Page Redesign — Color-Coded Ownership Boundaries
+### Primary Contact Field Order Fix
 
-**Spec:** `SPEC_prospect-org-page-redesign.md` (moved to `docs/specs/implemented/`)
+**Spec:** `SPEC_primary-contact-field-order.md` (moved to `docs/specs/implemented/`)
 
 **What Was Done:**
-- ✅ Updated `app/static/crm.css` with context-dependent color classes:
-  - `.card-native` (green left-border) for native/editable sections
-  - `.card-crossref` (blue right-border) for cross-reference/read-only sections
-  - `.crossref-badge` with blue dot indicator for navigation links
-  - `.btn-add-note` standardized styling (blue button on both pages)
-- ✅ Restructured `app/templates/crm_prospect_detail.html`:
-  - Removed Edit Prospect, Edit Org, and Scan Email buttons from header
-  - Applied `.card-native` to Prospect Card, Prospect Brief Card, Notes Log
-  - Applied `.card-crossref` to Org Info Card, Org Brief Card, Meeting Summaries, Email History
-  - All cross-reference cards show `.crossref-badge` with "From Org →" link
-- ✅ Restructured `app/templates/crm_org_edit.html`:
-  - Removed Notes field from org top card
-  - Applied `.card-native` to Org Card, Org Brief, Org Notes Log, Meeting Summaries, Email History
-  - Applied `.card-crossref` to prospect summary cards
-  - All prospect cards show `.crossref-badge` with "View Prospect →" link
-  - Renamed "Relationship Brief" → "Org Brief"
-  - Standardized Add Note button styling to match prospect page (blue button)
+- ✅ Added `"Primary Contact"` to `PROSPECT_FIELD_ORDER` in `app/sources/crm_reader.py`
+- ✅ Field now appears after `"Assigned To"` and before `"Notes"` in serialization order
 - ✅ All tests passing (67/67)
 - ✅ Spec moved to `docs/specs/implemented/`
 
 **Impact:**
-- **Context-dependent coloring**: Green left-border = "data belongs here", blue right-border = "data lives elsewhere"
-- **Clear visual hierarchy**: Native sections immediately identifiable, cross-references obvious with badges
-- **Cleaner prospect header**: Removed three buttons that were redundant (fields are inline-editable, org editing happens on org page)
-- **Consistent button styling**: Add Note buttons use same blue styling on both pages
-- **Org Notes separation**: Org-level notes now in dedicated standalone card, distinct from prospect notes
-- **No data loss**: All existing functionality preserved, just visually reorganized
+- **Primary Contact now persists**: `update_prospect_field('Primary Contact', ...)` values now survive `write_prospect()` serialization
+- **Enables batch enrichment**: The batch script `scripts/batch_primary_contact.py` can now be re-run to populate primary contacts across all prospects
+- **Supports dual-model architecture**: Orgs have org-level primary contact (star toggle), prospects can optionally override with prospect-level primary contact (e.g., UTIMCO has two prospects with different primary contacts)
 
 ---
 
@@ -98,8 +81,8 @@
 
 ## In Progress / Next Up
 
-### 1. SPEC_primary-contact-batch-enrichment
-Ready to implement in `docs/specs/`. Adds batch enrichment workflow for orgs missing primary contact.
+### 1. SPEC_prospect-org-redesign-fixes
+Ready to implement in `docs/specs/`. Addresses minor issues from the redesign spec.
 
 ### 2. Tony Sync Setup Required
 - **EGNYTE_API_TOKEN needed** — Must be obtained from Egnyte developer console and added to `app/.env`

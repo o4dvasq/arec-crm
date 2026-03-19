@@ -592,3 +592,16 @@
 - All 67 tests passing
 
 ---
+
+## 2026-03-19 — Primary Contact Field Persistence: Added to PROSPECT_FIELD_ORDER
+
+**Decision:** Added `"Primary Contact"` to `PROSPECT_FIELD_ORDER` in `crm_reader.py` between `"Assigned To"` and `"Notes"`. The field now persists through write/read round trips.
+
+**Rationale:** `update_prospect_field('Primary Contact', ...)` appeared to succeed but the value was silently dropped by `write_prospect()` because the field was not in the serialization list. Different prospects for the same org can have different primary contacts (e.g., UTIMCO has two prospects with different primary contacts), so this prospect-level override mechanism needs to work alongside the org-level primary contact system.
+
+**Impact:**
+- `app/sources/crm_reader.py` — Added `"Primary Contact"` to `PROSPECT_FIELD_ORDER` list (line 26)
+- Enables batch enrichment script `scripts/batch_primary_contact.py` to populate primary contacts across all prospects
+- Supports dual-model architecture: orgs have org-level primary contact (star toggle), prospects can optionally override with prospect-level primary contact
+
+---
