@@ -6,7 +6,7 @@
 ---
 
 ## Last Updated
-2026-03-18 — Meeting detail modal + row click behavior + remove time field
+2026-03-19 — Planning session: SPEC_primary-contact-on-org.md reviewed, no code written yet
 
 ---
 
@@ -70,29 +70,34 @@
 
 ---
 
-## Known Issues / Remaining Work
+## In Progress / Next Up
 
-### Tony Sync Setup Required
+### 1. SPEC_primary-contact-on-org.md — READY TO IMPLEMENT
+
+Spec is written and reviewed. Implementation plan confirmed. No code written yet.
+
+**Key changes:**
+- `crm_reader.py`: restore `PEOPLE_ROOT = contacts/` (working tree accidentally reverted to `memory/people/`); add `get_primary_contact()`, `set_primary_contact()`, `clear_primary_contact()`; update `load_person()` to parse `Primary:` field; update `get_contacts_for_org()` to include `is_primary`; update `get_prospect_full()` to resolve primary from org; remove `Primary Contact` from `PROSPECT_FIELD_ORDER`/`EDITABLE_FIELDS`; remove auto-link trigger in `update_prospect_field()`
+- `crm_blueprint.py`: add `POST /api/org/<org_name>/primary-contact`; update `api_org_add_contact` for auto-primary
+- `crm_org_detail.html`: star toggle on contact cards
+- `crm_prospect_detail.html`: resolve primary contact via server-side `primary_contact_name`
+- `crm_prospect_edit.html`: remove Primary Contact field
+- `scripts/migrate_primary_contact_to_org.py`: new migration script (run manually after implementation)
+
+**Path discrepancy to fix:** Working tree has `PEOPLE_ROOT = memory/people/` but HEAD commit (and correct location) is `contacts/`. Fix as first step of implementation.
+
+### 2. Tony Sync Setup Required
 - **EGNYTE_API_TOKEN needed** — Must be obtained from Egnyte developer console and added to `app/.env`
 - **Not scheduled yet** — Needs launchd job for 6 AM daily run (called via `python app/main.py`)
 - **Manual review workflow not implemented** — Desktop/CoWork workflow for resolving low-confidence matches from `crm/tony_sync_pending.json`
 
-### Other Known Issues
-- **test_drain_inbox.py import error** — Test file needs fixing or removal
-- **No test coverage for org merge** — Feature manually tested but no automated tests yet
-
 ---
 
-## Next Up
+## Known Issues
 
-1. **Set up Tony sync in production:**
-   - Obtain EGNYTE_API_TOKEN from Egnyte developer console
-   - Add to `app/.env`
-   - Create launchd job for 6 AM daily run
-   - Test with real Excel file
-2. **Implement low-confidence match review workflow** (Desktop/CoWork)
-3. Fix or remove test_drain_inbox.py
-4. Add test coverage for org merge feature
+- **test_drain_inbox.py import error** — Test file needs fixing or removal
+- **No test coverage for org merge** — Feature manually tested but no automated tests yet
+- **`PEOPLE_ROOT` working tree revert** — Current working tree has `memory/people/` but should be `contacts/`; will be fixed as part of SPEC_primary-contact-on-org implementation
 
 ---
 
