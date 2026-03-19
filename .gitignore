@@ -62,3 +62,6 @@ test_*.db
 # Machine-local drain inbox state (do not commit)
 crm/drain_last_run.json
 crm/drain_seen_ids.json
+
+# Drain inbox logs (may contain email content)
+logs/
