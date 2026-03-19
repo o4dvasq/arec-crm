@@ -24,7 +24,7 @@ ORG_NOTES_PATH = os.path.join(CRM_ROOT, "org_notes.json")
 # Field write order for prospects
 PROSPECT_FIELD_ORDER = [
     "Stage", "Target",
-    "Closing", "Urgent", "Assigned To", "Notes", "Last Touch"
+    "Closing", "Urgent", "Assigned To", "Primary Contact", "Notes", "Last Touch"
 ]
 
 # Brief fields — appended after standard fields only when non-empty
@@ -261,6 +261,12 @@ def get_organization(name: str) -> dict | None:
     for org in load_organizations():
         if org['name'].lower() == name.lower():
             return org
+    # Fallback: check aliases
+    canonical = get_org_by_alias(name)
+    if canonical:
+        for org in load_organizations():
+            if org['name'].lower() == canonical.lower():
+                return org
     return None
 
 
