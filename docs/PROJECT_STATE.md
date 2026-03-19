@@ -6,7 +6,7 @@
 ---
 
 ## Last Updated
-2026-03-19 — SPEC_remove-email-deep-scan-button implemented
+2026-03-19 — SPEC_prospect-org-page-redesign implemented
 
 ---
 
@@ -17,7 +17,7 @@
 - **Backend**: Markdown-only (`crm_reader.py`). All data in `crm/*.md` and `crm/*.json` files.
 - **Authentication**: DEV_USER env var sets g.user. No database, no MSAL.
 - **CRM Features**: Pipeline, prospect detail, org management, relationship briefs, contact intelligence, interaction history, tasks, meetings
-- **Brief Synthesis**: Relationship briefs (org + person) via Claude API, cached in `crm/briefs.json`
+- **Brief Synthesis**: Two-tier brief system — Prospect Brief (offering-specific, 2-3 sentences) + Org Brief (comprehensive, org-level)
 - **Dark Theme**: Full dark theme throughout
 - **Navigation**: Global search, centered nav tabs (Pipeline, People, Orgs, Tasks, Meetings) with bullseye icon and hover user menu
 - **Tasks Page**: `/crm/tasks` — Two-section view (My Tasks | Team Tasks) with search, sorting by priority then deal size, enriched with prospect data
@@ -31,7 +31,21 @@
   - **Three-tier deduplication**: graph_event_id exact match + org+date±1 day fuzzy match (any status) + read-time dedup safety net
 - **Organization Aliases**: Single source of truth is the `Aliases` field on each org in `organizations.md`. Used by search, briefs, merge, and Tony sync. `crm/org_aliases.json` retired and deleted.
 - **Organization Merge**: Full merge workflow on org edit page — select target, preview data migration, execute atomic merge, redirect to target org with success flash
-- **Prospect Detail Page**: Clean UI with notes log, task editing, email scanning, and markdown-free display
+- **Prospect Detail Page**: Color-coded UI (blue=prospect-owned, green=org-owned) with:
+  - Prospect Brief (offering-specific, 2-3 sentences)
+  - Org Brief (read-only, comprehensive org-level intelligence)
+  - Org Info Card (read-only, includes Type, Domain, Contacts)
+  - Cross-reference badges linking back to org page
+  - Notes Log (prospect-owned)
+  - Meeting Summaries (org-owned, badged)
+  - Email History (org-owned, badged)
+- **Org Edit Page**: Color-coded UI (green=org-owned, blue=prospect-owned) with:
+  - Org Card (Type, Domain, Notes, Contacts inline)
+  - Prospect Cards (one per offering, read-only, badged)
+  - Org Brief (refreshable)
+  - Org Notes Log (separate from prospect notes)
+  - Meeting Summaries (org-owned)
+  - Email History (org-owned)
 - **Tony Excel Sync**: Daily Egnyte polling for Tony's Excel tracker, fuzzy org matching with alias support (`crm_reader.get_org_aliases_map()`), auto-syncs high-confidence changes to CRM with prospect notes integration
 - **Pipeline Polish**: At a Glance text with 2-line wrap, Tasks column 350px width, assignee initials in parentheses, markdown stripping throughout
 - **Person Name Linking**: App-wide clickable person names linking to `/crm/people/<slug>` using client-side `linkifyPersonNames()` function
@@ -45,23 +59,45 @@
 
 ## What Was Just Completed (March 19, 2026)
 
-### Deep Scan Button Removed (SPEC_remove-email-deep-scan-button.md)
+### Prospect/Org Page Redesign (SPEC_prospect-org-page-redesign.md)
 
 **What Was Done:**
-- ✅ Removed `.btn-scan`, `.btn-scan:hover`, `.btn-scan:disabled` CSS from `crm_prospect_detail.html` (`.scan-status` kept — still used by header Scan Email button)
-- ✅ Removed Deep Scan button HTML and its wrapper `<div>` from the Email History section header; kept collapsible toggle
-- ✅ Removed `runDeepEmailScan()` JS function (~40 lines)
-- ✅ Removed `api_prospect_email_scan()` Flask route and handler (~200 lines) from `crm_blueprint.py`
-- ✅ Removed `search_emails_deep()` from `ms_graph.py` (was only called by the deleted route)
+- ✅ Created two-tier brief system: Prospect Brief (offering-specific) + Org Brief (org-level)
+- ✅ Added `PROSPECT_BRIEF_SYSTEM_PROMPT` to `relationship_brief.py` (2-3 sentence offering-focused prompt)
+- ✅ Added `load_org_notes()` and `save_org_note()` to `crm_reader.py` (uses `org:{org}` key in `prospect_notes.json`)
+- ✅ Added `/crm/api/prospect/<offering>/<org>/prospect-brief` routes (GET/POST) to `crm_blueprint.py`
+- ✅ Added `/crm/api/org/<name>/notes` routes (GET/POST) to `crm_blueprint.py`
+- ✅ Updated `prospect_detail()` route to pass `org_brief_saved`, `prospect_brief_saved`, `meetings`, `emails` to template
+- ✅ Updated `org_edit()` route to pass `org_notes`, `meetings`, `emails` to template
+- ✅ Created `static/crm.css` with color-coded card classes (`.card-prospect`, `.card-org`, `.card-badge-*`)
+- ✅ Restructured `crm_prospect_detail.html`:
+  - Prospect Card (blue) with Stage, Assigned To, Target, Closing, Primary Contact, Last Touch
+  - Org Info Card (green, read-only) with Type, Domain, Contacts
+  - Prospect Brief Card (blue) with refresh button
+  - Org Brief Card (green, read-only) with "From Org →" badge
+  - Notes Log (blue, prospect-owned)
+  - Meeting Summaries (green, org-owned, badged)
+  - Email History (green, org-owned, badged)
+- ✅ Restructured `crm_org_edit.html`:
+  - Org Card (green) with Type, Domain, Notes, Contacts inline
+  - Prospect Cards (blue, read-only, one per offering) with "View Prospect →" badge
+  - Org Brief Card (green) with refresh button
+  - Meeting Summaries (green, collapsible)
+  - Org Notes Log (green) with add note form
+  - Email History (green, collapsible)
+- ✅ Updated JavaScript in both templates to handle new brief sections and data loading
 - ✅ Spec moved to `docs/specs/implemented/`
 
 **Test Results:** 67/67 passing
 
 **Impact:**
-- Route `/crm/api/prospect/{offering}/{org}/email-scan` now returns 404
-- Email History section still renders correctly — reads from brief endpoint, unaffected
-- No Haiku API credits wasted on per-email summarization
-- Email scanning now exclusively via the `/email-scan` Cowork skill (6-pass, all mailboxes)
+- Clear ownership boundaries: blue = prospect-owned, green = org-owned
+- Prospect Brief focuses on current offering status (2-3 sentences)
+- Org Brief provides comprehensive org-level context (read-only on prospect page)
+- Contacts now read-only on prospect page (org-owned)
+- Org page has dedicated Notes Log (separate from prospect notes)
+- Visual cross-references with badges reduce navigation confusion
+- All data flows preserved — nothing lost, just reorganized for clarity
 
 ---
 
@@ -73,13 +109,16 @@
 
 ## In Progress / Next Up
 
-### 1. SPEC_drain-inbox-hardening — Re-auth required
-After adding `Mail.ReadWrite.Shared` scope, the cached MSAL token needs to be refreshed. Delete `~/.arec_briefing_token_cache.json` and re-run `drain_inbox.py` to trigger a new device code flow that includes the new scope.
+### 1. SPEC_primary-contact-batch-enrichment
+Ready to implement in `docs/specs/`. Adds batch enrichment workflow for orgs missing primary contact.
 
 ### 2. Tony Sync Setup Required
 - **EGNYTE_API_TOKEN needed** — Must be obtained from Egnyte developer console and added to `app/.env`
 - **Not scheduled yet** — Needs launchd job for 6 AM daily run
 - **Manual review workflow not implemented** — Desktop/CoWork workflow for resolving low-confidence matches from `crm/tony_sync_pending.json`
+
+### 3. Drain Inbox Re-auth
+After adding `Mail.ReadWrite.Shared` scope, the cached MSAL token needs to be refreshed. Delete `~/.arec_briefing_token_cache.json` and re-run `drain_inbox.py` to trigger a new device code flow that includes the new scope.
 
 ---
 

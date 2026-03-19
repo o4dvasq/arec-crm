@@ -553,3 +553,54 @@
 
 ---
 
+<<<<<<< HEAD
+=======
+
+## 2026-03-19 — Prospect/Org Page Redesign: Color-Coded Ownership + Two-Tier Briefs
+
+**Decision:** Restructured prospect detail and org edit pages with color-coded visual ownership (blue = prospect-owned, green = org-owned) and split the monolithic Relationship Brief into two focused briefs: Prospect Brief (offering-specific, 2-3 sentences) and Org Brief (comprehensive, org-level).
+
+**Rationale:** The old design blurred ownership boundaries — users were confused about whether contacts, meetings, and emails belonged to the prospect or the org. The monolithic Relationship Brief tried to serve two audiences (offering-level status + org-level intelligence) in one narrative, resulting in either too much detail for quick scans or not enough context for strategic decisions. Color coding makes ownership instantly visible. Two briefs serve distinct needs: Prospect Brief answers "What's the status of THIS offering?" while Org Brief answers "Who is this organization and what's our relationship history?"
+
+**Key implementation choices:**
+
+1. **Color-coded card borders** — `.card-prospect` (4px blue left-border), `.card-org` (4px green left-border). CSS in `static/crm.css`. Applied to all major sections on both pages.
+
+2. **Cross-reference badges** — Small "From Org →" badges on org-owned sections on the prospect page, "View Prospect →" badges on prospect cards on the org page. Implemented as `.card-badge` with colored dot pseudo-elements.
+
+3. **Read-only org sections on prospect page** — Org Info Card, Org Brief, Meeting Summaries, and Email History are all read-only on the prospect page (green borders). Contacts moved from editable to read-only display.
+
+4. **Prospect Brief prompt** — New `PROSPECT_BRIEF_SYSTEM_PROMPT` in `relationship_brief.py`. Focuses exclusively on the current offering: last touchpoint, next action, blockers. Max 2-3 sentences. Stored with key `prospect_brief:{offering}:{org}` in `briefs.json`.
+
+5. **Org Notes Log** — Separate from prospect notes. Stored with key `org:{org}` in `prospect_notes.json` (reusing existing file). New routes `/crm/api/org/<name>/notes` (GET/POST) in `crm_blueprint.py`.
+
+6. **Prospect cards on org page** — One read-only card per offering showing Stage, Target, Closing, Assigned To, Primary Contact. Users can click "View Prospect →" badge to navigate to full prospect detail.
+
+7. **Org page contact inline** — Contacts moved from separate card to inline section within the main Org Card, reducing vertical scroll.
+
+8. **Meeting/Email org-owned on both pages** — Both sections badged as "From Org →" on prospect page. Eliminates confusion about where to find these sections when navigating between pages.
+
+**Rejected alternatives:**
+
+- **Three briefs (prospect + org + combined)** — Would create three refresh buttons, three timestamps, and confusion about which to read. Two is the right number.
+- **Tabs instead of color coding** — Would hide org context when viewing prospect. Side-by-side visibility is the goal.
+- **Separate notes files for org vs prospect** — Reusing `prospect_notes.json` with namespaced keys (`org:{org}` vs `{org}::{offering}`) avoids file proliferation.
+
+**For the next designer:**
+
+- Prospect Brief is never auto-refreshed on page load — user must click "⟳ Generate" to create it. Org Brief follows the same pattern.
+- Org Notes and Prospect Notes are completely separate — adding a note on the org page does NOT appear on the prospect page.
+- Cross-reference badges are not clickable on read-only sections (they're informational only) — except for "View Prospect →" on org page which navigates to prospect detail.
+- Color coding is purely visual — no business logic depends on card color classes.
+
+**Impact:**
+- `app/sources/crm_reader.py` — Added `load_org_notes()`, `save_org_note()` (~40 lines)
+- `app/sources/relationship_brief.py` — Added `PROSPECT_BRIEF_SYSTEM_PROMPT`
+- `app/delivery/crm_blueprint.py` — Added `/crm/api/prospect/<offering>/<org>/prospect-brief` (GET/POST), `/crm/api/org/<name>/notes` (GET/POST), updated `prospect_detail()` and `org_edit()` routes to pass additional context (~120 lines)
+- `static/crm.css` — NEW FILE with color-coded classes and badge styles
+- `app/templates/crm_prospect_detail.html` — Full restructure: Prospect Card (blue), Org Info Card (green, read-only), Prospect Brief (blue), Org Brief (green, read-only), Notes Log (blue), Meetings (green, badged), Emails (green, badged). Updated JS to handle two briefs. (~300 lines changed)
+- `app/templates/crm_org_edit.html` — Full restructure: Org Card (green, contacts inline), Prospect Cards (blue, one per offering, read-only), Org Brief (green), Meetings (green), Org Notes Log (green), Emails (green). Added JS for org notes, meetings, emails rendering. Added CSS for all new sections. (~400 lines changed)
+- All 67 tests passing
+
+---
+>>>>>>> ad9d9b4 (docs: update project state after SPEC_prospect-org-page-redesign implementation)
