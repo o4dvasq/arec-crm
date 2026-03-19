@@ -6,7 +6,7 @@
 ---
 
 ## Last Updated
-2026-03-19 — SPEC_primary-contact-on-org implemented
+2026-03-19 — SPEC_consolidate-alias-systems implemented
 
 ---
 
@@ -28,10 +28,10 @@
   - Delete with inline "Are you sure? Yes · No" confirmation (no browser dialog)
   - Meeting Time field removed from modal entirely
   - Column header and label renamed "Organization" → "Prospect"
-- **Organization Aliases**: Org edit page has Aliases field (inline-editable). Aliases included in global search and relationship brief context.
+- **Organization Aliases**: Single source of truth is the `Aliases` field on each org in `organizations.md`. Used by search, briefs, merge, and Tony sync.
 - **Organization Merge**: Full merge workflow on org edit page — select target, preview data migration, execute atomic merge, redirect to target org with success flash
 - **Prospect Detail Page**: Clean UI with notes log, task editing, email scanning, and markdown-free display
-- **Tony Excel Sync**: Daily Egnyte polling for Tony's Excel tracker, fuzzy org matching with alias support, auto-syncs high-confidence changes to CRM with prospect notes integration
+- **Tony Excel Sync**: Daily Egnyte polling for Tony's Excel tracker, fuzzy org matching with alias support (`crm_reader.get_org_aliases_map()`), auto-syncs high-confidence changes to CRM with prospect notes integration
 - **Pipeline Polish**: At a Glance text with 2-line wrap, Tasks column 350px width, assignee initials in parentheses, markdown stripping throughout
 - **Person Name Linking**: App-wide clickable person names linking to `/crm/people/<slug>` using client-side `linkifyPersonNames()` function
 - **Task Grouping APIs**: `/crm/api/tasks/by-prospect` and `/crm/api/tasks/by-owner` fully functional with filtering, sorting, and enrichment
@@ -42,22 +42,22 @@
 
 ## What Was Just Completed (March 19, 2026)
 
-### Primary Contact on Org (SPEC_primary-contact-on-org.md)
+### Consolidate Alias Systems (SPEC_consolidate-alias-systems.md)
 
 **What Was Done:**
-- ✅ `PEOPLE_ROOT` fixed to `contacts/` (had been accidentally reverted to `memory/people/`)
-- ✅ `load_person()` now parses `Primary:` field and returns `is_primary: bool`
-- ✅ `get_primary_contact(org)`, `set_primary_contact(org, name)`, `clear_primary_contact(org)` added to `crm_reader.py`
-- ✅ Helper `_set_contact_primary_field(slug, value)` writes/removes `- **Primary:** true` in contact files
-- ✅ `Primary Contact` removed from `PROSPECT_FIELD_ORDER` and `EDITABLE_FIELDS`
-- ✅ Auto-link trigger for primary contact removed from `update_prospect_field()`
-- ✅ `get_prospect_full()` resolves `Primary Contact` string through org's contacts (backward-compatible)
-- ✅ `POST /crm/api/org/<org_name>/primary-contact` added (set with `{contact_name: "Name"}`, clear with `{contact_name: null}`)
-- ✅ `api_org_add_contact()`: fixed `people_dir` to `contacts/`; auto-sets primary when first contact added to org
-- ✅ Org detail page: star button (filled gold = primary, outline = not) with `togglePrimary()` JS; `lucide.createIcons()` called after re-render
-- ✅ Prospect detail: resolved from `primary_contact_name` passed by route (server-side), not prospect record
-- ✅ Prospect edit form: Primary Contact field + JS removed entirely
-- ✅ Migration script `scripts/migrate_primary_contact_to_org.py` created and run: 98 orgs updated, 4 conflicts resolved (highest stage wins), 200 `Primary Contact:` lines removed from `crm/prospects.md`
+- ✅ Migrated all 8 entries from `crm/org_aliases.json` into `Aliases` fields on corresponding orgs in `organizations.md`
+  - Future Fund → `FutureFund`
+  - J.P. Morgan Asset Management → `JPMorgan Asset Mgmt` (already had JPAM, JP Morgan, JPMorgan AM)
+  - Mass Mutual Life Insurance Co. → `Mass Mutual, MassMutual`
+  - Merseyside Pension Fund → `Merseyside`
+  - Teachers Retirement System of Texas (Texas Teachers) → `Teachers Retirement System (TRS), TRS` (added to existing TRS aliases)
+  - UTIMCO - Hedge Fund → `UTIMCO`
+  - UTIMCO - Real Estate → `UTIMCO (Matt Saverin)`
+  - NPS (Korea SWF) — already canonical name, no alias needed
+- ✅ `tony_sync.py`: removed `ALIASES_PATH` constant and `load_aliases()` function
+- ✅ `tony_sync.py`: now imports and calls `crm_reader.get_org_aliases_map()` for alias resolution
+- ✅ Diff report text updated to reference CRM org edit page instead of `org_aliases.json`
+- ✅ `crm/org_aliases.json` deleted
 
 **Test Results:** 89/89 passing
 
@@ -79,8 +79,8 @@ After adding `Mail.ReadWrite.Shared` scope, the cached MSAL token needs to be re
 - **Not scheduled yet** — Needs launchd job for 6 AM daily run
 - **Manual review workflow not implemented** — Desktop/CoWork workflow for resolving low-confidence matches from `crm/tony_sync_pending.json`
 
-### 3. SPEC_drain-inbox-hardening.md — Next spec ready
-Only spec remaining in `docs/specs/` is `SPEC_drain-inbox-hardening.md`.
+### 3. SPEC_primary-contact-on-org — Only remaining spec
+Only spec in `docs/specs/` (non-README) is `SPEC_primary-contact-on-org.md`.
 
 ---
 

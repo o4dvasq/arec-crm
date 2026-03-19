@@ -29,6 +29,7 @@
 
 ## ArchBridge (David Payne)
 - **Type:** HNWI / FO
+- **Aliases:** ArchBridge
 - **Notes:**
 
 
@@ -81,14 +82,18 @@
 - **Notes:**
 
 
-## Brightside Capital
-- **Type:** HNWI / FO
-
-
 ## Brightside Capital Partners
 - **Type:** HNWI / FO
+- **Aliases:** Brightside Capital
 - **Domain:** @brightsidecapital.com
 - **Notes:**
+
+
+## Bouwinvest
+- **Type:** Asset Manager
+- **Domain:** @bouwinvest.nl
+- **Contacts:** Robert Wagenaar
+- **Notes:** Dutch asset manager. Zach met Robert for coffee 2/19/26 re AREC Debt Fund II.
 
 
 ## Century Communities
@@ -166,6 +171,7 @@
 
 ## Employees' Retirement System of Texas (Texas ERS)
 - **Type:** Public Pension
+- **Aliases:** Texas ERS, ERS Texas, TX ERS
 - **Domain:** @ers.texas.gov
 - **Notes:**
 
@@ -209,10 +215,11 @@
 
 ## Future Fund
 - **Type:** Sovereign Wealth Fund
+- **Aliases:** FutureFund
 - **Domain:** futurefund.gov.au
 - **Contacts:** Julia McArdle (primary)
 - **Stage:** Active Prospect
-- **Notes:** 
+- **Notes:**
 
 
 ## Gary Basrai
@@ -222,6 +229,7 @@
 
 ## General Mills Retirement Plan
 - **Type:** Corporate Pension
+- **Aliases:** General Mills
 - **Domain:** @generalmills.com
 - **Notes:**
 
@@ -274,6 +282,7 @@ Cheers,
 
 ## Hillwood Communities
 - **Type:** BUILDER
+- **Aliases:** Hillwood
 - **Domain:** @hillwoodcommunities.com
 - **Notes:**
 
@@ -286,6 +295,7 @@ Cheers,
 
 ## J.P. Morgan Asset Management
 - **Type:** Asset Manager
+- **Aliases:** JPAM, JP Morgan, JPMorgan AM, JPMorgan Asset Mgmt
 - **Domain:** @jpmorgan.com
 - **Notes:**
 
@@ -349,6 +359,7 @@ Cheers,
 
 ## Khazanah (Malaysia Sovereign Wealth Fund)
 - **Type:** Sovereign Wealth Fund
+- **Aliases:** Khazanah
 - **Domain:** @khazanah.com.my
 - **Notes:**
 
@@ -411,12 +422,14 @@ Cheers,
 
 ## Mass Mutual Life Insurance Co.
 - **Type:** Insurance
+- **Aliases:** Mass Mutual, MassMutual
 - **Domain:** @massmutual.com
 - **Notes:**
 
 
 ## Meritage Homes Corporation
 - **Type:** BUILDER
+- **Aliases:** Meritage, Meritage Homes
 - **Domain:** @meritagehomes.com
 - **Notes:**
 
@@ -429,12 +442,14 @@ Cheers,
 
 ## Merseyside Pension Fund
 - **Type:** Public Pension
+- **Aliases:** Merseyside
 - **Domain:** @wirral.gov.uk
-- **Notes:** 
+- **Notes:**
 
 
 ## MetLife Insurance Company
 - **Type:** Insurance
+- **Aliases:** MetLife
 - **Domain:** @metlife.com
 - **Notes:**
 
@@ -486,6 +501,7 @@ Cheers,
 
 ## Ontario Power Generation Pension Fund
 - **Type:** Public Pension
+- **Aliases:** OPG, OPG Pension
 - **Domain:** @opg.com
 - **Notes:** Canadian pension co-managed by OPG and Ontario Financing Authority (OFA). Pension + Nuclear Fund are separate structures (different tax implications). AREC strategy fits in **credit bucket**, not RE bucket — OFA credit team is the relevant decision-maker. 5 contacts across OPG RE, OPG Credit, and OFA Credit. Zach Reisner owns relationship. 2/12/26 intro call: deep diligence Q&A on A&D/vertical structure, leverage, sourcing, markets, non-US investor structuring, fee economics. AREC follow-ups sent: data room, REIT tax memo, fund model, prior deal model, SMBC response doc. 2/26/26: Zach sent index analysis and fund comparison.
 
@@ -515,6 +531,7 @@ Cheers,
 
 ## Pennsylvania Public School Employees' Retirement System (PSERS)
 - **Type:** Public Pension
+- **Aliases:** PSERS, Penn PSERS, PA Public Schools
 - **Domain:** @pa.gov
 - **Notes:**
 
@@ -543,6 +560,7 @@ Cheers,
 
 ## San Joaquin County Employees' Retirement Association
 - **Type:** Public Pension
+- **Aliases:** SJCERA, San Joaquin
 - **Domain:** @sjcera.org
 - **Notes:** $5.4B CA public pension. Sole investment staff: Trent Kaeslin. Uses Meketa as investment consultant — David Sancewich (general), Scott Maynard (RE specialist). 2026 deployment: $165M RE + $100M infrastructure. Ticket range $50M–$100M. Only residential exposure: Abacus Capital (multifamily). AREC intro via Michael Restuccia → Trent Kaeslin (VIP conference 2/4/26). 2/17/26 intro call (Oscar + Anthony): Trent asked about Fund I track record, Encore history, fund size increase rationale. Follow-ups: send updated deck to Trent + Scott Maynard at Meketa. Zach has Meketa contact: Christy Fields (cfields@meketagroup.com).
 
@@ -581,6 +599,12 @@ Cheers,
 - **Notes:**
 
 
+## Starwood Property Trust
+- **Type:** Asset Manager
+- **Contacts:** Vernice Briggs, Michael Nelson, Anthony Murphy
+- **Notes:** REIT/asset manager. Zach follow-up call 3/9/26 with Michael Nelson and Anthony Murphy re AREC Debt Fund II.
+
+
 ## Steel Family Investments
 - **Type:** BUILDER
 - **Domain:** @steelfamilyinv.com
@@ -613,18 +637,21 @@ Cheers,
 
 ## Sumitomo Mitsui Banking Corporation (SMBC)
 - **Type:** Bank
+- **Aliases:** SMBC, Sumitomo Mitsui Banking
 - **Domain:** @smbc.co.jp
 - **Notes:**
 
 
 ## Sumitomo Mitsui Trust Bank (SMTB)
 - **Type:** Bank
+- **Aliases:** SMTB, Sumitomo Trust
 - **Domain:** @smtb.jp
 - **Notes:**
 
 
 ## Teachers Retirement System of Texas (Texas Teachers)
 - **Type:** Public Pension
+- **Aliases:** Teachers Retirement System (TRS), TRS, Texas Teachers, TRS Texas
 - **Domain:** @trs.texas.gov
 - **Notes:**
 
@@ -675,6 +702,7 @@ Cheers,
 
 ## United Nations Joint Staff Pension Fund
 - **Type:** Public Pension
+- **Aliases:** UNJSPF, UN Pension, UN Joint Staff
 - **Domain:** @unjspf.org
 - **Notes:**
 
@@ -705,6 +733,7 @@ Cheers,
 
 ## UTIMCO - Hedge Fund
 - **Type:** Asset Manager
+- **Aliases:** UTIMCO
 - **Domain:** @utimco.org
 - **Contacts:** Jared Brimberry
 - **Notes:** UTIMCO hedge fund division. Separated from UTIMCO - Real Estate to track distinct prospects and contacts.
@@ -712,6 +741,7 @@ Cheers,
 
 ## UTIMCO - Real Estate
 - **Type:** Asset Manager
+- **Aliases:** UTIMCO (Matt Saverin)
 - **Domain:** @utimco.org
 - **Contacts:** Matt Saverin
 - **Notes:** UTIMCO real estate division. Separated from UTIMCO - Hedge Fund to track distinct prospects and contacts.
@@ -750,6 +780,204 @@ Cheers,
 - **Type:** INTRODUCER
 - **Notes:** 
 
-## Teachers Retirement System of Texas
+## Blackstone Multi-Asset Investing
+- **Type:** Asset Manager
+- **Aliases:** Blackstone MAI, BXMA
+- **Domain:** @blackstone.com
+- **Notes:**
+
+## Doc Street Capital
+- **Type:** Asset Manager
+- **Notes:** Follow-up call with Greg scheduled 3/27. Robert Fichtner relationship.
+
+## KKCG Group
+- **Type:** HNWI / FO
+- **Notes:** $10B single family office based in New York. Introduced via Max Angeloni. Call scheduled in 2 weeks (late March 2026).
+
+## Marathon Asset Management
+- **Type:** Asset Manager
+- **Notes:** Potential partner for large co-invest tickets (not fund). Max Angeloni connection. Meeting with Oscar proposed 3/13 (breakfast 9am Pershing Square or 2pm Midtown).
+
+## CIGP (Compagnie d'Investissements et de Gestion Privé)
+- **Type:** Multi-Family Office / RIA
+- **Notes:** Multi-family office. Max meeting head of London office on Tuesday 3/17. May invest small tickets ($2M+) into family and friends vehicle.
+
+## Real Consulting (Benjamin Ruhl)
+- **Type:** INTRODUCER
+- **Notes:** Benjamin Ruhl introducing AREC to Macarora. Head of Macarora is ex-Blackstone Real Estate. Interested in co-invest. Meeting scheduled.
+
+## Clearstead Advisors
+- **Type:** Multi-Family Office / RIA
+- **Notes:** Cleveland-area multi-family office. Robert Fichtner connecting through former Glenmede colleague (portfolio manager). Interested in high yield and tax advantages. First call early April.
+
+## 1919 Investment Council
+- **Type:** Multi-Family Office / RIA
+- **Notes:** Robert Fichtner reaching out to former Glenmede colleague there. Early stage.
+
+## Hanwha
+- **Type:** Insurance
+- **Notes:** Korean conglomerate. Tony meeting at AREC Irvine office on Tuesday 3/17 afternoon.
+
+## Diamond Capital
+- **Type:** HNWI / FO
+- **Notes:** Contact: Alon. Max Angeloni connection. Paige coordinating meeting for Monday 3/16 (Tony + Alon). Two emails sent with availability, no response yet.
+
+## IPGL (Michael Spencer Family Office)
+- **Type:** HNWI / FO
+- **Notes:** Contact: Agnes. Max had lunch with her 3/12. She likes the strategy but unsure if principal will approve. Wants data room access. Call scheduled 3/13.
+
+## Philippe Guggenheim
+- **Type:** HNWI / FO
+- **Notes:** Already has established platform. Potential partnership opportunity rather than starting from scratch. Loves the strategy. Oscar recommends moving from tentative to hot and exploring partnership alignment.
+
+## Josh Rhodes (Renaissance Technologies FO)
+- **Type:** HNWI / FO
+- **Notes:** Head of investments at Renaissance Technologies family office. Max met at London family office conference. Meeting next week.
+
+## Tomlinson Family Office (Justin Roberts)
+- **Type:** HNWI / FO
+- **Notes:** See Justin Roberts prospect entry. Justin Roberts is primary contact (justin@tomlinson.ch).
+
+## BlueArc Capital
+- **Type:** RIA / Fund of Funds
+- **Domain:** @bluearccapital.com
+- **Notes:** Atlanta-based alternative investment solutions for RIAs. Focus on hedge funds, private equity, private credit. Recently launched an evergreen credit vehicle. Has discretion over all strategies. Contacted via JTP Capital (Jed Drake) introduction.
+
+## Stony Point
+- **Type:** Developer / Investor
+- **Domain:** @stonypointdg.com
+- **Notes:** Met via Max Angeloni (Angeloni & Co). Has townhome development deal with Dream Finders Homes in DC that could be a fund candidate. Meeting originally March 17, moved to March 18 (Wednesday).
+
+## Aioi Nissay Dow Insurance
+- **Type:** Insurance Company
+- **Domain:** @aioinissaydow.co.jp
+- **Notes:** Source: PDI Tokyo conference attendee list (April 16-17, 2026). Intelligence from Akane Hashimoto (HC Asset Management) per Oscar's March 16 request. Akane's notes: Had not yet connected.
+
+## Asahi Mutual Life Insurance
+- **Type:** Insurance Company
+- **Domain:** @asahi-life.co.jp
+- **Notes:** Source: PDI Tokyo conference attendee list (April 16-17, 2026). Intelligence from Akane Hashimoto (HC Asset Management) per Oscar's March 16 request. Akane's notes: Had not yet connected.
+
+## Dai Ichi Mutual Life Insurance
+- **Type:** Insurance Company
+- **Domain:** @dai-ichi-life.co.jp
+- **Notes:** Source: PDI Tokyo conference attendee list (April 16-17, 2026). Intelligence from Akane Hashimoto (HC Asset Management) per Oscar's March 16 request. Akane's notes: Had not yet connected. Active in defining good managers. Has invested in GP stakes to Janus Group, Tower Australia Group, Canyon Partners, UK M&G and other Japanese AMs.
+
+## Daido Life Insurance
+- **Type:** Insurance Company
+- **Domain:** @daido-life.co.jp
+- **Notes:** Source: PDI Tokyo conference attendee list (April 16-17, 2026). Intelligence from Akane Hashimoto (HC Asset Management) per Oscar's March 16 request. Akane's notes: Akane approached Mr. Shinichiro Harada, General Manager, Head of Equity & Alternatives Investments, Alternative Investment Department. He mentioned that AREC Fund II was not a risk he wished to take now; portfolio consisting primarily with core direct lending.
+
+## Daiwa JP Alternative Investments
+- **Type:** Asset Manager
+- **Domain:** @daiwajp-altinv.com
+- **Notes:** Source: PDI Tokyo conference attendee list (April 16-17, 2026). Intelligence from Akane Hashimoto (HC Asset Management) per Oscar's March 16 request. Akane's notes: AM focusing on alternative investments with corporate pension fund client base. Might be interested.
+
+## Fujitsu Pension Fund
+- **Type:** Pension Fund
+- **Domain:** @fujitsu.com
+- **Notes:** Source: PDI Tokyo conference attendee list (April 16-17, 2026). Intelligence from Akane Hashimoto (HC Asset Management) per Oscar's March 16 request. Akane's notes: Not currently active in private assets, but currently approaching.
+
+## Fuyo General Lease
+- **Type:** Financial Institution
+- **Domain:** @fgl.co.jp
+- **Notes:** Source: PDI Tokyo conference attendee list (April 16-17, 2026). Intelligence from Akane Hashimoto (HC Asset Management) per Oscar's March 16 request. Akane's notes: Invested in Mark III credit facility. Had not yet connected.
+
+## Japan Post Bank
+- **Type:** Bank
+- **Domain:** @jp-bank.japanpost.jp
+- **Notes:** Source: PDI Tokyo conference attendee list (April 16-17, 2026). Intelligence from Akane Hashimoto (HC Asset Management) per Oscar's March 16 request. Akane's notes: Akane will initially contact them. Contact is Mr. Hiroyuki Tanaka, Managing Director, Real Estate Department. Uncertain how much he covers non-Japan lending market.
+
+## Japan Post Insurance
+- **Type:** Insurance Company
+- **Domain:** @jp-life.japanpost.jp
+- **Notes:** Source: PDI Tokyo conference attendee list (April 16-17, 2026). Intelligence from Akane Hashimoto (HC Asset Management) per Oscar's March 16 request. Akane's notes: Same contact as Japan Post Bank (Hiroyuki Tanaka). Had not yet connected.
+
+## Meiji Yasuda Life Insurance
+- **Type:** Insurance Company
+- **Domain:** @meijiyasuda.co.jp
+- **Notes:** Source: PDI Tokyo conference attendee list (April 16-17, 2026). Intelligence from Akane Hashimoto (HC Asset Management) per Oscar's March 16 request. Akane's notes: Had not yet connected.
+
+## Mitsubishi UFJ Alternative Investments
+- **Type:** Asset Manager
+- **Domain:** @mutb.jp
+- **Notes:** Source: PDI Tokyo conference attendee list (April 16-17, 2026). Intelligence from Akane Hashimoto (HC Asset Management) per Oscar's March 16 request. Akane's notes: Might have good relationships with Japanese LPs.
+
+## Mitsubishi UFJ Trust
+- **Type:** Bank / Trust
+- **Domain:** @tr.mufg.jp
+- **Notes:** Source: PDI Tokyo conference attendee list (April 16-17, 2026). Intelligence from Akane Hashimoto (HC Asset Management) per Oscar's March 16 request. Akane's notes: Gets active when they find interested LPs. Equivalent to an administrator with fund setup capabilities.
+
+## Mitsui Sumitomo Insurance
+- **Type:** Insurance Company
+- **Domain:** @ms-ins.com
+- **Notes:** Source: PDI Tokyo conference attendee list (April 16-17, 2026). Intelligence from Akane Hashimoto (HC Asset Management) per Oscar's March 16 request. Akane's notes: Approached Mr. Toshio Fukimura, Managing Executive Officer, with no reply. Appreciates relationships with Sumitomo Group — might be better to approach SMBC first.
+
+## Nippon Life Insurance
+- **Type:** Insurance Company
+- **Domain:** @nissay.co.jp
+- **Notes:** Source: PDI Tokyo conference attendee list (April 16-17, 2026). Intelligence from Akane Hashimoto (HC Asset Management) per Oscar's March 16 request. Akane's notes: Had not yet connected. Tends to focus on well-known larger direct lending funds.
+
+## Nissay Asset Management
+- **Type:** Asset Manager
+- **Domain:** @nam.co.jp
+- **Notes:** Source: PDI Tokyo conference attendee list (April 16-17, 2026). Intelligence from Akane Hashimoto (HC Asset Management) per Oscar's March 16 request. Akane's notes: Had not yet connected. Has an alternative investment division in NY but tends to follow large well-known brands.
+
+## SBI Shinsei Bank
+- **Type:** Bank
+- **Domain:** @shinsei.co.jp
+- **Notes:** Source: PDI Tokyo conference attendee list (April 16-17, 2026). Intelligence from Akane Hashimoto (HC Asset Management) per Oscar's March 16 request. Akane's notes: Akane uncertain which department is active on these kinds of opportunities.
+
+## Sompo Japan Insurance
+- **Type:** Insurance Company
+- **Domain:** @sompo-japan.co.jp
+- **Notes:** Source: PDI Tokyo conference attendee list (April 16-17, 2026). Intelligence from Akane Hashimoto (HC Asset Management) per Oscar's March 16 request. Akane's notes: Had not yet connected.
+
+## Sumitomo Life Insurance
+- **Type:** Insurance Company
+- **Domain:** @sumitomolife.co.jp
+- **Notes:** Source: PDI Tokyo conference attendee list (April 16-17, 2026). Intelligence from Akane Hashimoto (HC Asset Management) per Oscar's March 16 request. Akane's notes: Approached Mr. Fujimura, Managing Executive Officer, but need to call as he hadn't replied to Akane's email.
+
+## Tokio Marine & Nichido Fire Insurance
+- **Type:** Insurance Company
+- **Domain:** @tokiomarine.com
+- **Notes:** Source: PDI Tokyo conference attendee list (April 16-17, 2026). Intelligence from Akane Hashimoto (HC Asset Management) per Oscar's March 16 request. Akane's notes: Had not yet connected.
+
+## Tokio Marine Asset Management
+- **Type:** Asset Manager
+- **Domain:** @tokiomarineam.co.jp
+- **Notes:** Source: PDI Tokyo conference attendee list (April 16-17, 2026). Intelligence from Akane Hashimoto (HC Asset Management) per Oscar's March 16 request. Akane's notes: Had not yet connected. May be making decisions at their NY office.
+
+## New York State Teachers' Retirement System
 - **Type:** Public Pension
-- **Notes:** 
+- **Aliases:** NYSTRS, NY Teachers, NYS Teachers Retirement
+- **Domain:** @nystrs.org
+- **Notes:** Created 2026-03-19 during org scrub. Prospect exists as "NYSTRS" at Stage 4.
+
+## New York Common Retirement Fund
+- **Type:** Public Pension
+- **Aliases:** NY Common, NYCRF, New York Common
+- **Domain:** @osc.ny.gov
+- **Notes:** Created 2026-03-19 during org scrub. Managed by the NY State Comptroller. Prospect exists as "NY Common" at Stage 4.
+
+## New York Life Insurance Company
+- **Type:** Insurance
+- **Aliases:** NY Life, NYL
+- **Domain:** @newyorklife.com
+- **Notes:** Created 2026-03-19 during org scrub. Prospect exists as "NY Life" at Stage 4.
+
+## Villanova University Endowment
+- **Type:** Endowment
+- **Domain:** @villanova.edu
+- **Notes:** Created 2026-03-19 during org scrub. Prospect at Stage 4. Meeting Feb 3; unlikely due to lack of realizations; Anthony is pushing.
+
+## Pennsylvania State Employees' Retirement System (SERS)
+- **Type:** Public Pension
+- **Aliases:** PA SERS, SERS
+- **Domain:** @sers.pa.gov
+- **Notes:** Created 2026-03-19 during org scrub. Separate institution from PSERS. Richard Vague is board-level champion via Ira Lubert. Prospect at Stage 4 with $200M target.
+
+## Leonardo Partners
+- **Type:** Asset Manager
+- **Domain:**
+- **Notes:** Created 2026-03-19 during org scrub. Fort Worth firm. Referred by Mike Amoia of MetLife. Kevin McGrail contact. Prospect at Stage 4.

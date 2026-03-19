@@ -474,3 +474,16 @@
 - `.gitignore` — Added `crm/drain_last_run.json` and `crm/drain_seen_ids.json`
 
 ---
+
+## 2026-03-19 — Consolidate Org Alias Systems: Aliases Field as Single Source of Truth
+
+**Decision:** Retired `crm/org_aliases.json` as a separate alias store. All org aliases now live exclusively in the `Aliases` field on each org entry in `organizations.md`. `tony_sync.py` now calls `crm_reader.get_org_aliases_map()` instead of its own `load_aliases()` function.
+
+**Rationale:** Two parallel alias systems caused silent divergence — aliases added via the CRM UI didn't help Tony sync matching, and aliases added to the JSON file didn't appear in search or briefs. Consolidating onto the `Aliases` field (which `crm_reader.py` already parsed correctly) eliminates the split, ensures all CRM features see the same aliases, and removes a maintenance burden.
+
+**Impact:**
+- `crm/org_aliases.json` — **Deleted**
+- `crm/organizations.md` — 7 orgs updated with new/additional Aliases entries
+- `app/sources/tony_sync.py` — Removed `ALIASES_PATH`, `load_aliases()`. Now imports `get_org_aliases_map` from `crm_reader`. Diff report text updated to reference CRM UI instead of JSON file.
+
+---
