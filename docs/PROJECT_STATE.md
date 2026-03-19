@@ -6,7 +6,7 @@
 ---
 
 ## Last Updated
-2026-03-19 — SPEC_pipeline-type-from-org implemented
+2026-03-19 — SPEC_fix-meeting-duplicates implemented
 
 ---
 
@@ -28,6 +28,7 @@
   - Delete with inline "Are you sure? Yes · No" confirmation (no browser dialog)
   - Meeting Time field removed from modal entirely
   - Column header and label renamed "Organization" → "Prospect"
+  - **Three-tier deduplication**: graph_event_id exact match + org+date±1 day fuzzy match (any status) + read-time dedup safety net
 - **Organization Aliases**: Single source of truth is the `Aliases` field on each org in `organizations.md`. Used by search, briefs, merge, and Tony sync.
 - **Organization Merge**: Full merge workflow on org edit page — select target, preview data migration, execute atomic merge, redirect to target org with success flash
 - **Prospect Detail Page**: Clean UI with notes log, task editing, email scanning, and markdown-free display
@@ -43,22 +44,22 @@
 
 ## What Was Just Completed (March 19, 2026)
 
-### Pipeline Type Column from Org (SPEC_pipeline-type-from-org.md)
+### Meeting Duplicates Fixed (SPEC_fix-meeting-duplicates.md)
 
 **What Was Done:**
-- ✅ Added org Type enrichment to `api_prospects()` endpoint in `crm_blueprint.py`
-- ✅ Load organizations dict once at start of request (efficient, no N+1 queries)
-- ✅ Inject `Type` field from org record onto each prospect before returning JSON
-- ✅ Apply type filter from query params (`?type=...`) before enriching prospects
-- ✅ Empty string returned for prospects without org or orgs without Type (frontend renders "—")
-- ✅ `/api/export` unchanged (already working correctly)
+- ✅ Updated `save_meeting()` in `crm_reader.py` — Tier 2 dedup now works for meetings of any status (removed `status='scheduled'` gate), changed merge behavior to backfill-only (never overwrites existing data), added `graph_event_id` backfill
+- ✅ Added read-time dedup safety net in `load_meetings()` — catches duplicates that sneak in through any code path, auto-cleans the JSON file by merging useful fields and keeping first occurrence
+- ✅ Verified `tony_calendar_scan.py` already has org+date fallback dedup — lines 368-386 implement the cross-source dedup check with `graph_event_id` backfill
 
-**Test Results:** 89/89 passing
+**Test Results:** 67/67 passing (full suite)
 
 **Impact:**
-- Pipeline view now shows org Type in the Type column for all prospects
-- Type filter dropdown on pipeline now works correctly
-- No changes to stored data (read-path enrichment only)
+- Meeting duplicates from different sources (calendar scan, manual entry, forward-scan skill) now deduplicate correctly
+- Meetings transitioning from scheduled → completed no longer create duplicates when new data arrives
+- `meetings.json` auto-cleans on every load if duplicates exist
+- `graph_event_id` backfilled onto existing meetings when Tony's scanner encounters them
+
+**Note:** The spec referenced `test_meetings.py` with 15 tests, but this file does not exist in the codebase. All existing tests pass.
 
 ---
 
@@ -82,6 +83,7 @@ After adding `Mail.ReadWrite.Shared` scope, the cached MSAL token needs to be re
 
 ## Known Issues
 
+- **No test coverage for meetings subsystem** — `test_meetings.py` mentioned in recent spec does not exist; meeting dedup tested manually
 - **No test coverage for org merge** — Feature manually tested but no automated tests yet
 - **MetLife contact ambiguity**: "Chris Aiken" and "Christopher Aiken" both exist; migration chose Chris Aiken (Stage 5). Worth auditing manually.
 - **33 orgs without primary contact** — Migration skipped contacts where the prospect's Primary Contact string didn't match a contact file (e.g., "TBD", informal descriptions, email-appended names). These orgs show "—" for primary contact.

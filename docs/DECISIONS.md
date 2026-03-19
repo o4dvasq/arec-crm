@@ -508,3 +508,34 @@
 
 ---
 
+## 2026-03-19 — Meeting Deduplication: Three-Tier Strategy with Any-Status Matching
+
+**Decision:** Fixed three gaps in the meeting deduplication system: (1) `save_meeting()` Tier 2 dedup now works regardless of meeting status (removed `status='scheduled'` gate), (2) added read-time dedup safety net in `load_meetings()` that auto-cleans the JSON file when duplicates exist, (3) verified Tony's calendar scanner already implements org+date fallback dedup with `graph_event_id` backfill.
+
+**Rationale:** The original Tier 2 dedup logic only matched meetings with `status='scheduled'`. Once a meeting transitioned to `completed`, a second insert from a different source (e.g., manual entry after a calendar scan) bypassed dedup and created a duplicate. Additionally, there was no safety net at read time — if a duplicate sneaked in through any code path, it would show forever in the UI.
+
+**Key implementation choices:**
+
+1. **Status-agnostic fuzzy matching** — Tier 2 dedup now matches meetings with the same org (case-insensitive, trimmed) AND meeting_date ±1 day, regardless of current status. This catches cross-source duplicates even after status transitions.
+
+2. **Backfill-only merge behavior** — When Tier 2 finds a match, it only updates empty fields on the existing meeting. Never overwrites `notes_raw`, `title`, `attendees`, `transcript_url`, or `graph_event_id` if they already have values. This preserves data regardless of which source wrote first.
+
+3. **Read-time dedup safety net** — `load_meetings()` now includes a dedup pass before filter logic. Groups meetings by `(org.lower().strip(), meeting_date)`, keeps the first occurrence, merges `graph_event_id`, `notes_raw`, and `notes_summary` from duplicates into the keeper, then auto-saves the cleaned list back to `meetings.json`.
+
+4. **Tony's scanner already correct** — `tony_calendar_scan.py` lines 368-386 implement the org+date fallback dedup after the `graph_event_id` check. If a meeting already exists with the same org and date (from any source), the scanner skips creating a new record and backfills the `graph_event_id` if missing.
+
+**Rejected alternatives:**
+- **Delete duplicates without merging** — Would lose `graph_event_id` or notes from the duplicate record. Merging useful fields preserves all data.
+- **Leave read-time dedup out** — Would require all write paths to be perfect. The safety net ensures duplicates never persist in the UI even if a bug sneaks through.
+
+**For the next designer:**
+- If you see duplicate meetings in the UI, they will auto-clean on the next page load (next `load_meetings()` call).
+- The `graph_event_id` backfill is opportunistic — if Tony's scanner sees a meeting that was manually created (no `graph_event_id`), it will add the ID on next scan. This connects manual entries to the calendar source for future updates.
+
+**Impact:**
+- `app/sources/crm_reader.py` — Updated `save_meeting()` docstring and Tier 2 dedup block (~35 lines); added dedup safety net in `load_meetings()` (~25 lines)
+- `tools/tony_calendar_scan.py` — Already correct (no changes needed)
+- All 67 existing tests passing
+
+---
+
