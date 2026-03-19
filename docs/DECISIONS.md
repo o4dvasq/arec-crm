@@ -487,3 +487,24 @@
 - `app/sources/tony_sync.py` — Removed `ALIASES_PATH`, `load_aliases()`. Now imports `get_org_aliases_map` from `crm_reader`. Diff report text updated to reference CRM UI instead of JSON file.
 
 ---
+
+
+## 2026-03-19 — Pipeline Type Column: Pull from Org, Not Prospect
+
+**Decision:** The `/api/prospects` endpoint now enriches each prospect with the `Type` field from its linked org before returning JSON. The Type filter on the pipeline (`?type=...`) now filters prospects correctly by org Type.
+
+**Rationale:** Type is an org-level attribute stored in `organizations.md`, not a prospect-level field. The pipeline's Type column was empty because the API never looked up the org's Type when building the response. The `/api/export` endpoint already did this correctly; applying the same pattern to `/api/prospects` fixes the column.
+
+**Implementation:**
+1. Load organizations dict once at the start of the request (`orgs = {o['name']: o for o in load_organizations()}`)
+2. Apply type filter from query params before enriching prospects (same pattern as `/api/export`)
+3. Inject `Type` field from org record onto each prospect in the tasks loop (empty string for orgs without Type or prospects without org)
+
+**Impact:**
+- `app/delivery/crm_blueprint.py` — `api_prospects()` function (8 lines added)
+- Pipeline Type column now displays correctly
+- Type filter dropdown on pipeline now works
+- No changes to stored data (read-path enrichment only)
+
+---
+

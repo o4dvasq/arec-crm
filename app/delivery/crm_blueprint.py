@@ -1089,6 +1089,15 @@ def api_prospects():
     if not include_closed:
         excluded = {'8. Closed', '0. Not Pursuing', '0. Declined'}
         prospects = [p for p in prospects if p.get('Stage', '') not in excluded]
+
+    # Load organizations for Type enrichment
+    orgs = {o['name']: o for o in load_organizations()}
+
+    # Apply type filter if present
+    type_filter = request.args.get('type')
+    if type_filter:
+        prospects = [p for p in prospects if orgs.get(p.get('org', ''), {}).get('Type') == type_filter]
+
     # Get tasks from PostgreSQL for each prospect
     for p in prospects:
         org_name = p.get('org', '')
@@ -1097,6 +1106,10 @@ def api_prospects():
         p['_tasks'] = []  # Legacy field, empty
         p['prospect_tasks'] = prospect_tasks
         p['open_task_count'] = len(prospect_tasks)
+        # Inject Type from org
+        org_data = orgs.get(org_name, {})
+        p['Type'] = org_data.get('Type', '')
+
     all_briefs = load_all_briefs()
     prospect_briefs = all_briefs.get('prospect', {})
     for p in prospects:
