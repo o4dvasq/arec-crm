@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Meetings — AREC CRM</title>
+  <link rel="stylesheet" href="/static/crm.css">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0f172a; color: #e2e8f0; min-height: 100vh; }
+
+    .page { padding: 20px 24px; max-width: 1400px; margin: 0 auto; }
+
+    /* Page header */
+    .page-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+    .page-title {
+      font-size: 24px;
+      font-weight: 700;
+      color: #f8fafc;
+    }
+    .btn-add {
+      padding: 8px 16px;
+      background: #3b82f6;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .btn-add:hover { background: #2563eb; }
+
+    /* Tabs + Search row */
+    .controls-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+      gap: 16px;
+    }
+
+    /* Tab switcher */
+    .tab-switcher {
+      display: flex;
+      gap: 8px;
+      background: #1e293b;
+      padding: 4px;
+      border-radius: 8px;
+      border: 1px solid #334155;
+    }
+    .tab-btn {
+      padding: 8px 20px;
+      background: transparent;
+      color: #94a3b8;
+      border: none;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .tab-btn:hover { color: #cbd5e1; background: #334155; }
+    .tab-btn.active { background: #3b82f6; color: #fff; }
+
+    /* Search bar */
+    .search-bar {
+      flex: 0 0 320px;
+    }
+    .search-bar input {
+      width: 100%;
+      padding: 9px 14px;
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 8px;
+      font-size: 14px;
+      color: #e2e8f0;
+      outline: none;
+    }
+    .search-bar input:focus { border-color: #3b82f6; }
+    .search-bar input::placeholder { color: #64748b; }
+
+    /* Table */
+    .table-wrap { background: #1e293b; border: 1px solid #334155; border-radius: 8px; overflow: hidden; }
+    table { width: 100%; border-collapse: collapse; }
+    thead { background: #0f172a; }
+    th { padding: 10px 14px; text-align: left; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: #94a3b8; border-bottom: 1px solid #334155; white-space: nowrap; }
+    td { padding: 10px 14px; font-size: 13px; border-bottom: 1px solid #1e293b; vertical-align: middle; }
+    tr:last-child td { border-bottom: none; }
+    tbody tr { cursor: pointer; transition: background 0.1s; }
+    tbody tr:hover { background: #334155; }
+    tbody tr:nth-child(even) { background: rgba(255,255,255,0.02); }
+    tbody tr:nth-child(even):hover { background: #334155; }
+
+    /* Links */
+    .org-link { color: #60a5fa; text-decoration: none; font-weight: 500; }
+    .org-link:hover { text-decoration: underline; }
+
+    .review-link { color: #fbbf24; text-decoration: none; font-weight: 600; }
+    .review-link:hover { text-decoration: underline; }
+
+    /* Text truncation */
+    .text-trunc { max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+    /* Empty state */
+    .empty-row td { color: #64748b; font-style: italic; padding: 20px 14px; text-align: center; }
+
+    /* Hidden rows */
+    tr.hidden-row { display: none; }
+
+    /* Modal */
+    .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); align-items: center; justify-content: center; }
+    .modal.show { display: flex; }
+    .modal-content {
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 12px;
+      padding: 24px;
+      width: 90%;
+      max-width: 600px;
+      max-height: 90vh;
+      overflow-y: auto;
+    }
+    .modal-header {
+      font-size: 18px;
+      font-weight: 700;
+      color: #f8fafc;
+      margin-bottom: 20px;
+    }
+    .form-group {
+      margin-bottom: 16px;
+    }
+    .form-label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      color: #cbd5e1;
+      margin-bottom: 6px;
+    }
+    .form-label .required { color: #ef4444; }
+    .form-input, .form-select, .form-textarea {
+      width: 100%;
+      padding: 9px 12px;
+      background: #0f172a;
+      border: 1px solid #334155;
+      border-radius: 6px;
+      font-size: 14px;
+      color: #e2e8f0;
+      outline: none;
+      font-family: inherit;
+    }
+    .form-input:focus, .form-select:focus, .form-textarea:focus { border-color: #3b82f6; }
+    .form-textarea { resize: vertical; min-height: 80px; }
+    .form-checkbox {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 12px;
+    }
+    .form-checkbox input { cursor: pointer; }
+    .form-checkbox label { font-size: 13px; color: #cbd5e1; cursor: pointer; }
+    .modal-actions {
+      display: flex;
+      gap: 12px;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 20px;
+    }
+    .delete-link { color: #ef4444; text-decoration: none; font-size: 14px; font-weight: 500; }
+    .delete-link:hover { text-decoration: underline; }
+    .delete-confirm { font-size: 14px; color: #94a3b8; }
+    .delete-confirm .yes { color: #ef4444; cursor: pointer; }
+    .delete-confirm .yes:hover { text-decoration: underline; }
+    .delete-confirm .no { color: #64748b; cursor: pointer; margin-left: 4px; }
+    .delete-confirm .no:hover { text-decoration: underline; }
+    .btn {
+      padding: 9px 18px;
+      border: none;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .btn-primary { background: #3b82f6; color: #fff; }
+    .btn-primary:hover { background: #2563eb; }
+    .btn-secondary { background: #334155; color: #cbd5e1; }
+    .btn-secondary:hover { background: #475569; }
+  </style>
+</head>
+<body>
+
+{% include '_nav.html' %}
+
+<div class="page">
+
+  <!-- Page header -->
+  <div class="page-header">
+    <h1 class="page-title">Meetings</h1>
+    <button class="btn-add" onclick="openAddMeetingModal()">+ Add Meeting</button>
+  </div>
+
+  <!-- Tabs + Search -->
+  <div class="controls-row">
+    <div class="tab-switcher">
+      <button class="tab-btn active" data-tab="scheduled" onclick="switchTab('scheduled')">Scheduled</button>
+      <button class="tab-btn" data-tab="past" onclick="switchTab('past')">Past</button>
+    </div>
+    <div class="search-bar">
+      <input type="text" id="meeting-search" placeholder="Search by org, title, or attendees..." autocomplete="off" spellcheck="false" oninput="filterMeetings()">
+    </div>
+  </div>
+
+  <!-- Table -->
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th style="width:90px">Date</th>
+          <th>Prospect</th>
+          <th>Title</th>
+          <th>Attendees</th>
+          <th id="notes-header" style="display:none;">Notes</th>
+        </tr>
+      </thead>
+      <tbody id="meetings-body">
+        <tr class="empty-row"><td colspan="5">Loading...</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+</div>
+
+<!-- Add Meeting Modal -->
+<div id="add-meeting-modal" class="modal">
+  <div class="modal-content">
+    <div class="modal-header">Add Meeting</div>
+    <form id="add-meeting-form">
+      <div class="form-group">
+        <label class="form-label">Prospect <span class="required">*</span></label>
+        <select id="form-org" class="form-select" required></select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Offering <span class="required">*</span></label>
+        <input type="text" id="form-offering" class="form-input" placeholder="e.g., AREC Debt Fund II" required>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Meeting Date <span class="required">*</span></label>
+        <input type="date" id="form-date" class="form-input" required>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Title</label>
+        <input type="text" id="form-title" class="form-input" placeholder="e.g., Q1 Portfolio Update">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Attendees</label>
+        <input type="text" id="form-attendees" class="form-input" placeholder="Comma-separated names">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Notes</label>
+        <textarea id="form-notes" class="form-textarea" placeholder="Meeting notes (optional)" oninput="toggleProcessAI()"></textarea>
+        <div class="form-checkbox" id="process-ai-group" style="display:none;">
+          <input type="checkbox" id="form-process-ai" checked>
+          <label for="form-process-ai">Process with AI</label>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <div id="delete-section" style="display:none;">
+          <a id="delete-meeting-link" class="delete-link" href="#" onclick="event.preventDefault(); handleDeleteMeeting()">Delete Meeting</a>
+          <span id="delete-confirm" class="delete-confirm" style="display:none;">Are you sure? <span class="yes" onclick="confirmDeleteMeeting()">Yes</span> · <span class="no" onclick="cancelDeleteMeeting()">No</span></span>
+        </div>
+        <div style="display:flex; gap:12px;">
+          <button type="button" class="btn btn-secondary" onclick="closeAddMeetingModal()">Cancel</button>
+          <button type="submit" id="modal-submit-btn" class="btn btn-primary">Add Meeting</button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+let allMeetings = [];
+let activeTab = 'scheduled';
+let currentEditMeetingId = null;
+
+// Load meetings on page load
+(async function init() {
+  await Promise.all([loadMeetings(), loadOrgs()]);
+  renderTable();
+})();
+
+async function loadMeetings() {
+  const resp = await fetch('/crm/api/meetings');
+  allMeetings = await resp.json();
+}
+
+async function loadOrgs() {
+  const resp = await fetch('/crm/api/orgs');
+  const orgs = await resp.json();
+  const select = document.getElementById('form-org');
+  select.innerHTML = '<option value="">— Select Prospect —</option>';
+  orgs.forEach(org => {
+    const opt = document.createElement('option');
+    opt.value = org;
+    opt.textContent = org;
+    select.appendChild(opt);
+  });
+}
+
+function switchTab(tab) {
+  activeTab = tab;
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.tab === tab);
+  });
+  renderTable();
+}
+
+function renderTable() {
+  const tbody = document.getElementById('meetings-body');
+  const notesHeader = document.getElementById('notes-header');
+  const query = document.getElementById('meeting-search').value.toLowerCase();
+
+  // Show/hide Notes column
+  notesHeader.style.display = activeTab === 'past' ? '' : 'none';
+
+  // Filter by tab
+  const today = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' });
+  const filtered = allMeetings.filter(m => {
+    const meetingDate = m.meeting_date || '';
+    if (activeTab === 'scheduled') {
+      return meetingDate >= today;
+    } else {
+      return meetingDate < today;
+    }
+  });
+
+  // Sort
+  if (activeTab === 'scheduled') {
+    filtered.sort((a, b) => (a.meeting_date || '').localeCompare(b.meeting_date || ''));
+  } else {
+    filtered.sort((a, b) => (b.meeting_date || '').localeCompare(a.meeting_date || ''));
+  }
+
+  // Filter by search
+  const visible = filtered.filter(m => {
+    if (!query) return true;
+    const org = (m.org || '').toLowerCase();
+    const title = (m.title || '').toLowerCase();
+    const attendees = (m.attendees || '').toLowerCase();
+    return org.includes(query) || title.includes(query) || attendees.includes(query);
+  });
+
+  // Render rows
+  tbody.innerHTML = '';
+  if (visible.length === 0) {
+    const emptyMsg = activeTab === 'scheduled' ? 'No upcoming meetings scheduled.' : 'No past meetings found.';
+    tbody.innerHTML = `<tr class="empty-row"><td colspan="${activeTab === 'past' ? 5 : 4}">${emptyMsg}</td></tr>`;
+    return;
+  }
+
+  visible.forEach(m => {
+    const row = document.createElement('tr');
+    row.onclick = () => openMeetingDetail(m.id);
+
+    // Date
+    const date = formatDate(m.meeting_date);
+    row.innerHTML += `<td style="color:#cbd5e1">${date}</td>`;
+
+    // Prospect — only wrap in a link when both org and offering are present
+    if (m.org && m.offering) {
+      const orgLink = `/crm/prospect/${encodeURIComponent(m.offering)}/${encodeURIComponent(m.org)}/detail`;
+      row.innerHTML += `<td><a class="org-link" href="${orgLink}" onclick="event.stopPropagation()">${m.org}</a></td>`;
+    } else {
+      row.innerHTML += `<td>—</td>`;
+    }
+
+    // Title
+    row.innerHTML += `<td><span class="text-trunc">${m.title || '—'}</span></td>`;
+
+    // Attendees
+    const attendees = (m.attendees || '—').substring(0, 30);
+    const attendeesTrunc = m.attendees && m.attendees.length > 30 ? attendees + '...' : attendees;
+    row.innerHTML += `<td><span class="text-trunc">${attendeesTrunc}</span></td>`;
+
+    // Notes (Past tab only)
+    if (activeTab === 'past') {
+      const pendingCount = (m.insights || []).filter(i => i.status === 'pending').length;
+      let notesCell = '';
+      if (pendingCount > 0) {
+        notesCell = `<a class="review-link" href="#" onclick="event.preventDefault(); event.stopPropagation(); openMeetingDetail('${m.id}')">Review (${pendingCount})</a>`;
+      } else if (m.notes_summary) {
+        const summary = m.notes_summary.substring(0, 60);
+        notesCell = summary.length < m.notes_summary.length ? summary + '...' : summary;
+      } else {
+        notesCell = '—';
+      }
+      row.innerHTML += `<td>${notesCell}</td>`;
+    }
+
+    tbody.appendChild(row);
+  });
+}
+
+function filterMeetings() {
+  renderTable();
+}
+
+function formatDate(dateStr) {
+  if (!dateStr) return '—';
+  const d = new Date(dateStr + 'T00:00:00');
+  const now = new Date();
+  const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const formatted = `${monthNames[d.getMonth()]} ${d.getDate()}`;
+  return d.getFullYear() !== now.getFullYear() ? `${formatted}, ${d.getFullYear()}` : formatted;
+}
+
+function openMeetingDetail(meetingId) {
+  const m = allMeetings.find(x => x.id === meetingId);
+  if (!m) return;
+  currentEditMeetingId = meetingId;
+
+  // Switch modal to edit mode
+  document.querySelector('#add-meeting-modal .modal-header').textContent = 'Edit Meeting';
+  document.getElementById('modal-submit-btn').textContent = 'Save Changes';
+  document.getElementById('delete-section').style.display = '';
+  document.getElementById('delete-meeting-link').style.display = '';
+  document.getElementById('delete-confirm').style.display = 'none';
+
+  // Pre-populate fields
+  document.getElementById('form-org').value = m.org || '';
+  document.getElementById('form-offering').value = m.offering || '';
+  document.getElementById('form-date').value = m.meeting_date || '';
+  document.getElementById('form-title').value = m.title || '';
+  document.getElementById('form-attendees').value = m.attendees || '';
+  document.getElementById('form-notes').value = m.notes_raw || '';
+  toggleProcessAI();
+
+  document.getElementById('add-meeting-modal').classList.add('show');
+}
+
+function openAddMeetingModal() {
+  document.getElementById('add-meeting-modal').classList.add('show');
+}
+
+function closeAddMeetingModal() {
+  document.getElementById('add-meeting-modal').classList.remove('show');
+  document.getElementById('add-meeting-form').reset();
+  document.getElementById('process-ai-group').style.display = 'none';
+
+  // Reset to add mode
+  currentEditMeetingId = null;
+  document.querySelector('#add-meeting-modal .modal-header').textContent = 'Add Meeting';
+  document.getElementById('modal-submit-btn').textContent = 'Add Meeting';
+  document.getElementById('delete-section').style.display = 'none';
+  document.getElementById('delete-meeting-link').style.display = '';
+  document.getElementById('delete-confirm').style.display = 'none';
+}
+
+function handleDeleteMeeting() {
+  document.getElementById('delete-meeting-link').style.display = 'none';
+  document.getElementById('delete-confirm').style.display = '';
+}
+
+function cancelDeleteMeeting() {
+  document.getElementById('delete-confirm').style.display = 'none';
+  document.getElementById('delete-meeting-link').style.display = '';
+}
+
+async function confirmDeleteMeeting() {
+  try {
+    const resp = await fetch(`/crm/api/meetings/${currentEditMeetingId}`, { method: 'DELETE' });
+    if (!resp.ok) throw new Error('Failed to delete meeting');
+    closeAddMeetingModal();
+    await loadMeetings();
+    renderTable();
+  } catch (err) {
+    alert('Error: ' + err.message);
+  }
+}
+
+function toggleProcessAI() {
+  const notes = document.getElementById('form-notes').value.trim();
+  const group = document.getElementById('process-ai-group');
+  group.style.display = notes ? 'flex' : 'none';
+}
+
+document.getElementById('add-meeting-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+
+  const org = document.getElementById('form-org').value;
+  const offering = document.getElementById('form-offering').value.trim();
+  const meetingDate = document.getElementById('form-date').value;
+  const title = document.getElementById('form-title').value.trim();
+  const attendees = document.getElementById('form-attendees').value.trim();
+  const notes = document.getElementById('form-notes').value.trim();
+  const processAI = document.getElementById('form-process-ai').checked;
+
+  if (!org || !offering || !meetingDate) {
+    alert('Please fill in all required fields.');
+    return;
+  }
+
+  try {
+    if (currentEditMeetingId) {
+      // Edit mode — PATCH
+      const resp = await fetch(`/crm/api/meetings/${currentEditMeetingId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ org, offering, meeting_date: meetingDate, title, attendees, notes_raw: notes })
+      });
+
+      if (!resp.ok) {
+        const err = await resp.json();
+        throw new Error(err.error || 'Failed to update meeting');
+      }
+    } else {
+      // Add mode — POST
+      const resp = await fetch('/crm/api/meetings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ org, offering, meeting_date: meetingDate, title, attendees, notes_raw: notes })
+      });
+
+      if (!resp.ok) {
+        const err = await resp.json();
+        throw new Error(err.error || 'Failed to create meeting');
+      }
+
+      const result = await resp.json();
+      const meetingId = result.meeting.id;
+
+      // Process notes with AI if requested
+      if (notes && processAI) {
+        await fetch(`/crm/api/meetings/${meetingId}/notes`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ notes_raw: notes })
+        });
+      }
+    }
+
+    closeAddMeetingModal();
+    await loadMeetings();
+    renderTable();
+  } catch (error) {
+    alert('Error: ' + error.message);
+  }
+});
+
+// Close modal on background click
+document.getElementById('add-meeting-modal').addEventListener('click', (e) => {
+  if (e.target.id === 'add-meeting-modal') {
+    closeAddMeetingModal();
+  }
+});
+</script>
+
+</body>
+</html>
