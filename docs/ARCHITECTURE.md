@@ -11,7 +11,7 @@
 
 ## ⚠️ Development Rules
 
-**ALL work on `azure-migration` branch. NEVER modify `deprecated-markdown`.** The branch name is historical — this is the active development branch.
+**All work happens on `main` branch.**
 
 ---
 
@@ -81,7 +81,7 @@ arec-crm/                        (~/Dropbox/projects/arec-crm/)
 │   ├── prospect_notes.json    ← Prospect notes log
 │   ├── meetings.json          ← Meeting records (UUID-keyed)
 │   ├── org_notes.json         ← Organization notes log
-│   ├── org_aliases.json       ← Org name aliases for fuzzy matching (Tony sync)
+│   ├── meeting_history.md     ← Legacy meeting history (used by org detail pages)
 │   ├── tony_sync_state.json   ← Tony Excel sync state (last processed file)
 │   ├── tony_sync_pending.json ← Low-confidence matches awaiting manual review
 │   ├── drain_last_run.json    ← Last drain_inbox.py run metadata (gitignored)
