@@ -56,7 +56,7 @@ from sources.crm_reader import (
 from sources.relationship_brief import (
     find_people_files, find_glossary_entry, find_meeting_summaries, find_org_tasks,
     collect_relationship_data, build_context_block, build_fallback_summary,
-    compute_content_hash, BRIEF_SYSTEM_PROMPT,
+    compute_content_hash, BRIEF_SYSTEM_PROMPT, PROSPECT_BRIEF_SYSTEM_PROMPT,
     collect_person_data, build_person_context_block, build_person_fallback_summary,
     execute_person_updates, PERSON_BRIEF_SYSTEM_PROMPT, PERSON_UPDATE_ROUTING_PROMPT,
 )
@@ -284,13 +284,26 @@ def org_edit(name):
     org_data = get_organization(name) or {'name': name, 'Type': '', 'Notes': ''}
     contacts = get_contacts_for_org(name)
     prospects = get_prospects_for_org(name)
+
+    # Load org notes
+    org_notes = load_org_notes(name)
+
+    # Load meetings (org-owned)
+    meetings = load_meeting_history(name)
+
+    # Load emails (org-owned)
+    emails = get_emails_for_org(name)
+
     return render_template('crm_org_edit.html',
                            org_name=name,
                            config=config,
                            offerings=offerings,
                            org_data=org_data,
                            contacts=contacts,
-                           prospects=prospects)
+                           prospects=prospects,
+                           org_notes=org_notes,
+                           meetings=meetings,
+                           emails=emails)
 
 
 @crm_bp.route('/org/<path:name>')
@@ -342,6 +355,19 @@ def prospect_detail(offering, org):
     primary = get_primary_contact(org)
     primary_contact_name = primary['name'] if primary else ''
 
+    # Load org brief for read-only display
+    org_brief_saved = load_saved_brief('org', org)
+
+    # Load prospect brief for editable display
+    prospect_brief_key = f"prospect_brief:{offering}:{org}"
+    prospect_brief_saved = load_saved_brief('prospect', prospect_brief_key)
+
+    # Load meetings (org-owned, displayed on both pages)
+    meetings = load_meeting_history(org)
+
+    # Load emails (org-owned, displayed on both pages)
+    emails = get_emails_for_org(org)
+
     return render_template('crm_prospect_detail.html',
                            prospect=prospect,
                            config=config,
@@ -349,7 +375,11 @@ def prospect_detail(offering, org):
                            org=org,
                            org_data=org_data,
                            contacts=contacts,
-                           primary_contact_name=primary_contact_name)
+                           primary_contact_name=primary_contact_name,
+                           org_brief_saved=org_brief_saved,
+                           prospect_brief_saved=prospect_brief_saved,
+                           meetings=meetings,
+                           emails=emails)
 
 
 # ---------------------------------------------------------------------------
@@ -444,6 +474,55 @@ def api_synthesize_brief():
         'content_hash': content_hash,
         'at_a_glance': at_a_glance,
     })
+
+
+def _run_focused_prospect_brief(org: str, offering: str) -> tuple:
+    """Generate a short, offering-specific prospect brief.
+    Returns (narrative, content_hash).
+    """
+    try:
+        raw_data = collect_relationship_data(org, offering, base_dir=PROJECT_ROOT)
+    except Exception as e:
+        print(f"[prospect-brief] collect_relationship_data failed for {org}: {e}")
+        raw_data = {}
+    content_hash = compute_content_hash(raw_data)
+    context_block = build_context_block(raw_data)
+    try:
+        narrative, _ = call_claude_brief(
+            PROSPECT_BRIEF_SYSTEM_PROMPT,
+            f"Generate a concise prospect brief for {offering} at {org}.\n\n{context_block}",
+            max_tokens=600,
+            want_json=False,
+        )
+    except Exception as e:
+        print(f"[prospect-brief] call_claude_brief failed for {org}: {e}")
+        narrative = build_fallback_summary(raw_data)
+    brief_key = f"prospect_brief:{offering}:{org}"
+    save_brief('prospect', brief_key, narrative, content_hash)
+    return narrative, content_hash
+
+
+@crm_bp.route('/api/prospect/<offering>/<path:org>/prospect-brief', methods=['GET', 'POST'])
+@login_required
+def api_prospect_brief_focused(offering, org):
+    """Prospect-specific brief (short, offering-focused status)."""
+    if request.method == 'GET':
+        brief_key = f"prospect_brief:{offering}:{org}"
+        saved = load_saved_brief('prospect', brief_key)
+        return jsonify(saved or {})
+
+    # POST — synthesize and persist
+    try:
+        narrative, content_hash = _run_focused_prospect_brief(org, offering)
+        return jsonify({
+            'narrative': narrative,
+            'content_hash': content_hash,
+            'generated_at': datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ'),
+        })
+    except Exception as e:
+        print(f"[prospect-brief] POST synthesis failed for {org}/{offering}: {e}")
+        import traceback; traceback.print_exc()
+        return jsonify({'error': str(e), 'narrative': ''}), 500
 
 
 # ---------------------------------------------------------------------------
@@ -1214,6 +1293,28 @@ def api_synthesize_org_brief():
         'narrative': narrative,
         'content_hash': content_hash,
     })
+
+
+@crm_bp.route('/api/org/<path:name>/notes', methods=['GET'])
+@login_required
+def api_org_notes_get(name):
+    """Get org-level notes."""
+    notes = load_org_notes(name)
+    return jsonify(notes)
+
+
+@crm_bp.route('/api/org/<path:name>/notes', methods=['POST'])
+@login_required
+def api_org_notes_post(name):
+    """Add a new org-level note."""
+    data = request.get_json(force=True)
+    author = (g.user.get('display_name') or g.user.get('email') or 'Unknown').strip()
+    text = (data.get('text') or '').strip()
+    if not text:
+        return jsonify({'error': 'text is required'}), 400
+    entry = save_org_note(name, author, text)
+    all_notes = load_org_notes(name)
+    return jsonify({'ok': True, 'entry': entry, 'notes_log': all_notes})
 
 
 # ---------------------------------------------------------------------------

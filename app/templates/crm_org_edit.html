@@ -74,6 +74,109 @@
     .saved-flash { animation: saved-pulse 0.6s ease; }
     @keyframes saved-pulse { 0%,100% { border-color: #334155; } 50% { border-color: #22c55e; } }
 
+    /* Color-coded card borders */
+    .card-prospect { border-left: 4px solid #2563eb; }
+    .card-org { border-left: 4px solid #22c55e; }
+
+    /* Cross-reference badges */
+    .card-badge {
+      font-size: 11px;
+      font-weight: 500;
+      color: #94a3b8;
+      text-decoration: none;
+      transition: color 0.15s;
+    }
+    .card-badge:hover { color: #60a5fa; }
+    .card-badge-org::before {
+      content: '';
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #22c55e;
+      margin-right: 4px;
+    }
+    .card-badge-prospect::before {
+      content: '';
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #2563eb;
+      margin-right: 4px;
+    }
+
+    /* Card header with badge */
+    .card-header-with-badge {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 1rem;
+    }
+
+    /* Read-only cards */
+    .read-only-card { opacity: 0.95; }
+
+    /* Notes */
+    .notes-empty { font-size: 13px; color: #94a3b8; font-style: italic; padding: 0.25rem 0; }
+    .note-entry { padding: 0.6rem 0; border-bottom: 1px solid #1e293b; }
+    .note-entry:last-child { border-bottom: none; }
+    .note-meta { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+    .note-author { font-size: 12px; font-weight: 600; color: #60a5fa; }
+    .note-date { font-size: 11px; color: #94a3b8; font-variant-numeric: tabular-nums; }
+    .note-text { font-size: 13px; color: #cbd5e1; line-height: 1.5; }
+    .notes-add-form { margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #334155; }
+    .notes-form-row { display: flex; flex-direction: column; gap: 8px; }
+    .notes-input-text {
+      background: #0f172a; border: 1px solid #334155; border-radius: 4px;
+      color: #e2e8f0; font-size: 13px; padding: 8px 10px; width: 100%;
+      resize: vertical; min-height: 60px; outline: none; font-family: inherit;
+    }
+    .notes-input-text:focus { border-color: #2563eb; }
+    .note-save-status { font-size: 12px; padding: 3px 0; align-self: flex-end; }
+    .note-save-status.ok { color: #22c55e; }
+    .note-save-status.err { color: #ef4444; }
+
+    /* Meetings */
+    .meeting-item { padding-bottom: 1rem; margin-bottom: 1rem; border-bottom: 1px solid #1e293b; }
+    .meeting-item:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+    .meeting-date-title { font-weight: 600; font-size: 13px; margin-bottom: 0.5rem; color: #e2e8f0; }
+    .meeting-content { color: #94a3b8; font-size: 13px; line-height: 1.6; }
+
+    /* Email */
+    .email-row {
+      display: grid; grid-template-columns: 90px 1fr 150px; gap: 8px;
+      padding: 7px 0; border-bottom: 1px solid #1e293b; font-size: 13px;
+      cursor: pointer; transition: background 0.2s;
+    }
+    .email-row:last-child { border-bottom: none; }
+    .email-row:hover { background: rgba(37,99,235,.05); }
+    .email-date-col { color: #94a3b8; font-variant-numeric: tabular-nums; }
+    .email-subject-col { color: #60a5fa; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .email-from-col { color: #94a3b8; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .email-detail-row { display: none; padding: 0.75rem 0; border-bottom: 1px solid #1e293b; }
+    .email-detail-row.open { display: block; }
+    .detail-summary { color: #e2e8f0; font-size: 13px; line-height: 1.6; margin-bottom: 0.5rem; }
+    .email-view-link { color: #2563eb; font-size: 12px; text-decoration: none; }
+    .email-view-link:hover { color: #1d4ed8; }
+
+    /* Collapsible */
+    .collapsible-header {
+      display: flex; align-items: center; justify-content: space-between;
+      cursor: pointer; padding: 0.75rem 0; user-select: none;
+    }
+    .collapsible-header:hover .section-title { color: #cbd5e1; }
+    .collapsible-toggle { font-size: 11px; color: #94a3b8; }
+    .collapsible-body { overflow: hidden; transition: max-height 0.3s ease; }
+    .collapsible-body.collapsed { max-height: 0 !important; }
+    .section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; }
+    .section-count {
+      background: #374151; color: #9ca3af; font-size: 11px;
+      padding: 1px 7px; border-radius: 10px;
+    }
+
+    .hidden { display: none !important; }
+
     @media (max-width: 640px) { .summary-grid { grid-template-columns: repeat(2, 1fr); } }
   </style>
 </head>
@@ -89,8 +192,8 @@
     <h1 class="page-title">{{ org_name }}</h1>
   </div>
 
-  <!-- Summary card -->
-  <div class="card" id="summary-card">
+  <!-- Org Card (green left-border) -->
+  <div class="card card-org" id="summary-card">
     <div class="summary-grid">
       <div>
         <div class="field-label">Type</div>
@@ -121,10 +224,52 @@
       </div>
     </div>
     {% endif %}
+    <div style="margin-top:1.5rem;padding-top:1.5rem;border-top:1px solid #334155;">
+      <h2 class="section-title">Contacts</h2>
+      {% include '_contacts_table.html' %}
+    </div>
   </div>
 
-  <!-- Relationship Brief -->
-  <div class="card" id="brief-card">
+  <!-- Prospect Cards (blue left-border, one per offering) -->
+  {% if prospects %}
+    {% for p in prospects %}
+    <div class="card card-prospect read-only-card">
+      <div class="card-header-with-badge">
+        <div class="section-title" style="margin-bottom:0;">{{ p.offering }}</div>
+        <a href="/crm/prospect/{{ p.offering }}/{{ org_name }}/detail" class="card-badge card-badge-prospect">View Prospect →</a>
+      </div>
+      <div class="summary-grid" style="margin-top:1rem;">
+        <div>
+          <div class="field-label">Stage</div>
+          <div class="field-value">{{ p.Stage or '—' }}</div>
+        </div>
+        <div>
+          <div class="field-label">Target</div>
+          <div class="field-value">{{ p.Target or '—' }}</div>
+        </div>
+        <div>
+          <div class="field-label">Closing</div>
+          <div class="field-value">{{ p.Closing or '—' }}</div>
+        </div>
+        <div>
+          <div class="field-label">Assigned To</div>
+          <div class="field-value">{{ p['Assigned To'] or '—' }}</div>
+        </div>
+        <div>
+          <div class="field-label">Primary Contact</div>
+          <div class="field-value">{{ p.get('Primary Contact') or '—' }}</div>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  {% else %}
+    <div class="card card-prospect">
+      <p style="color:#94a3b8;font-size:14px;">No prospects linked yet.</p>
+    </div>
+  {% endif %}
+
+  <!-- Org Brief (green left-border, refreshable) -->
+  <div class="card card-org" id="brief-card">
     <div id="org-brief">
       <div class="brief-loading">
         <div class="loading-pulse"></div>
@@ -133,22 +278,48 @@
     </div>
   </div>
 
-  <div class="card">
-    <h2 class="section-title">Contacts</h2>
-    {% include '_contacts_table.html' %}
+  <!-- Meeting Summaries (collapsible) -->
+  <div class="card card-org hidden" id="meetings-card">
+    <div class="collapsible-header" onclick="toggleSection('meetings')">
+      <div style="display:flex;align-items:center;gap:8px;">
+        <div class="section-title">Meeting Summaries</div>
+        <span class="section-count" id="meetings-count"></span>
+      </div>
+      <span class="collapsible-toggle" id="meetings-toggle">▲</span>
+    </div>
+    <div class="collapsible-body" id="meetings-body"></div>
   </div>
 
-  <div class="card">
-    <h2 class="section-title">Prospects Linked to This Org</h2>
-    {% if prospects %}
-      {% for p in prospects %}
-      <a href="/crm/prospect/{{ p.offering }}/{{ org_name }}/detail" class="prospect-link">
-        {{ p.offering }} — {{ p.Stage or '—' }} — {{ p.Target or '$0' }}
-      </a>
-      {% endfor %}
-    {% else %}
-      <p style="color:#94a3b8;font-size:14px;">No prospects linked yet.</p>
-    {% endif %}
+  <!-- Org Notes Log (green left-border) -->
+  <div class="card card-org" id="org-notes-card">
+    <div class="section-header">
+      <div class="section-title">Org Notes Log</div>
+      <span class="section-count" id="org-notes-count"></span>
+    </div>
+    <div id="org-notes-body">
+      <div class="notes-empty">No notes yet.</div>
+    </div>
+    <div class="notes-add-form">
+      <div class="notes-form-row">
+        <textarea id="org-note-text" class="notes-input-text" placeholder="Add an org-level note…" rows="2"></textarea>
+        <div style="display:flex;gap:10px;align-items:center;align-self:flex-end">
+          <span class="note-save-status hidden" id="org-note-status"></span>
+          <button class="btn btn-secondary" id="btn-add-org-note" onclick="submitOrgNote()">Add Note</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Email History (collapsible, starts collapsed) -->
+  <div class="card card-org hidden" id="emails-card">
+    <div class="collapsible-header" onclick="toggleSection('emails')">
+      <div style="display:flex;align-items:center;gap:8px;">
+        <div class="section-title">Email History</div>
+        <span class="section-count" id="emails-count"></span>
+      </div>
+      <span class="collapsible-toggle" id="emails-toggle" style="cursor:pointer">▼</span>
+    </div>
+    <div class="collapsible-body collapsed" id="emails-body"></div>
   </div>
 
 </div>
@@ -318,6 +489,201 @@ function renderOrgBriefError() {
 }
 
 loadOrgBrief();
+loadOrgNotes();
+loadMeetings();
+loadEmails();
+
+// ============================================
+// ORG NOTES
+// ============================================
+async function loadOrgNotes() {
+  try {
+    const resp = await fetch(`/crm/api/org/${encodeURIComponent(ORG_NAME)}/notes`);
+    const notes = await resp.json();
+    renderOrgNotes(notes);
+  } catch (err) {
+    console.error('Failed to load org notes:', err);
+  }
+}
+
+function renderOrgNotes(notes) {
+  const body = document.getElementById('org-notes-body');
+  const countEl = document.getElementById('org-notes-count');
+
+  if (!notes || notes.length === 0) {
+    body.innerHTML = '<div class="notes-empty">No notes yet. Add one below.</div>';
+    countEl.textContent = '';
+    return;
+  }
+
+  const sorted = [...notes].reverse();
+  body.innerHTML = sorted.map(n => {
+    const dateStr = formatNoteDate(n.date || '');
+    return `<div class="note-entry">
+      <div class="note-meta">
+        <span class="note-author">${escHtml(n.author || 'Unknown')}</span>
+        <span class="note-date">${escHtml(dateStr)}</span>
+      </div>
+      <div class="note-text">${escHtml(n.text || '')}</div>
+    </div>`;
+  }).join('');
+  countEl.textContent = notes.length;
+}
+
+function formatNoteDate(isoStr) {
+  if (!isoStr) return '';
+  try {
+    const d = new Date(isoStr);
+    return d.toLocaleDateString('en-US', {
+      month: 'short', day: 'numeric', year: 'numeric',
+      hour: 'numeric', minute: '2-digit',
+    });
+  } catch (_) { return isoStr.slice(0, 10); }
+}
+
+async function submitOrgNote() {
+  const textEl = document.getElementById('org-note-text');
+  const statusEl = document.getElementById('org-note-status');
+  const btn = document.getElementById('btn-add-org-note');
+
+  const text = (textEl.value || '').trim();
+  if (!text) { textEl.focus(); return; }
+
+  btn.disabled = true;
+  statusEl.className = 'note-save-status';
+  statusEl.textContent = 'Saving…';
+  statusEl.classList.remove('hidden');
+
+  try {
+    const resp = await fetch(
+      `/crm/api/org/${encodeURIComponent(ORG_NAME)}/notes`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text }),
+      }
+    );
+    if (!resp.ok) throw new Error('Save failed');
+    const result = await resp.json();
+
+    renderOrgNotes(result.notes_log || []);
+
+    textEl.value = '';
+    statusEl.className = 'note-save-status ok';
+    statusEl.textContent = 'Saved';
+    setTimeout(() => statusEl.classList.add('hidden'), 2500);
+  } catch (err) {
+    statusEl.className = 'note-save-status err';
+    statusEl.textContent = 'Error — try again';
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+// ============================================
+// MEETINGS
+// ============================================
+async function loadMeetings() {
+  try {
+    const resp = await fetch(`/crm/api/org/${encodeURIComponent(ORG_NAME)}/meetings`);
+    const meetings = await resp.json();
+    if (meetings && meetings.length > 0) {
+      renderMeetings(meetings);
+    }
+  } catch (err) {
+    console.error('Failed to load meetings:', err);
+  }
+}
+
+function renderMeetings(meetings) {
+  const body = document.getElementById('meetings-body');
+  const countEl = document.getElementById('meetings-count');
+  const card = document.getElementById('meetings-card');
+
+  if (!meetings || meetings.length === 0) return;
+
+  body.innerHTML = meetings.map((m, i) => {
+    const title = m.title || `${m.date || 'Meeting'}`;
+    return `<div class="meeting-item">
+      <div class="meeting-date-title">${escHtml(title)}</div>
+      <div class="meeting-content">${escHtml(m.notes || '')}</div>
+    </div>`;
+  }).join('');
+
+  countEl.textContent = meetings.length;
+  card.classList.remove('hidden');
+  body.style.maxHeight = body.scrollHeight + 'px';
+}
+
+// ============================================
+// EMAILS
+// ============================================
+async function loadEmails() {
+  const resp = await fetch(`/crm/api/emails/${encodeURIComponent(ORG_NAME)}`);
+  const data = await resp.json();
+  const emails = data.emails || [];
+  if (emails.length > 0) {
+    renderEmails(emails);
+  }
+}
+
+function renderEmails(emails) {
+  const body = document.getElementById('emails-body');
+  const countEl = document.getElementById('emails-count');
+  const card = document.getElementById('emails-card');
+
+  if (!emails || emails.length === 0) return;
+
+  body.innerHTML = emails.map((e, i) => {
+    const detailId = `email-detail-${i}`;
+    return `<div class="email-row" onclick="toggleEmailDetail('${detailId}')">
+      <span class="email-date-col">${escHtml(e.date || '')}</span>
+      <span class="email-subject-col">${escHtml(e.subject || '')}</span>
+      <span class="email-from-col">${escHtml(e.fromName || e.from || '')}</span>
+    </div>
+    <div class="email-detail-row" id="${detailId}">
+      <div class="detail-summary">${escHtml(e.summary || '')}</div>
+      ${e.outlookUrl ? `<a href="${escHtml(e.outlookUrl)}" target="_blank" rel="noopener" class="email-view-link">View in Outlook →</a>` : ''}
+    </div>`;
+  }).join('');
+
+  countEl.textContent = emails.length;
+  card.classList.remove('hidden');
+}
+
+function toggleEmailDetail(id) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.classList.toggle('open');
+  const body = document.getElementById('emails-body');
+  if (!body.classList.contains('collapsed') && body.style.maxHeight) {
+    body.style.maxHeight = body.scrollHeight + 'px';
+  }
+}
+
+// ============================================
+// COLLAPSIBLE SECTIONS
+// ============================================
+function toggleSection(name) {
+  const body = document.getElementById(`${name}-body`);
+  const toggle = document.getElementById(`${name}-toggle`);
+  const collapsed = body.classList.contains('collapsed');
+
+  if (collapsed) {
+    body.classList.remove('collapsed');
+    body.style.maxHeight = body.scrollHeight + 'px';
+    toggle.textContent = '▲';
+  } else {
+    body.style.maxHeight = body.scrollHeight + 'px';
+    requestAnimationFrame(() => {
+      body.style.maxHeight = body.scrollHeight + 'px';
+      requestAnimationFrame(() => {
+        body.classList.add('collapsed');
+        toggle.textContent = '▼';
+      });
+    });
+  }
+}
 </script>
 </body>
 </html>

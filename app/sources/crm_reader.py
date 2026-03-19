@@ -1329,33 +1329,77 @@ def load_tasks_by_org() -> dict[str, list[dict]]:
 # ---------------------------------------------------------------------------
 
 def _parse_org_tagged_task(line: str, section: str) -> dict | None:
-    """Parse a TASKS.md line with [org: ...] tag. Returns None if no org tag."""
+    """Parse a TASKS.md line into a task dict.
+
+    Supports two org-tagging conventions:
+      1. Bracket format:  [org: OrgName]  [owner: Name]
+      2. Suffix format:   (OrgName) at end of line, — assigned:Name inline
+
+    Returns None if no org can be identified.
+    """
     stripped = line.strip()
     if not (stripped.startswith('- [ ]') or stripped.startswith('- [x]')):
         return None
-    org_m = re.search(r'\[org:\s*([^\]]+)\]', stripped)
-    if not org_m:
-        return None
-    org_name = org_m.group(1).strip()
+
     status = 'done' if stripped.startswith('- [x]') else 'open'
+
+    # Priority
     pri_m = re.search(r'\*\*\[(\w+)\]\*\*', stripped)
     priority = pri_m.group(1) if pri_m else 'Med'
-    owner_m = re.search(r'\[owner:\s*([^\]]+)\]', stripped)
-    owner = owner_m.group(1).strip() if owner_m else ''
-    # Build clean text: strip checkbox, priority tag, [org:] and [owner:] tags
+
+    # --- Try bracket format first: [org: ...] ---
+    org_m = re.search(r'\[org:\s*([^\]]+)\]', stripped)
+    if org_m:
+        org_name = org_m.group(1).strip()
+        owner_m = re.search(r'\[owner:\s*([^\]]+)\]', stripped)
+        owner = owner_m.group(1).strip() if owner_m else ''
+        text = re.sub(r'^- \[.\]\s*', '', stripped)
+        text = re.sub(r'\*\*\[\w+\]\*\*\s*', '', text)
+        text = re.sub(r'\[org:\s*[^\]]+\]', '', text)
+        text = re.sub(r'\[owner:\s*[^\]]+\]', '', text)
+        text = text.strip(' —-').strip()
+        return {
+            'org': org_name, 'text': text, 'owner': owner,
+            'priority': priority, 'status': status,
+            'section': section, 'raw_line': stripped,
+        }
+
+    # --- Suffix format: (OrgName) with — assigned:Name inline ---
+    # Build a working copy with trailing metadata stripped so (OrgName) is exposed
+    work = stripped
+    work = re.sub(r'\s*—\s*completed\s+\d{4}-\d{2}-\d{2}', '', work)
+    work = re.sub(r'\s*—\s*assigned:[^()\n]*$', '', work)  # strip trailing assigned
+    # Also handle assigned BEFORE the paren: strip — assigned:... up to next paren
+    work_for_owner = stripped
+    owner = ''
+    owner_m = re.search(r'—\s*assigned:([^—\n]+?)(?:\s*—|\s*$)', work_for_owner)
+    if owner_m:
+        owner = owner_m.group(1).strip()
+    # Org via trailing (OrgName) — skip dollar/number-leading parens like ($3M)
+    org_name = ''
+    paren_m = re.search(r'\(([^)]+)\)\s*$', work)
+    if paren_m:
+        candidate = paren_m.group(1).strip()
+        if not re.match(r'^[\$\d]', candidate):
+            org_name = candidate
+
+    if not org_name:
+        return None
+
+    # Build clean text
     text = re.sub(r'^- \[.\]\s*', '', stripped)
     text = re.sub(r'\*\*\[\w+\]\*\*\s*', '', text)
-    text = re.sub(r'\[org:\s*[^\]]+\]', '', text)
-    text = re.sub(r'\[owner:\s*[^\]]+\]', '', text)
+    text = re.sub(r'\*\*\[→\]\*\*\s*', '', text)
+    text = re.sub(r'\[STATUS:\w+\]', '', text)
+    text = re.sub(r'\s*—\s*completed\s+\d{4}-\d{2}-\d{2}', '', text)
+    text = re.sub(r'\s*—\s*assigned:[^—()\n]+', '', text)
+    text = re.sub(r'\s*\([^)]+\)\s*$', '', text)
     text = text.strip(' —-').strip()
+
     return {
-        'org': org_name,
-        'text': text,
-        'owner': owner,
-        'priority': priority,
-        'status': status,
-        'section': section,
-        'raw_line': stripped,
+        'org': org_name, 'text': text, 'owner': owner,
+        'priority': priority, 'status': status,
+        'section': section, 'raw_line': stripped,
     }
 
 
@@ -1937,6 +1981,52 @@ def save_prospect_note(org: str, offering: str, author: str, text: str) -> dict:
     """Append a timestamped note entry to a prospect's notes log.
     Returns the new entry dict {'date', 'author', 'text'}."""
     key = f"{org}::{offering}"
+    now = datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ')
+    entry = {
+        'date': now,
+        'author': author.strip(),
+        'text': text.strip(),
+    }
+
+    data: dict = {}
+    if os.path.exists(PROSPECT_NOTES_PATH):
+        try:
+            with open(PROSPECT_NOTES_PATH, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+        except (json.JSONDecodeError, OSError):
+            data = {}
+
+    data.setdefault(key, []).append(entry)
+
+    os.makedirs(os.path.dirname(PROSPECT_NOTES_PATH), exist_ok=True)
+    with open(PROSPECT_NOTES_PATH, 'w', encoding='utf-8') as f:
+        json.dump(data, f, indent=2, ensure_ascii=False)
+
+    return entry
+
+
+# ---------------------------------------------------------------------------
+# Org Notes Log
+# ---------------------------------------------------------------------------
+
+def load_org_notes(org: str) -> list:
+    """Load the freeform notes log for an organization.
+    Returns list of {'date': ISO str, 'author': str, 'text': str}, oldest first."""
+    key = f"org:{org}"
+    if not os.path.exists(PROSPECT_NOTES_PATH):
+        return []
+    try:
+        with open(PROSPECT_NOTES_PATH, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+        return data.get(key, [])
+    except (json.JSONDecodeError, OSError):
+        return []
+
+
+def save_org_note(org: str, author: str, text: str) -> dict:
+    """Append a timestamped note entry to an org's notes log.
+    Returns the new entry dict {'date', 'author', 'text'}."""
+    key = f"org:{org}"
     now = datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ')
     entry = {
         'date': now,

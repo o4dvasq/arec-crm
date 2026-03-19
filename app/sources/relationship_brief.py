@@ -189,10 +189,32 @@ RULES:
 - Active tasks are displayed separately on the page below this brief. Do NOT enumerate or repeat them. Instead, reference next steps at a high level (e.g. "DD calls are scheduled for late March") without listing task text verbatim."""
 
 
+PROSPECT_BRIEF_SYSTEM_PROMPT = """You are an AI analyst for a real estate private equity fund (AREC — Avila Real Estate Capital) currently raising a $1B debt fund (Fund II). You generate ultra-concise prospect status briefs for the fundraising team.
+
+Your audience is the COO tracking dozens of active prospects. He needs to know for THIS SPECIFIC OFFERING:
+1. Most recent touchpoint (when, who, what)
+2. Next planned action or meeting
+3. Current stage context (why this stage, what's blocking progress)
+4. Any immediate blockers or pending items
+
+RULES:
+- Write exactly 2-3 sentences. Be ruthlessly concise.
+- Focus ONLY on this specific offering — do not repeat org-level context.
+- Start with the most recent activity. Example: "Last touched Feb 12 via email with Julia McArdle confirming Q2 call."
+- Second sentence: Next action. Example: "DD call scheduled for March 20."
+- Third sentence (optional): Any blocker or stage context. Example: "Waiting on IC approval to move to commitment."
+- Be specific: use names, dates, dollar amounts. Never be vague.
+- Never invent information. Only use what is provided in the context.
+- Currency: use abbreviations ($50M, not $50,000,000).
+- When referencing AREC team members, use first names only (Oscar, Tony, James, Zach).
+- Do not include a title or heading. Start directly with the narrative.
+- Do not mention tasks by name — reference next steps naturally."""
+
+
 def collect_relationship_data(org, offering, base_dir=None):
     """Collect all knowledge base data for an org/offering.
     Returns structured dict with all 8 sources."""
-    from sources.crm_db import (
+    from sources.crm_reader import (
         get_prospect, get_organization, get_contacts_for_org,
         load_interactions, get_emails_for_org,
     )
@@ -229,7 +251,7 @@ def collect_relationship_data(org, offering, base_dir=None):
     email_history = get_emails_for_org(org) or []
 
     # Source 9: Freeform notes log (phone calls, manual entries)
-    from sources.crm_db import load_prospect_notes, load_prospect_meetings
+    from sources.crm_reader import load_prospect_notes, load_prospect_meetings
     notes_log = load_prospect_notes(org, offering) or []
 
     # Source 10: Upcoming meetings
@@ -605,7 +627,7 @@ def find_meeting_summaries_for_person(person_name, org_name='', base_dir=None):
 
 def get_email_history_for_person(email, org_name=''):
     """Get emails to/from a specific email address, filtered from org email log."""
-    from sources.crm_db import get_emails_for_org
+    from sources.crm_reader import get_emails_for_org
 
     if not email or not org_name:
         return []
@@ -660,7 +682,7 @@ def _build_person_profile(person_name, people_intel, org_name):
 
 def collect_person_data(person_name, base_dir=None):
     """Collect all knowledge base data about a person across all sources."""
-    from sources.crm_db import (
+    from sources.crm_reader import (
         get_organization, get_prospects_for_org, load_interactions,
     )
 
@@ -849,7 +871,7 @@ def build_person_fallback_summary(raw_data):
 
 def execute_person_updates(person_name, org_name, updates, base_dir=None):
     """Execute AI-routed updates for a person record."""
-    from sources.crm_db import (
+    from sources.crm_reader import (
         update_contact_fields, get_prospects_for_org,
         update_prospect_field, append_interaction,
     )

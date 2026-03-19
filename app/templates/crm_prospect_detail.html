@@ -743,8 +743,8 @@
             </div>
         </div>
 
-        <!-- Prospect Card (server-rendered, no empty fields) -->
-        <div class="card">
+        <!-- Prospect Card (blue left-border) -->
+        <div class="card card-prospect">
             <div class="prospect-grid">
                 <!-- Stage — always present -->
                 <div class="field-editable" data-field="stage" data-type="select" data-options="{{ config.stages | join('||') }}">
@@ -753,20 +753,6 @@
                         {% set sn = prospect['Stage'].split('.')[0] | int(0) %}
                         {% set sc = 'stage-' + sn|string if sn < 9 else 'stage-declined' %}
                         <span class="badge-stage {{ sc }}">{{ prospect['Stage'] }}</span>
-                    </div>
-                </div>
-
-                <!-- Org Type — always present -->
-                <div class="field-editable" data-field="org_type" data-type="select" data-options="{{ config.org_types | join('||') }}">
-                    <div class="field-label">Type</div>
-                    <div class="field-value">{{ org_data.Type or '—' }}</div>
-                </div>
-
-                <!-- Primary Contact -->
-                <div>
-                    <div class="field-label">Primary Contact</div>
-                    <div class="field-value">
-                        {%- if primary_contact_name -%}<span data-person-name>{{ primary_contact_name }}</span>{%- else -%}—{%- endif -%}
                     </div>
                 </div>
 
@@ -782,6 +768,20 @@
                     <div class="field-value">{{ prospect.get('Target') or '—' }}</div>
                 </div>
 
+                <!-- Closing -->
+                <div class="field-editable" data-field="closing" data-type="select" data-options="{{ config.closing_options | join('||') }}">
+                    <div class="field-label">Closing</div>
+                    <div class="field-value">{{ prospect.get('Closing') or '—' }}</div>
+                </div>
+
+                <!-- Primary Contact -->
+                <div>
+                    <div class="field-label">Primary Contact</div>
+                    <div class="field-value">
+                        {%- if primary_contact_name -%}<span data-person-name>{{ primary_contact_name }}</span>{%- else -%}—{%- endif -%}
+                    </div>
+                </div>
+
                 <!-- Last Touch -->
                 <div>
                     <div class="field-label">Last Touch</div>
@@ -791,12 +791,6 @@
                         <span class="staleness-dot" data-stale-date="{{ prospect['Last Touch'] }}"></span>
                         {% else %}—{% endif %}
                     </div>
-                </div>
-
-                <!-- Closing -->
-                <div class="field-editable" data-field="closing" data-type="select" data-options="{{ config.closing_options | join('||') }}">
-                    <div class="field-label">Closing</div>
-                    <div class="field-value">{{ prospect.get('Closing') or '—' }}</div>
                 </div>
 
                 <!-- Urgent — only show if truly urgent -->
@@ -809,24 +803,60 @@
             </div>
         </div>
 
-        <!-- At a Glance (populated on Refresh only, hidden until first Refresh) -->
-        <div class="card glance-card hidden" id="glance-card">
-            <div class="glance-inner">
-                <i data-lucide="zap" class="glance-icon"></i>
-                <span class="glance-text" id="glance-text"></span>
-                <span class="glance-label">At a Glance</span>
+        <!-- Org Info Card (green left-border, read-only) -->
+        <div class="card card-org read-only-card">
+            <div class="card-header-with-badge">
+                <div class="section-title" style="margin-bottom:0;">Org Info</div>
+                <a href="/crm/org/{{ org }}/edit" class="card-badge card-badge-org">From Org →</a>
             </div>
+            <div class="prospect-grid" style="margin-top:1rem;">
+                <div>
+                    <div class="field-label">Type</div>
+                    <div class="field-value">{{ org_data.Type or '—' }}</div>
+                </div>
+                <div>
+                    <div class="field-label">Domain</div>
+                    <div class="field-value">{{ org_data.Domain or '—' }}</div>
+                </div>
+            </div>
+            {% if contacts %}
+            <div style="margin-top:1.25rem;padding-top:1.25rem;border-top:1px solid var(--border);">
+                <div class="field-label" style="margin-bottom:0.75rem;">Contacts</div>
+                {% for c in contacts %}
+                <div class="contact-card">
+                    <div class="contact-name">{{ c.name }}</div>
+                    {% if c.role %}<div class="contact-title">{{ c.role }}</div>{% endif %}
+                    {% if c.email %}<div class="contact-email">{{ c.email }}</div>{% endif %}
+                    {% if c.phone %}<div class="contact-phone">{{ c.phone }}</div>{% endif %}
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
         </div>
 
-        <!-- Relationship Brief (AI-synthesized, with caching) -->
-        <div class="card" id="brief-card">
-            <div id="relationship-brief">
+        <!-- Prospect Brief Card (blue left-border) -->
+        <div class="card card-prospect" id="prospect-brief-card">
+            <div id="prospect-brief">
                 <div class="brief-header">
-                    <div class="section-title">Relationship Brief</div>
+                    <div class="section-title">Prospect Brief</div>
                 </div>
                 <div class="brief-loading">
                     <div class="loading-pulse"></div>
-                    <span>Synthesizing intelligence...</span>
+                    <span>Loading brief...</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Org Brief Card (green left-border, read-only) -->
+        <div class="card card-org read-only-card" id="org-brief-card">
+            <div id="org-brief">
+                <div class="card-header-with-badge">
+                    <div class="section-title" style="margin-bottom:0;">Org Brief</div>
+                    <a href="/crm/org/{{ org }}/edit" class="card-badge card-badge-org">From Org →</a>
+                </div>
+                <div class="brief-loading" style="margin-top:1rem;">
+                    <div class="loading-pulse"></div>
+                    <span>Loading org brief...</span>
                 </div>
             </div>
         </div>
@@ -854,11 +884,12 @@
             <div class="collapsible-body" id="interactions-body"></div>
         </div>
 
-        <!-- Meeting Summaries (collapsible, starts expanded) -->
-        <div class="card hidden" id="meetings-card">
+        <!-- Meeting Summaries (green left-border, org-owned) -->
+        <div class="card card-org hidden" id="meetings-card">
             <div class="collapsible-header" onclick="toggleSection('meetings')">
                 <div style="display:flex;align-items:center;gap:8px;">
                     <div class="section-title">Meeting Summaries</div>
+                    <a href="/crm/org/{{ org }}/edit" class="card-badge card-badge-org" style="margin-left:auto;margin-right:8px;">From Org →</a>
                     <span class="section-count" id="meetings-count"></span>
                 </div>
                 <span class="collapsible-toggle" id="meetings-toggle">▲</span>
@@ -866,8 +897,8 @@
             <div class="collapsible-body" id="meetings-body"></div>
         </div>
 
-        <!-- Notes Log (freeform team notes: calls, observations, etc.) -->
-        <div class="card" id="notes-card">
+        <!-- Notes Log (blue left-border, prospect-owned) -->
+        <div class="card card-prospect" id="notes-card">
             <div class="section-header">
                 <div class="section-title">Notes Log</div>
                 <span class="section-count" id="notes-count"></span>
@@ -889,11 +920,12 @@
             </div>
         </div>
 
-        <!-- Email History (collapsible, starts collapsed) -->
-        <div class="card hidden" id="emails-card">
+        <!-- Email History (green left-border, org-owned, collapsible, starts collapsed) -->
+        <div class="card card-org hidden" id="emails-card">
             <div class="collapsible-header" onclick="toggleSection('emails')">
                 <div style="display:flex;align-items:center;gap:8px;">
                     <div class="section-title">Email History</div>
+                    <a href="/crm/org/{{ org }}/edit" class="card-badge card-badge-org" style="margin-left:auto;margin-right:8px;">From Org →</a>
                     <span class="section-count" id="emails-count"></span>
                 </div>
                 <span class="collapsible-toggle" id="emails-toggle" onclick="toggleSection('emails')" style="cursor:pointer">▼</span>
@@ -1034,82 +1066,135 @@
             renderEmails(data.email_history);
             renderNotesLog(data.notes_log || []);
 
-            // Render At a Glance if available from saved brief
-            if (data.saved_brief && data.saved_brief.at_a_glance) {
-                showGlance(data.saved_brief.at_a_glance);
-            }
+            // Load prospect brief (offering-specific)
+            loadProspectBrief();
 
-            // Display persisted brief or placeholder (no AI call on page load)
-            loadBrief(data);
+            // Load org brief (read-only, org-level)
+            loadOrgBrief();
 
         } catch (err) {
             console.error('Page data load failed:', err);
-            showBriefError(err.message);
         }
     }
 
     // ============================================
-    // BRIEF: load from saved JSON store (preserves formatting), fall back to markdown field
+    // PROSPECT BRIEF (offering-specific, short status)
     // ============================================
-    function loadBrief(data) {
-        // Prefer the saved brief from briefs.json — it keeps paragraph breaks intact.
-        const saved = data.saved_brief;
-        if (saved && saved.narrative && saved.narrative.trim()) {
-            renderNarrative(saved.narrative, saved.generated_at || data.brief_refreshed);
-            return;
-        }
-
-        // Fallback: read from the prospect markdown field (may have stripped newlines).
-        let brief = data.relationship_brief;
-        const refreshed = data.brief_refreshed;
-
-        if (brief && brief.trim()) {
-            // Handle case where brief was saved as raw JSON string
-            const trimmed = brief.trim();
-            if (trimmed.startsWith('{') && trimmed.endsWith('}')) {
-                try {
-                    const parsed = JSON.parse(trimmed);
-                    if (parsed.narrative) brief = parsed.narrative;
-                    if (parsed.at_a_glance) showGlance(parsed.at_a_glance);
-                } catch (_) { /* not JSON, use as-is */ }
-            }
-            renderNarrative(brief, refreshed);
-        } else {
-            showBriefPlaceholder();
-        }
-    }
-
-    async function refreshBrief() {
-        showBriefLoading();
+    async function loadProspectBrief() {
         try {
-            const resp = await fetch(
-                `/crm/api/prospect/${enc(OFFERING)}/${enc(ORG)}/brief`,
-                { method: 'POST' }
-            );
-            if (!resp.ok) {
-                const errorData = await resp.json().catch(() => ({}));
-                const errorMsg = errorData.error || 'API request failed';
-                throw new Error(errorMsg);
-            }
-            const synth = await resp.json();
-            renderNarrative(synth.narrative, synth.brief_refreshed);
-            if (synth.at_a_glance) {
-                showGlance(synth.at_a_glance);
+            const resp = await fetch(`/crm/api/prospect/${enc(OFFERING)}/${enc(ORG)}/prospect-brief`);
+            const data = await resp.json();
+            if (data.narrative && data.narrative.trim()) {
+                renderProspectBrief(data.narrative, data.generated_at);
+            } else {
+                showProspectBriefPlaceholder();
             }
         } catch (err) {
-            console.error('Brief refresh error:', err);
-            showBriefError(err.message);
+            showProspectBriefPlaceholder();
         }
     }
 
-    function showGlance(text) {
-        const card = document.getElementById('glance-card');
-        const el = document.getElementById('glance-text');
-        if (!text || !text.trim()) { card.classList.add('hidden'); return; }
-        el.textContent = stripMarkdown(text);
-        card.classList.remove('hidden');
+    async function refreshProspectBrief() {
+        showProspectBriefLoading();
+        try {
+            const resp = await fetch(
+                `/crm/api/prospect/${enc(OFFERING)}/${enc(ORG)}/prospect-brief`,
+                { method: 'POST' }
+            );
+            if (!resp.ok) throw new Error('Synthesis failed');
+            const data = await resp.json();
+            renderProspectBrief(data.narrative, data.generated_at);
+        } catch (err) {
+            console.error('Prospect brief refresh error:', err);
+            showProspectBriefPlaceholder();
+        }
     }
 
+    function renderProspectBrief(narrative, generatedAt) {
+        const tsHtml = generatedAt
+            ? `<div class="brief-refreshed-ts">Last refreshed: ${esc(formatBriefDate(generatedAt))}</div>`
+            : '';
+        document.getElementById('prospect-brief').innerHTML = `
+            <div class="brief-header">
+                <div class="section-title">Prospect Brief</div>
+                <button class="btn-refresh" onclick="refreshProspectBrief()">⟳ Refresh</button>
+            </div>
+            <div class="brief-narrative">${narrativeToHtml(narrative)}</div>
+            ${tsHtml}
+        `;
+    }
+
+    function showProspectBriefPlaceholder() {
+        document.getElementById('prospect-brief').innerHTML = `
+            <div class="brief-header">
+                <div class="section-title">Prospect Brief</div>
+                <button class="btn-refresh" onclick="refreshProspectBrief()">⟳ Generate</button>
+            </div>
+            <div style="color:var(--muted);font-size:13px;padding:0.75rem 0;font-style:italic;">
+                No prospect brief yet. Click generate.
+            </div>
+        `;
+    }
+
+    function showProspectBriefLoading() {
+        document.getElementById('prospect-brief').innerHTML = `
+            <div class="brief-header">
+                <div class="section-title">Prospect Brief</div>
+            </div>
+            <div class="brief-loading">
+                <div class="loading-pulse"></div>
+                <span>Generating brief...</span>
+            </div>
+        `;
+    }
+
+    // ============================================
+    // ORG BRIEF (org-level, read-only)
+    // ============================================
+    async function loadOrgBrief() {
+        try {
+            const resp = await fetch(`/crm/api/org/${enc(ORG)}`);
+            const data = await resp.json();
+            const saved = data.saved_brief;
+            if (saved && saved.narrative && saved.narrative.trim()) {
+                renderOrgBrief(saved.narrative, saved.generated_at);
+            } else {
+                showOrgBriefPlaceholder();
+            }
+        } catch (err) {
+            showOrgBriefPlaceholder();
+        }
+    }
+
+    function renderOrgBrief(narrative, generatedAt) {
+        const tsHtml = generatedAt
+            ? `<div class="brief-refreshed-ts">Last refreshed: ${esc(formatBriefDate(generatedAt))}</div>`
+            : '';
+        document.getElementById('org-brief').innerHTML = `
+            <div class="card-header-with-badge">
+                <div class="section-title" style="margin-bottom:0;">Org Brief</div>
+                <a href="/crm/org/${enc(ORG)}/edit" class="card-badge card-badge-org">From Org →</a>
+            </div>
+            <div class="brief-narrative" style="margin-top:1rem;">${narrativeToHtml(narrative)}</div>
+            ${tsHtml}
+        `;
+    }
+
+    function showOrgBriefPlaceholder() {
+        document.getElementById('org-brief').innerHTML = `
+            <div class="card-header-with-badge">
+                <div class="section-title" style="margin-bottom:0;">Org Brief</div>
+                <a href="/crm/org/${enc(ORG)}/edit" class="card-badge card-badge-org">From Org →</a>
+            </div>
+            <div style="color:var(--muted);font-size:13px;padding:1rem 0 0.75rem;font-style:italic;">
+                No org brief yet. Generate one from the Org page.
+            </div>
+        `;
+    }
+
+    // ============================================
+    // SHARED BRIEF UTILITIES
+    // ============================================
     function narrativeToHtml(text) {
         if (!text) return '';
         return markdownToHtml(text).trim()
@@ -1119,64 +1204,12 @@
             .join('');
     }
 
-    function renderNarrative(narrative, refreshDate) {
-        const refreshHtml = refreshDate
-            ? `<div class="brief-refreshed-ts">Last refreshed: ${esc(formatBriefDate(refreshDate))}</div>`
-            : '';
-        document.getElementById('relationship-brief').innerHTML = `
-            <div class="brief-header">
-                <div class="section-title">Relationship Brief</div>
-                <button class="btn-refresh" onclick="refreshBrief()">⟳ Refresh</button>
-            </div>
-            <div class="brief-narrative">${narrativeToHtml(narrative)}</div>
-            ${refreshHtml}
-        `;
-    }
-
-    function showBriefPlaceholder() {
-        document.getElementById('relationship-brief').innerHTML = `
-            <div class="brief-header">
-                <div class="section-title">Relationship Brief</div>
-                <button class="btn-refresh" onclick="refreshBrief()">⟳ Generate Brief</button>
-            </div>
-            <div style="color:var(--muted);font-size:13px;padding:0.75rem 0;font-style:italic;">
-                No relationship brief yet. Click refresh to generate one.
-            </div>
-        `;
-    }
-
     function formatBriefDate(dateStr) {
         if (!dateStr) return '';
         try {
-            // Handle both YYYY-MM-DD and ISO datetime strings
             const d = new Date(dateStr.length === 10 ? dateStr + 'T00:00:00' : dateStr);
             return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
         } catch (_) { return dateStr.slice(0, 10); }
-    }
-
-    function showBriefLoading() {
-        document.getElementById('relationship-brief').innerHTML = `
-            <div class="brief-header">
-                <div class="section-title">Relationship Brief</div>
-            </div>
-            <div class="brief-loading">
-                <div class="loading-pulse"></div>
-                <span>Synthesizing intelligence...</span>
-            </div>
-        `;
-    }
-
-    function showBriefError(errorMsg) {
-        const detailMsg = errorMsg ? `Error: ${errorMsg}. ` : '';
-        document.getElementById('relationship-brief').innerHTML = `
-            <div class="brief-header">
-                <div class="section-title">Relationship Brief</div>
-                <button class="btn-refresh" onclick="refreshBrief()">Retry</button>
-            </div>
-            <div style="color:var(--muted);font-size:13px;padding:1rem 0;">
-                ${detailMsg}Brief generation unavailable. See reference sections below for full context.
-            </div>
-        `;
     }
 
     // ============================================
