@@ -410,8 +410,7 @@ async function loadOrgBrief() {
     if (saved && saved.narrative) {
       renderOrgBrief(saved.narrative, saved.generated_at);
     } else {
-      showBriefLoading();
-      await _synthesizeOrgBrief();
+      renderOrgBriefEmpty();
     }
   } catch (err) {
     renderOrgBriefError();
@@ -450,6 +449,16 @@ function renderOrgBrief(narrative, generatedAt) {
       <button class="btn-sm" onclick="refreshOrgBrief()">⟳ Refresh</button>
     </div>
     <div class="brief-narrative">${narrativeToHtml(narrative)}</div>
+  `;
+}
+
+function renderOrgBriefEmpty() {
+  document.getElementById('org-brief').innerHTML = `
+    <div class="brief-header">
+      <span class="brief-title">ORG BRIEF</span>
+      <button class="btn-sm" onclick="refreshOrgBrief()">⟳ Generate</button>
+    </div>
+    <p style="color:#94a3b8;font-size:14px;">No org brief yet. Click Generate to create one.</p>
   `;
 }
 

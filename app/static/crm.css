@@ -52,6 +52,7 @@ body {
     border-bottom: 1px solid #334155;
 }
 .nav-tabs-inner {
+    position: relative;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -97,9 +98,10 @@ body {
 
 /* ── Global Search Bar ── */
 .global-search {
-    position: relative;
-    flex-shrink: 0;
-    margin-left: auto;
+    position: absolute;
+    right: 16px;
+    top: 50%;
+    transform: translateY(-50%);
     display: flex;
     align-items: center;
 }
@@ -248,13 +250,13 @@ body {
 
 /* Native section — data belongs here, editable */
 .card-native {
-    border-left: 4px solid #22c55e;
+    border-left: 4px solid #22c55e !important;
 }
 
 /* Cross-reference section — data lives elsewhere, read-only */
 .card-crossref {
-    border-right: 4px solid #2563eb;
-    border-left: none;
+    border-right: 4px solid #2563eb !important;
+    border-left: none !important;
 }
 
 /* Cross-reference navigation badge */
