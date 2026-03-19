@@ -1,5 +1,10 @@
 # Joseph Lyn
 
+- **Email:** joseph.lyn@opg.com
+- **Title:** Director of Real Estate Investments
+- **Phone:** 1 416 592 5160
+- **Organization:** Ontario Power Generation Pension Fund
+
 - **Org:** Ontario Power Generation Pension Fund (OPG)
 - **Title:** Real Estate Investment Team
 - **Email:** (unknown)

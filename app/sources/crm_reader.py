@@ -1,6 +1,5 @@
-# crm_reader.py — markdown-file CRM backend. Single source of truth for all production code.
 """
-CRM data reader/writer for all markdown files in crm/ and contacts/.
+CRM data reader/writer for all markdown files in crm/ and memory/people/.
 All downstream consumers import from here. No parsing logic elsewhere.
 """
 
@@ -13,17 +12,18 @@ from datetime import date, datetime, timedelta
 APP_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))  # .../app
 PROJECT_ROOT = os.path.dirname(APP_ROOT)  # .../ClaudeProductivity
 CRM_ROOT = os.path.join(PROJECT_ROOT, "crm")
+MEMORY_ROOT = os.path.join(PROJECT_ROOT, "memory")
 PEOPLE_ROOT = os.path.join(PROJECT_ROOT, "contacts")
 TASKS_MD_PATH = os.path.join(PROJECT_ROOT, "TASKS.md")
 BRIEFS_PATH = os.path.join(CRM_ROOT, "briefs.json")
 PROSPECT_NOTES_PATH = os.path.join(CRM_ROOT, "prospect_notes.json")
-ORG_NOTES_PATH = os.path.join(CRM_ROOT, "org_notes.json")
 PROSPECT_MEETINGS_PATH = os.path.join(CRM_ROOT, "prospect_meetings.json")
 MEETINGS_PATH = os.path.join(CRM_ROOT, "meetings.json")
+ORG_NOTES_PATH = os.path.join(CRM_ROOT, "org_notes.json")
 
 # Field write order for prospects
 PROSPECT_FIELD_ORDER = [
-    "Stage", "Target", "Primary Contact",
+    "Stage", "Target",
     "Closing", "Urgent", "Assigned To", "Notes", "Last Touch"
 ]
 
@@ -36,7 +36,7 @@ BRIEF_FIELD_MAP = {
 
 EDITABLE_FIELDS = {
     'stage', 'urgent', 'target', 'assigned_to',
-    'notes', 'closing', 'primary_contact'
+    'notes', 'closing'
 }
 
 
@@ -264,6 +264,38 @@ def get_organization(name: str) -> dict | None:
     return None
 
 
+def get_org_by_alias(alias: str) -> str | None:
+    """Look up org canonical name by alias (case-insensitive exact match).
+    Returns the canonical org name, or None if no match found."""
+    if not alias:
+        return None
+    alias_lower = alias.strip().lower()
+    for org in load_organizations():
+        aliases_raw = org.get('Aliases', '')
+        if aliases_raw:
+            # Parse comma-separated aliases
+            aliases = [a.strip() for a in aliases_raw.split(',') if a.strip()]
+            for a in aliases:
+                if a.lower() == alias_lower:
+                    return org['name']
+    return None
+
+
+def get_org_aliases_map() -> dict:
+    """Build {alias_lower: org_name} for all orgs with aliases.
+    Used for bulk lookups. If multiple orgs share an alias, first wins."""
+    alias_map = {}
+    for org in load_organizations():
+        aliases_raw = org.get('Aliases', '')
+        if aliases_raw:
+            aliases = [a.strip() for a in aliases_raw.split(',') if a.strip()]
+            for a in aliases:
+                key = a.lower()
+                if key not in alias_map:
+                    alias_map[key] = org['name']
+    return alias_map
+
+
 def write_organization(name: str, data: dict) -> None:
     """Update fields for an existing org. Preserves all fields."""
     # Canonical field order — any fields present in data are written in this
@@ -376,14 +408,14 @@ def load_contacts_index() -> dict:
 
 
 def load_person(slug: str) -> dict | None:
-    """Parse a contacts/<slug>.md file into a dict."""
+    """Parse a memory/people/<slug>.md file into a dict."""
     path = os.path.join(PEOPLE_ROOT, f"{slug}.md")
     if not os.path.exists(path):
         return None
     text = _read_file(path)
     lines = text.splitlines()
     person = {'slug': slug, 'name': '', 'organization': '', 'role': '',
-              'email': '', 'phone': '', 'type': ''}
+              'email': '', 'phone': '', 'type': '', 'is_primary': False}
     # First H1 = name
     for line in lines:
         if line.startswith('# '):
@@ -412,6 +444,8 @@ def load_person(slug: str) -> dict | None:
                     person['phone'] = val
                 elif key == 'type':
                     person['type'] = val
+                elif key == 'primary':
+                    person['is_primary'] = val.lower() == 'true'
     # Fallback for older non-Overview format: **Field:** value at top level
     if not person['organization']:
         for line in lines:
@@ -427,6 +461,8 @@ def load_person(slug: str) -> dict | None:
                     person['email'] = val
                 elif key == 'phone':
                     person['phone'] = val
+                elif key == 'primary':
+                    person['is_primary'] = val.lower() == 'true'
     return person
 
 
@@ -444,6 +480,67 @@ def get_contacts_for_org(org_name: str) -> list[dict]:
                 if person:
                     contacts.append(person)
     return contacts
+
+
+def _set_contact_primary_field(slug: str, value: bool) -> None:
+    """Write or remove the Primary field in a contact file."""
+    path = os.path.join(PEOPLE_ROOT, f"{slug}.md")
+    if not os.path.exists(path):
+        return
+    text = _read_file(path)
+    lines = text.splitlines()
+    primary_re = re.compile(r'^\s*-?\s*\*\*Primary:\*\*\s*.*', re.IGNORECASE)
+    existing_idx = next((i for i, line in enumerate(lines) if primary_re.match(line)), None)
+
+    if not value:
+        if existing_idx is not None:
+            lines.pop(existing_idx)
+            _write_file(path, '\n'.join(lines) + '\n')
+        return
+
+    if existing_idx is not None:
+        lines[existing_idx] = '- **Primary:** true'
+    else:
+        # Insert after the Organization line, or after H1 if not found
+        insert_idx = 1
+        for i, line in enumerate(lines):
+            if re.match(r'\s*-?\s*\*\*Organization:\*\*', line, re.IGNORECASE):
+                insert_idx = i + 1
+                break
+        lines.insert(insert_idx, '- **Primary:** true')
+    _write_file(path, '\n'.join(lines) + '\n')
+
+
+def get_primary_contact(org: str) -> dict | None:
+    """Return the contact dict with is_primary=True for this org, or None."""
+    for contact in get_contacts_for_org(org):
+        if contact.get('is_primary'):
+            return contact
+    return None
+
+
+def set_primary_contact(org: str, contact_name: str) -> bool:
+    """Mark contact_name as primary for org, clearing any existing primary first.
+    Returns True on success, False if contact not found."""
+    contacts = get_contacts_for_org(org)
+    target_slug = None
+    for c in contacts:
+        if c.get('name', '').lower() == contact_name.lower():
+            target_slug = c.get('slug')
+        else:
+            if c.get('is_primary'):
+                _set_contact_primary_field(c['slug'], False)
+    if target_slug is None:
+        return False
+    _set_contact_primary_field(target_slug, True)
+    return True
+
+
+def clear_primary_contact(org: str) -> None:
+    """Remove Primary: true from all contacts for this org."""
+    for c in get_contacts_for_org(org):
+        if c.get('is_primary'):
+            _set_contact_primary_field(c['slug'], False)
 
 
 def find_person_by_email(email: str) -> dict | None:
@@ -470,7 +567,7 @@ def _name_to_slug(name: str) -> str:
 
 
 def create_person_file(name: str, org: str, email: str, role: str, person_type: str) -> str:
-    """Create contacts/<slug>.md and update contacts_index.md. Returns slug."""
+    """Create memory/people/<slug>.md and update contacts_index.md. Returns slug."""
     slug = _name_to_slug(name)
     # Ensure unique slug
     base_slug = slug
@@ -524,7 +621,7 @@ def create_person_file(name: str, org: str, email: str, role: str, person_type: 
 
 
 def load_all_persons() -> list[dict]:
-    """Load all person files from contacts/. Returns list of person dicts sorted by name."""
+    """Load all person files from memory/people/. Returns list of person dicts sorted by name."""
     if not os.path.exists(PEOPLE_ROOT):
         return []
     persons = []
@@ -589,23 +686,6 @@ def add_contact_to_index(org: str, slug: str) -> None:
         out.append(f"\n## {org}\n- {slug}")
 
     _write_file(index_path, '\n'.join(out))
-
-    # Auto-set Primary Contact on this org's prospects if none is set
-    _auto_set_primary_contact_for_org(org, slug)
-
-
-def _auto_set_primary_contact_for_org(org: str, slug: str) -> None:
-    """If this org's prospects have no Primary Contact, set the newly added contact as primary."""
-    person = load_person(slug)
-    if not person:
-        return
-    name = person.get('name', '')
-    if not name:
-        return
-    prospects = get_prospects_for_org(org)
-    for prospect in prospects:
-        if not prospect.get('Primary Contact', '').strip():
-            update_prospect_field(prospect['org'], prospect['offering'], 'Primary Contact', name)
 
 
 def ensure_contact_linked(name: str, org: str) -> None:
@@ -908,9 +988,6 @@ def update_prospect_field(org: str, offering: str, field: str, value: str) -> No
     if field_normalized not in BRIEF_FIELD_MAP:
         prospect['Last Touch'] = date.today().isoformat()
     write_prospect(org, offering, prospect)
-    # Auto-link contact to org when Primary Contact is set
-    if field_normalized == 'primary contact' and value:
-        ensure_contact_linked(value, org)
 
 
 # ---------------------------------------------------------------------------
@@ -1062,6 +1139,8 @@ def get_prospect_full(org: str, offering: str) -> dict | None:
         return None
     org_data = get_organization(org) or {}
     contacts = get_contacts_for_org(org)
+    primary = get_primary_contact(org)
+    prospect['Primary Contact'] = primary['name'] if primary else ''
     return {**prospect, **{f'org_{k}': v for k, v in org_data.items() if k != 'name'}, 'contacts': contacts}
 
 
@@ -1317,97 +1396,6 @@ def get_all_prospect_tasks() -> list[dict]:
     return results
 
 
-def _normalize_priority(raw: str) -> str:
-    """Normalize various priority strings to Hi / Med / Lo."""
-    p = (raw or '').lower()
-    if p in ('hi', 'high'):
-        return 'Hi'
-    if p in ('lo', 'low'):
-        return 'Lo'
-    return 'Med'  # med, medium, normal, or anything unrecognized
-
-
-def get_tasks_grouped_by_prospect() -> list[dict]:
-    """Return open prospect tasks grouped by org, sorted by prospect target descending.
-
-    Each group: {'org': str, 'target': float, 'tasks': list[dict]}
-    Tasks within each group sorted Hi → Med → Lo.
-    """
-    all_tasks = [
-        t for t in get_all_prospect_tasks()
-        if t['status'] == 'open' and t.get('owner')
-    ]
-    prospects = load_prospects()
-    target_lookup: dict[str, float] = {}
-    for p in prospects:
-        key = p['org'].lower()
-        val = _parse_currency(str(p.get('Target', '') or ''))
-        if key not in target_lookup or val > target_lookup[key]:
-            target_lookup[key] = val
-
-    pri_order = {'hi': 0, 'med': 1, 'lo': 2, 'low': 2, 'high': 0,
-                 'medium': 1, 'normal': 1}
-    groups: dict[str, dict] = {}
-    for task in all_tasks:
-        org = task['org']
-        if org not in groups:
-            groups[org] = {
-                'org': org,
-                'target': target_lookup.get(org.lower(), 0.0),
-                'tasks': [],
-            }
-        t = dict(task)
-        t['priority'] = _normalize_priority(task['priority'])
-        groups[org]['tasks'].append(t)
-
-    for group in groups.values():
-        group['tasks'].sort(
-            key=lambda t: pri_order.get(t['priority'].lower(), 3)
-        )
-
-    return sorted(groups.values(), key=lambda g: g['target'], reverse=True)
-
-
-def get_tasks_grouped_by_owner() -> list[dict]:
-    """Return open prospect tasks grouped by owner, sorted by max prospect target descending.
-
-    Each group: {'owner': str, 'max_target': float, 'tasks': list[dict]}
-    Tasks within each group sorted Hi → Med → Lo.
-    """
-    all_tasks = [
-        t for t in get_all_prospect_tasks()
-        if t['status'] == 'open' and t.get('owner')
-    ]
-    prospects = load_prospects()
-    target_lookup: dict[str, float] = {}
-    for p in prospects:
-        key = p['org'].lower()
-        val = _parse_currency(str(p.get('Target', '') or ''))
-        if key not in target_lookup or val > target_lookup[key]:
-            target_lookup[key] = val
-
-    pri_order = {'hi': 0, 'med': 1, 'lo': 2, 'low': 2, 'high': 0,
-                 'medium': 1, 'normal': 1}
-    groups: dict[str, dict] = {}
-    for task in all_tasks:
-        owner = task['owner']
-        if owner not in groups:
-            groups[owner] = {'owner': owner, 'max_target': 0.0, 'tasks': []}
-        t = dict(task)
-        t['priority'] = _normalize_priority(task['priority'])
-        groups[owner]['tasks'].append(t)
-        org_target = target_lookup.get(task['org'].lower(), 0.0)
-        if org_target > groups[owner]['max_target']:
-            groups[owner]['max_target'] = org_target
-
-    for group in groups.values():
-        group['tasks'].sort(
-            key=lambda t: pri_order.get(t['priority'].lower(), 3)
-        )
-
-    return sorted(groups.values(), key=lambda g: g['max_target'], reverse=True)
-
-
 def add_prospect_task(org_name: str, text: str, owner: str,
                       priority: str = "Med", section: str = "IR / Fundraising") -> bool:
     """Append a new prospect task to TASKS.md under the specified section.
@@ -1635,62 +1623,21 @@ def add_emails_to_log(emails: list[dict]) -> int:
     return added
 
 
-def get_emails_for_org_grouped(org_name: str) -> list[dict]:
-    """Return emails for an org grouped by conversationId.
+def stamp_last_scan() -> None:
+    """Stamp lastScan to now in email_log.json.
 
-    Returns a list of thread dicts, each containing:
-      - conversationId: str | None
-      - emails: list[dict] (sorted newest first)
-      - count: int
-      - latest_date: str
-      - latest_subject: str
-      - latest_direction: str
-      - latest_mailbox_source: str
+    Call this at the end of every email scan pass — regardless of whether any
+    emails matched. This advances the scan window so the next run does not
+    re-process the same emails.
 
-    Threads sorted by most recent email date, descending.
-    Emails with no conversationId appear as single-email threads.
+    This is intentionally separate from add_emails_to_log() so that the scan
+    window always advances even when no emails are logged (e.g. quiet day, all
+    deduped). It is also a safeguard: if add_emails_to_log() is skipped, this
+    call alone is sufficient to prevent the stuck-lastScan bug.
     """
-    emails = get_emails_for_org(org_name)
-
-    thread_map: dict[str, list] = {}
-    ungrouped: list[dict] = []
-
-    for email in emails:
-        cid = email.get("conversationId")
-        if cid:
-            if cid not in thread_map:
-                thread_map[cid] = []
-            thread_map[cid].append(email)
-        else:
-            ungrouped.append(email)
-
-    threads = []
-    for cid, thread_emails in thread_map.items():
-        thread_emails.sort(key=lambda e: e.get("timestamp", ""), reverse=True)
-        latest = thread_emails[0]
-        threads.append({
-            "conversationId": cid,
-            "emails": thread_emails,
-            "count": len(thread_emails),
-            "latest_date": latest.get("date", ""),
-            "latest_subject": latest.get("subject", ""),
-            "latest_direction": latest.get("direction", ""),
-            "latest_mailbox_source": latest.get("mailboxSource", ""),
-        })
-
-    for email in ungrouped:
-        threads.append({
-            "conversationId": None,
-            "emails": [email],
-            "count": 1,
-            "latest_date": email.get("date", ""),
-            "latest_subject": email.get("subject", ""),
-            "latest_direction": email.get("direction", ""),
-            "latest_mailbox_source": email.get("mailboxSource", ""),
-        })
-
-    threads.sort(key=lambda t: t["latest_date"], reverse=True)
-    return threads
+    log = load_email_log()
+    log['lastScan'] = datetime.now().isoformat() + 'Z'
+    save_email_log(log)
 
 
 def get_org_domains(prospect_only: bool = False) -> dict:
@@ -1933,7 +1880,7 @@ def _save_briefs(data: dict) -> None:
 
 
 def save_brief(brief_type: str, key: str, narrative: str, content_hash: str,
-               at_a_glance: str = '', generated_by: str = '') -> None:
+               at_a_glance: str = '') -> None:
     """Persist an AI-generated brief.
 
     Args:
@@ -1942,8 +1889,7 @@ def save_brief(brief_type: str, key: str, narrative: str, content_hash: str,
              for person use slug or name, for org use org name.
         narrative: the AI-generated markdown text
         content_hash: hash of the source data at generation time
-        at_a_glance: optional status line or bullet points
-        generated_by: display name of the user who triggered the refresh
+        at_a_glance: optional 10-word-max status line (prospect briefs only)
     """
     data = _load_briefs()
     bucket = data.setdefault(brief_type, {})
@@ -1954,7 +1900,6 @@ def save_brief(brief_type: str, key: str, narrative: str, content_hash: str,
         'generated_at': datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ'),
         # Preserve existing at_a_glance if no new one provided (auto-synthesis path)
         'at_a_glance': at_a_glance if at_a_glance else existing.get('at_a_glance', ''),
-        'generated_by': generated_by if generated_by else existing.get('generated_by', ''),
     }
     _save_briefs(data)
 
@@ -2011,51 +1956,6 @@ def save_prospect_note(org: str, offering: str, author: str, text: str) -> dict:
 
     os.makedirs(os.path.dirname(PROSPECT_NOTES_PATH), exist_ok=True)
     with open(PROSPECT_NOTES_PATH, 'w', encoding='utf-8') as f:
-        json.dump(data, f, indent=2, ensure_ascii=False)
-
-    return entry
-
-
-# ---------------------------------------------------------------------------
-# Org Notes Log
-# ---------------------------------------------------------------------------
-
-def load_org_notes(org_name: str) -> list:
-    """Load the freeform notes log for an organization.
-    Returns list of {'date': ISO str, 'author': str, 'text': str}, newest first."""
-    if not os.path.exists(ORG_NOTES_PATH):
-        return []
-    try:
-        with open(ORG_NOTES_PATH, 'r', encoding='utf-8') as f:
-            data = json.load(f)
-        entries = data.get(org_name, [])
-        return list(reversed(entries))
-    except (json.JSONDecodeError, OSError):
-        return []
-
-
-def save_org_note(org_name: str, author: str, text: str) -> dict:
-    """Append a timestamped note entry to an org's notes log.
-    Returns the new entry dict {'date', 'author', 'text'}."""
-    now = datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ')
-    entry = {
-        'date': now,
-        'author': author.strip(),
-        'text': text.strip(),
-    }
-
-    data: dict = {}
-    if os.path.exists(ORG_NOTES_PATH):
-        try:
-            with open(ORG_NOTES_PATH, 'r', encoding='utf-8') as f:
-                data = json.load(f)
-        except (json.JSONDecodeError, OSError):
-            data = {}
-
-    data.setdefault(org_name, []).append(entry)
-
-    os.makedirs(os.path.dirname(ORG_NOTES_PATH), exist_ok=True)
-    with open(ORG_NOTES_PATH, 'w', encoding='utf-8') as f:
         json.dump(data, f, indent=2, ensure_ascii=False)
 
     return entry
@@ -2133,19 +2033,22 @@ def delete_prospect_meeting(org: str, offering: str, meeting_id: str) -> bool:
         json.dump(data, f, indent=2, ensure_ascii=False)
     return True
 
-
 # ---------------------------------------------------------------------------
-# Meetings — First-Class Object (unified meetings.json)
+# Meetings (full CRUD, backed by crm/meetings.json)
 # ---------------------------------------------------------------------------
 
-MEETING_STATUSES = ('scheduled', 'completed', 'reviewed')
-MEETING_SOURCES = ('calendar', 'email', 'manual')
+def _save_meetings_raw(meetings: list) -> None:
+    """Write the full meetings list to MEETINGS_PATH."""
+    os.makedirs(os.path.dirname(MEETINGS_PATH), exist_ok=True)
+    with open(MEETINGS_PATH, 'w', encoding='utf-8') as f:
+        json.dump(meetings, f, indent=2, ensure_ascii=False)
 
 
-def _load_meetings_raw() -> list:
-    """Load all meetings from meetings.json. Returns list of dicts."""
+def _load_meetings_raw() -> list[dict]:
+    """Load raw meetings list without any filters or transformations."""
     if not os.path.exists(MEETINGS_PATH):
         return []
+
     try:
         with open(MEETINGS_PATH, 'r', encoding='utf-8') as f:
             return json.load(f)
@@ -2153,319 +2056,1082 @@ def _load_meetings_raw() -> list:
         return []
 
 
-def _save_meetings_raw(meetings: list) -> None:
-    """Write all meetings to meetings.json."""
-    os.makedirs(os.path.dirname(MEETINGS_PATH), exist_ok=True)
-    with open(MEETINGS_PATH, 'w', encoding='utf-8') as f:
-        json.dump(meetings, f, indent=2, ensure_ascii=False)
-
-
-def load_meetings(org: str = None, offering: str = None,
-                  status: str | list = None,
-                  future_only: bool = False, past_only: bool = False) -> list:
-    """Load meetings with optional filters.
-    Args:
-        org: Filter by organization name (case-insensitive)
-        offering: Filter by offering name
-        status: Single status string or list of statuses to include
-        future_only: Only meetings with meeting_date >= today
-        past_only: Only meetings with meeting_date < today
-    Returns list of meeting dicts, sorted by meeting_date (asc for future, desc for past).
-    """
+def _find_meeting_by_fuzzy(org: str, meeting_date: str) -> dict | None:
+    """Find existing meeting by org + date proximity (±1 day). Tier 2 dedup."""
     meetings = _load_meetings_raw()
-    today = date.today().isoformat()
-
-    # Auto-transition: mark past 'scheduled' meetings as 'completed'
-    changed = False
+    try:
+        target_date = date.fromisoformat(meeting_date)
+    except (ValueError, TypeError):
+        return None
     for m in meetings:
-        if m.get('status') == 'scheduled' and m.get('meeting_date', '') < today:
-            if not m.get('notes_raw'):
-                m['status'] = 'completed'
-                m['updated_at'] = datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ')
-                changed = True
-    if changed:
-        _save_meetings_raw(meetings)
-
-    if org:
-        meetings = [m for m in meetings if m.get('org', '').lower() == org.lower()]
-    if offering:
-        meetings = [m for m in meetings if m.get('offering', '').lower() == offering.lower()]
-    if status:
-        statuses = [status] if isinstance(status, str) else status
-        meetings = [m for m in meetings if m.get('status') in statuses]
-    if future_only:
-        meetings = [m for m in meetings if m.get('meeting_date', '') >= today]
-    if past_only:
-        meetings = [m for m in meetings if m.get('meeting_date', '') < today]
-
-    # Sort: future meetings ascending, past meetings descending
-    if future_only:
-        meetings.sort(key=lambda m: m.get('meeting_date', ''))
-    else:
-        meetings.sort(key=lambda m: m.get('meeting_date', ''), reverse=True)
-
-    return meetings
-
-
-def get_meeting(meeting_id: str) -> dict | None:
-    """Get a single meeting by UUID."""
-    for m in _load_meetings_raw():
-        if m.get('id') == meeting_id:
+        if m.get('org', '').lower() != org.lower():
+            continue
+        try:
+            m_date = date.fromisoformat(m['meeting_date'])
+        except (ValueError, TypeError):
+            continue
+        if abs((m_date - target_date).days) <= 1:
             return m
     return None
 
 
-def save_meeting(org: str, offering: str, meeting_date: str,
-                 meeting_time: str = '', title: str = '',
-                 attendees: str = '', source: str = 'manual',
-                 graph_event_id: str = None, notes_raw: str = None,
+def load_meetings(org=None, offering=None, status=None, future_only=False, past_only=False) -> list[dict]:
+    """Load meetings with optional filters.
+    
+    Args:
+        org: Filter by organization name
+        offering: Filter by offering name
+        status: Single status string or list of statuses (e.g. 'scheduled', ['completed', 'reviewed'])
+        future_only: Only return meetings with meeting_date >= today
+        past_only: Only return meetings with meeting_date < today
+    
+    Returns:
+        List of meeting dicts sorted by meeting_date descending (newest first)
+    """
+    if not os.path.exists(MEETINGS_PATH):
+        return []
+    
+    try:
+        with open(MEETINGS_PATH, 'r', encoding='utf-8') as f:
+            meetings = json.load(f)
+    except (json.JSONDecodeError, OSError):
+        return []
+
+    # Auto-transition past scheduled meetings to completed
+    today = date.today()
+    changed = False
+    for m in meetings:
+        if m.get('status') == 'scheduled':
+            try:
+                meeting_date = date.fromisoformat(m['meeting_date'])
+                if meeting_date < today:
+                    m['status'] = 'completed'
+                    m['updated_at'] = datetime.utcnow().isoformat() + 'Z'
+                    changed = True
+            except (ValueError, TypeError):
+                pass
+    if changed:
+        _save_meetings_raw(meetings)
+
+    # Apply filters
+    results = meetings
+    
+    if org:
+        results = [m for m in results if m.get('org', '').lower() == org.lower()]
+    
+    if offering:
+        results = [m for m in results if m.get('offering', '').lower() == offering.lower()]
+    
+    if status:
+        if isinstance(status, str):
+            status = [status]
+        results = [m for m in results if m.get('status') in status]
+    
+    today = date.today().isoformat()
+    
+    if future_only:
+        results = [m for m in results if m.get('meeting_date', '') >= today]
+    
+    if past_only:
+        results = [m for m in results if m.get('meeting_date', '') < today]
+    
+    # Sort by meeting_date descending
+    results.sort(key=lambda m: m.get('meeting_date', ''), reverse=True)
+    
+    return results
+
+
+def get_meeting(meeting_id: str) -> dict | None:
+    """Get a single meeting by UUID."""
+    if not os.path.exists(MEETINGS_PATH):
+        return None
+    
+    try:
+        with open(MEETINGS_PATH, 'r', encoding='utf-8') as f:
+            meetings = json.load(f)
+    except (json.JSONDecodeError, OSError):
+        return None
+    
+    for meeting in meetings:
+        if meeting.get('id') == meeting_id:
+            return meeting
+    
+    return None
+
+
+def save_meeting(org: str, offering: str, meeting_date: str, title: str = '', 
+                 attendees: str = '', source: str = 'manual', graph_event_id: str = None,
+                 meeting_time: str = '', notes_raw: str = '', transcript_url: str = '',
                  created_by: str = 'oscar') -> dict:
-    """Create a new meeting record. Enforces graph_event_id uniqueness
-    and fuzzy dedup (same org + date ±24h).
-    Returns the new or matched meeting dict."""
-    meetings = _load_meetings_raw()
-    now = datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ')
-
-    # Tier 1 dedup: graph_event_id exact match
+    """Create a new meeting with two-tier deduplication.
+    
+    Dedup logic:
+        1. Exact graph_event_id match (if provided) → return existing
+        2. Fuzzy match: same org AND meeting_date ±1 day AND status='scheduled' → return existing
+    
+    Args:
+        org: Organization name
+        offering: Offering name
+        meeting_date: ISO date string (YYYY-MM-DD)
+        title: Meeting title
+        attendees: Comma-separated attendees
+        source: 'manual' or 'graph'
+        graph_event_id: Calendar event ID from Graph API
+        meeting_time: Time string (optional)
+        notes_raw: Raw meeting notes
+        transcript_url: URL to meeting transcript
+        created_by: Username who created the meeting
+    
+    Returns:
+        The created or existing meeting dict
+    """
+    meetings = []
+    if os.path.exists(MEETINGS_PATH):
+        try:
+            with open(MEETINGS_PATH, 'r', encoding='utf-8') as f:
+                meetings = json.load(f)
+        except (json.JSONDecodeError, OSError):
+            meetings = []
+    
+    # Dedup tier 1: exact graph_event_id match
     if graph_event_id:
-        for m in meetings:
-            if m.get('graph_event_id') == graph_event_id:
-                return m  # Already exists
+        for meeting in meetings:
+            if meeting.get('graph_event_id') == graph_event_id:
+                return meeting
+    
+    # Dedup tier 2: fuzzy org+date±1 day match for scheduled meetings
+    try:
+        target_date = datetime.strptime(meeting_date, '%Y-%m-%d').date()
+        org_lower = org.lower()
 
-    # Tier 2 dedup: same org + date within ±24h (only for notes without event ID)
-    if not graph_event_id and notes_raw:
-        match = _find_meeting_by_fuzzy(meetings, org, meeting_date)
-        if match:
-            # Attach notes to existing meeting
-            if notes_raw and not match.get('notes_raw'):
-                match['notes_raw'] = notes_raw
-                match['updated_at'] = now
-                if match.get('status') == 'scheduled':
-                    match['status'] = 'completed'
-                _save_meetings_raw(meetings)
-            return match
+        for meeting in meetings:
+            if meeting.get('status') != 'scheduled':
+                continue
+            if meeting.get('org', '').lower() != org_lower:
+                continue
 
-    entry = {
+            meeting_date_str = meeting.get('meeting_date', '')
+            if not meeting_date_str:
+                continue
+
+            try:
+                existing_date = datetime.strptime(meeting_date_str, '%Y-%m-%d').date()
+                delta = abs((existing_date - target_date).days)
+                if delta <= 1:
+                    # Found fuzzy match — update with new fields if provided
+                    if notes_raw:
+                        meeting['notes_raw'] = notes_raw
+                        meeting['status'] = 'completed'
+                    if title:
+                        meeting['title'] = title
+                    if attendees:
+                        meeting['attendees'] = attendees
+                    if transcript_url:
+                        meeting['transcript_url'] = transcript_url
+                    meeting['updated_at'] = datetime.utcnow().isoformat() + 'Z'
+                    _save_meetings_raw(meetings)
+                    return meeting
+            except ValueError:
+                continue
+    except ValueError:
+        pass
+    
+    # No match — create new meeting
+    now = datetime.utcnow().isoformat() + 'Z'
+    meeting = {
         'id': str(uuid.uuid4()),
         'org': org,
         'offering': offering,
-        'meeting_date': meeting_date.strip(),
-        'meeting_time': (meeting_time or '').strip(),
-        'title': (title or '').strip(),
-        'attendees': (attendees or '').strip(),
+        'meeting_date': meeting_date,
+        'meeting_time': meeting_time,
+        'title': title,
+        'attendees': attendees,
         'graph_event_id': graph_event_id,
-        'source': source if source in MEETING_SOURCES else 'manual',
-        'status': 'scheduled',
+        'source': source,
+        'status': 'completed' if notes_raw else 'scheduled',
         'notes_raw': notes_raw,
         'notes_summary': None,
-        'transcript_url': None,
+        'transcript_url': transcript_url,
         'insights': [],
         'created_by': created_by,
         'created_at': now,
         'updated_at': now,
     }
-
-    # If notes provided, auto-set to completed
-    if notes_raw:
-        entry['status'] = 'completed'
-
-    meetings.append(entry)
-    _save_meetings_raw(meetings)
-    return entry
+    
+    meetings.append(meeting)
+    
+    os.makedirs(os.path.dirname(MEETINGS_PATH), exist_ok=True)
+    with open(MEETINGS_PATH, 'w', encoding='utf-8') as f:
+        json.dump(meetings, f, indent=2, ensure_ascii=False)
+    
+    return meeting
 
 
 def update_meeting(meeting_id: str, **fields) -> dict | None:
-    """Update fields on a meeting. Returns updated meeting or None."""
-    meetings = _load_meetings_raw()
-    for m in meetings:
-        if m.get('id') == meeting_id:
-            for key, val in fields.items():
-                if key != 'id':  # never overwrite id
-                    m[key] = val
-            m['updated_at'] = datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ')
-            _save_meetings_raw(meetings)
-            return m
+    """Update arbitrary fields on a meeting.
+    
+    Args:
+        meeting_id: Meeting UUID
+        **fields: Any meeting fields to update
+    
+    Returns:
+        Updated meeting dict or None if not found
+    """
+    if not os.path.exists(MEETINGS_PATH):
+        return None
+    
+    try:
+        with open(MEETINGS_PATH, 'r', encoding='utf-8') as f:
+            meetings = json.load(f)
+    except (json.JSONDecodeError, OSError):
+        return None
+    
+    for meeting in meetings:
+        if meeting.get('id') == meeting_id:
+            # Update fields
+            for key, value in fields.items():
+                if key not in ('id', 'created_by', 'created_at'):
+                    meeting[key] = value
+            
+            meeting['updated_at'] = datetime.utcnow().isoformat() + 'Z'
+            
+            # Auto-transition status to 'completed' if notes_raw is added
+            if 'notes_raw' in fields and fields['notes_raw'] and meeting.get('status') == 'scheduled':
+                meeting['status'] = 'completed'
+            
+            # Write back
+            with open(MEETINGS_PATH, 'w', encoding='utf-8') as f:
+                json.dump(meetings, f, indent=2, ensure_ascii=False)
+            
+            return meeting
+    
     return None
 
 
 def delete_meeting(meeting_id: str) -> bool:
-    """Delete a meeting by UUID. Returns True if found and removed."""
-    meetings = _load_meetings_raw()
-    new_meetings = [m for m in meetings if m.get('id') != meeting_id]
-    if len(new_meetings) == len(meetings):
+    """Delete a meeting by UUID.
+    
+    Returns:
+        True if meeting was found and deleted, False otherwise
+    """
+    if not os.path.exists(MEETINGS_PATH):
         return False
-    _save_meetings_raw(new_meetings)
+    
+    try:
+        with open(MEETINGS_PATH, 'r', encoding='utf-8') as f:
+            meetings = json.load(f)
+    except (json.JSONDecodeError, OSError):
+        return False
+    
+    original_len = len(meetings)
+    meetings = [m for m in meetings if m.get('id') != meeting_id]
+    
+    if len(meetings) == original_len:
+        return False
+    
+    with open(MEETINGS_PATH, 'w', encoding='utf-8') as f:
+        json.dump(meetings, f, indent=2, ensure_ascii=False)
+    
     return True
 
 
-def _find_meeting_by_fuzzy(meetings: list, org: str, meeting_date: str) -> dict | None:
-    """Fuzzy match: find an existing meeting for the same org
-    with a date within ±1 day."""
-    try:
-        target = datetime.strptime(meeting_date, '%Y-%m-%d')
-    except ValueError:
-        return None
-
-    for m in meetings:
-        if m.get('org', '').lower() != org.lower():
-            continue
-        try:
-            m_date = datetime.strptime(m.get('meeting_date', ''), '%Y-%m-%d')
-        except ValueError:
-            continue
-        if abs((m_date - target).days) <= 1:
-            return m
-    return None
-
-
-def approve_meeting_insight(meeting_id: str, insight_id: str,
-                            username: str = 'oscar') -> dict | None:
-    """Approve a meeting insight. Writes to prospect Notes field.
-    Returns updated meeting or None."""
-    meetings = _load_meetings_raw()
-    for m in meetings:
-        if m.get('id') != meeting_id:
-            continue
-        for insight in m.get('insights', []):
-            if insight.get('id') != insight_id:
-                continue
-            insight['status'] = 'approved'
-            insight['reviewed_by'] = username
-            insight['reviewed_at'] = datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ')
-
-            # Write approved insight to prospect Notes
-            prefix = f"[Meeting {m.get('meeting_date', '')}] "
-            notes_text = prefix + insight['text']
-            org = m.get('org', '')
-            offering = m.get('offering', '')
-            if org and offering:
-                prospect = get_prospect(org, offering)
-                if prospect:
-                    existing_notes = prospect.get('Notes', '')
-                    new_notes = (existing_notes + '\n' + notes_text).strip() if existing_notes else notes_text
-                    update_prospect_field(org, offering, 'notes', new_notes)
-
-            # Check if all insights are reviewed
-            _check_meeting_reviewed(m)
-            m['updated_at'] = datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ')
-            _save_meetings_raw(meetings)
-            return m
-    return None
-
-
-def dismiss_meeting_insight(meeting_id: str, insight_id: str,
-                            username: str = 'oscar') -> dict | None:
-    """Dismiss a meeting insight (does NOT write to prospect).
-    Returns updated meeting or None."""
-    meetings = _load_meetings_raw()
-    for m in meetings:
-        if m.get('id') != meeting_id:
-            continue
-        for insight in m.get('insights', []):
-            if insight.get('id') != insight_id:
-                continue
-            insight['status'] = 'dismissed'
-            insight['reviewed_by'] = username
-            insight['reviewed_at'] = datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ')
-            _check_meeting_reviewed(m)
-            m['updated_at'] = datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ')
-            _save_meetings_raw(meetings)
-            return m
-    return None
-
-
-def _check_meeting_reviewed(meeting: dict) -> None:
-    """If all insights are approved or dismissed, set status to 'reviewed'."""
-    insights = meeting.get('insights', [])
-    if not insights:
-        return
-    if all(i.get('status') in ('approved', 'dismissed') for i in insights):
-        meeting['status'] = 'reviewed'
-
-
 def process_meeting_notes(meeting_id: str) -> dict | None:
-    """Run AI processing on meeting notes. Generates summary + insights.
-    Returns updated meeting or None.
-
-    Uses Claude API (same pattern as brief_synthesizer.py).
+    """Process meeting notes with Claude API.
+    
+    Generates:
+        - notes_summary: Concise summary of meeting notes
+        - insights: List of structured action items and key decisions
+    
+    Each insight has:
+        - id: UUID
+        - type: 'action_item', 'decision', 'follow_up'
+        - text: The insight text
+        - status: 'pending' (awaiting review)
+    
+    Returns:
+        Updated meeting dict or None if not found
     """
     meeting = get_meeting(meeting_id)
-    if not meeting or not meeting.get('notes_raw'):
+    if not meeting:
         return None
-
-    try:
-        import anthropic
-    except ImportError:
-        return None
-
+    
+    notes_raw = meeting.get('notes_raw', '').strip()
+    if not notes_raw:
+        return meeting
+    
+    # Call Claude API
+    import anthropic
+    
     client = anthropic.Anthropic()
-    prompt = f"""Meeting: {meeting.get('title', 'Untitled')} with {meeting.get('org', '')} on {meeting.get('meeting_date', '')}
-Attendees: {meeting.get('attendees', 'Unknown')}
+    
+    system_prompt = """You are a meeting intelligence assistant. Extract key information from meeting notes.
 
-NOTES:
-{meeting['notes_raw']}
-
-Return JSON only:
-{{
-  "summary": "2-3 paragraph narrative summary of the meeting",
+Return a JSON object with:
+{
+  "summary": "2-3 sentence summary of the meeting",
   "insights": [
-    "Specific actionable insight about this investor's interest, concerns, or next steps",
-    ...
+    {"type": "action_item", "text": "specific action item with owner if mentioned"},
+    {"type": "decision", "text": "key decision made"},
+    {"type": "follow_up", "text": "follow-up needed"}
   ]
-}}
-Insights should be specific, concise (1-2 sentences each), and relevant to fundraising
-relationship management. Do not include generic observations. Max 5 insights."""
+}
 
+Only include insights that are clear and actionable. If no insights, return empty array."""
+    
+    user_prompt = f"""Meeting: {meeting.get('title', 'Untitled')}
+Date: {meeting.get('meeting_date', '')}
+Attendees: {meeting.get('attendees', '')}
+
+Notes:
+{notes_raw}"""
+    
     try:
         response = client.messages.create(
             model='claude-sonnet-4-6',
-            max_tokens=1000,
-            system="You are an analyst extracting intelligence from meeting notes for a real estate private equity fundraising CRM.",
-            messages=[{'role': 'user', 'content': prompt}],
+            max_tokens=1500,
+            system=system_prompt,
+            messages=[{'role': 'user', 'content': user_prompt}]
         )
-        content = response.content[0].text.strip()
-
-        # Parse JSON from response (handle markdown code blocks)
-        if '```' in content:
-            content = re.search(r'```(?:json)?\s*(.*?)\s*```', content, re.DOTALL)
-            content = content.group(1) if content else '{}'
+        
+        content = response.content[0].text
+        
+        # Parse JSON
+        content = content.strip()
+        if content.startswith('```json'):
+            content = content[7:]
+        if content.startswith('```'):
+            content = content[3:]
+        if content.endswith('```'):
+            content = content[:-3]
+        content = content.strip()
+        
         result = json.loads(content)
-    except Exception:
-        # Fallback: no AI processing
-        result = {'summary': meeting['notes_raw'][:500], 'insights': []}
-
-    now = datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ')
-    insights = []
-    for text in result.get('insights', []):
-        insights.append({
-            'id': str(uuid.uuid4()),
-            'text': str(text),
-            'status': 'pending',
-            'reviewed_by': None,
-            'reviewed_at': None,
-            'created_at': now,
-        })
-
-    meetings = _load_meetings_raw()
-    for m in meetings:
-        if m.get('id') == meeting_id:
-            m['notes_summary'] = result.get('summary', '')
-            m['insights'] = insights
-            if m.get('status') == 'scheduled':
-                m['status'] = 'completed'
-            m['updated_at'] = now
-
-            # Write interaction log breadcrumb
-            append_interaction({
-                'date': m.get('meeting_date', date.today().isoformat()),
-                'org': m.get('org', ''),
-                'type': 'Meeting',
-                'offering': m.get('offering', ''),
-                'Subject': m.get('title') or 'Meeting',
-                'Summary': f"Meeting with {m.get('attendees', '')} — {(m.get('notes_summary') or 'Notes pending')[:100]}",
-                'Source': 'meeting',
+        
+        summary = result.get('summary', '')
+        insights_raw = result.get('insights', [])
+        
+        # Add IDs and status to insights
+        insights = []
+        for insight in insights_raw:
+            insights.append({
+                'id': str(uuid.uuid4()),
+                'type': insight.get('type', 'action_item'),
+                'text': insight.get('text', ''),
+                'status': 'pending',
             })
+        
+        # Update meeting
+        return update_meeting(meeting_id, notes_summary=summary, insights=insights)
+        
+    except Exception as e:
+        # Processing failed - meeting is still saved, just not processed
+        print(f"Failed to process meeting notes: {e}")
+        return meeting
+
+
+def approve_meeting_insight(meeting_id: str, insight_id: str, username: str) -> dict | None:
+    """Approve a meeting insight — writes to prospect Notes field.
+
+    Args:
+        meeting_id: Meeting UUID
+        insight_id: Insight UUID
+        username: User approving the insight
+
+    Returns:
+        Updated meeting dict or None if not found
+    """
+    meeting = get_meeting(meeting_id)
+    if not meeting:
+        return None
+
+    insights = meeting.get('insights', [])
+    insight = None
+
+    for ins in insights:
+        if ins.get('id') == insight_id:
+            insight = ins
             break
 
+    if not insight:
+        return None
+
+    # Mark as approved
+    insight['status'] = 'approved'
+    insight['reviewed_by'] = username
+    insight['reviewed_at'] = datetime.utcnow().isoformat() + 'Z'
+
+    # Write to prospect Notes field
+    org = meeting.get('org', '')
+    offering = meeting.get('offering', '')
+    meeting_date = meeting.get('meeting_date', '')
+
+    if org and offering:
+        prospect = get_prospect(org, offering)
+        if prospect:
+            existing_notes = prospect.get('Notes', '').strip()
+            insight_text = insight.get('text', '').strip()
+            note_with_date = f"[Meeting {meeting_date}] {insight_text}"
+
+            if existing_notes:
+                new_notes = f"{existing_notes} | {note_with_date}"
+            else:
+                new_notes = note_with_date
+
+            update_prospect_field(org, offering, 'notes', new_notes)
+
+    # Check if all insights are reviewed
+    all_reviewed = all(ins.get('status') in ('approved', 'dismissed') for ins in insights)
+    if all_reviewed:
+        meeting['status'] = 'reviewed'
+
+    # Update meeting with new insights and potentially new status
+    meeting['insights'] = insights
+    meeting['updated_at'] = datetime.utcnow().isoformat() + 'Z'
+
+    # Write back to meetings.json
+    meetings = _load_meetings_raw()
+    for i, m in enumerate(meetings):
+        if m.get('id') == meeting_id:
+            meetings[i] = meeting
+            break
     _save_meetings_raw(meetings)
-    return get_meeting(meeting_id)
+
+    return meeting
+
+
+def dismiss_meeting_insight(meeting_id: str, insight_id: str, username: str) -> dict | None:
+    """Dismiss a meeting insight — does NOT write to prospect Notes.
+
+    Args:
+        meeting_id: Meeting UUID
+        insight_id: Insight UUID
+        username: User dismissing the insight
+
+    Returns:
+        Updated meeting dict or None if not found
+    """
+    meeting = get_meeting(meeting_id)
+    if not meeting:
+        return None
+
+    insights = meeting.get('insights', [])
+
+    for ins in insights:
+        if ins.get('id') == insight_id:
+            ins['status'] = 'dismissed'
+            ins['reviewed_by'] = username
+            ins['reviewed_at'] = datetime.utcnow().isoformat() + 'Z'
+            break
+
+    # Check if all insights are reviewed
+    all_reviewed = all(ins.get('status') in ('approved', 'dismissed') for ins in insights)
+    if all_reviewed:
+        meeting['status'] = 'reviewed'
+
+    # Update meeting with new insights and potentially new status
+    meeting['insights'] = insights
+    meeting['updated_at'] = datetime.utcnow().isoformat() + 'Z'
+
+    # Write back to meetings.json
+    meetings = _load_meetings_raw()
+    for i, m in enumerate(meetings):
+        if m.get('id') == meeting_id:
+            meetings[i] = meeting
+            break
+    _save_meetings_raw(meetings)
+
+    return meeting
+
+
+# ---------------------------------------------------------------------------
+# Org Notes (backed by crm/org_notes.json)
+# ---------------------------------------------------------------------------
+
+def load_org_notes(org: str) -> list[dict]:
+    """Load notes for an organization.
+    
+    Returns:
+        List of note dicts sorted by date descending (newest first)
+    """
+    if not os.path.exists(ORG_NOTES_PATH):
+        return []
+    
+    try:
+        with open(ORG_NOTES_PATH, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+    except (json.JSONDecodeError, OSError):
+        return []
+    
+    notes = data.get(org, [])
+    notes.sort(key=lambda n: n.get('date', ''), reverse=True)
+    return notes
+
+
+def save_org_note(org: str, author: str, text: str) -> dict:
+    """Save a note for an organization.
+    
+    Args:
+        org: Organization name
+        author: Note author username
+        text: Note text
+    
+    Returns:
+        The created note dict
+    """
+    data = {}
+    if os.path.exists(ORG_NOTES_PATH):
+        try:
+            with open(ORG_NOTES_PATH, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+        except (json.JSONDecodeError, OSError):
+            data = {}
+    
+    note = {
+        'date': date.today().isoformat(),
+        'author': author,
+        'text': text.strip(),
+    }
+    
+    data.setdefault(org, []).append(note)
+    
+    os.makedirs(os.path.dirname(ORG_NOTES_PATH), exist_ok=True)
+    with open(ORG_NOTES_PATH, 'w', encoding='utf-8') as f:
+        json.dump(data, f, indent=2, ensure_ascii=False)
+    
+    return note
+
+
+# ---------------------------------------------------------------------------
+# Task Grouping (wrappers over get_all_prospect_tasks)
+# ---------------------------------------------------------------------------
+
+def get_tasks_grouped_by_prospect() -> list[dict]:
+    """Group tasks by prospect organization.
+
+    Returns:
+        List of dicts: [{'org': str, 'tasks': [task, ...], 'target': int}, ...]
+        Sorted by prospect target descending
+    """
+    all_tasks = get_all_prospect_tasks()
+
+    # Load prospect data and build org -> target map
+    prospects = load_prospects()
+    org_targets = {}
+    for prospect in prospects:
+        org = prospect.get('org', '')
+        target = _parse_currency(prospect.get('Target', '0'))
+        org_targets[org] = target
+
+    # Priority normalization map
+    priority_map = {
+        'high': 'Hi', 'hi': 'Hi',
+        'normal': 'Med', 'med': 'Med', 'medium': 'Med',
+        'low': 'Lo', 'lo': 'Lo'
+    }
+
+    # Group by org, filtering and normalizing
+    groups = {}
+    for task in all_tasks:
+        # Filter out done tasks
+        if task.get('status') == 'done':
+            continue
+
+        # Filter out tasks without owner
+        owner = task.get('owner', '').strip()
+        if not owner:
+            continue
+
+        org = task.get('org', '')
+        if not org:
+            continue
+
+        # Normalize priority
+        raw_priority = task.get('priority', '').lower()
+        task['priority'] = priority_map.get(raw_priority, task.get('priority', 'Med'))
+
+        groups.setdefault(org, []).append(task)
+
+    # Convert to list format with target
+    result = []
+    for org, tasks in groups.items():
+        target = org_targets.get(org, 0)
+        result.append({'org': org, 'tasks': tasks, 'target': target})
+
+    # Sort by target descending
+    result.sort(key=lambda x: x['target'], reverse=True)
+
+    return result
+
+
+def get_tasks_grouped_by_owner() -> list[dict]:
+    """Group tasks by owner.
+
+    Returns:
+        List of dicts: [{'owner': str, 'tasks': [task, ...], 'max_target': int}, ...]
+        Sorted by max_target descending
+    """
+    all_tasks = get_all_prospect_tasks()
+
+    # Load prospect data and build org -> target map
+    prospects = load_prospects()
+    org_targets = {}
+    for prospect in prospects:
+        org = prospect.get('org', '')
+        target = _parse_currency(prospect.get('Target', '0'))
+        org_targets[org] = target
+
+    # Priority order for sorting
+    priority_order = {'Hi': 0, 'Med': 1, 'Lo': 2}
+
+    # Group by owner, filtering done tasks
+    groups = {}
+    for task in all_tasks:
+        # Filter out done tasks
+        if task.get('status') == 'done':
+            continue
+
+        owner = task.get('owner', '').strip()
+        if not owner:
+            continue
+
+        groups.setdefault(owner, []).append(task)
+
+    # Convert to list format with max_target
+    result = []
+    for owner, tasks in groups.items():
+        # Calculate max_target for this owner
+        max_target = 0
+        for task in tasks:
+            org = task.get('org', '')
+            target = org_targets.get(org, 0)
+            if target > max_target:
+                max_target = target
+
+        # Sort tasks by priority (Hi, Med, Lo)
+        tasks.sort(key=lambda t: priority_order.get(t.get('priority', 'Med'), 1))
+
+        result.append({'owner': owner, 'tasks': tasks, 'max_target': max_target})
+
+    # Sort by max_target descending
+    result.sort(key=lambda x: x['max_target'], reverse=True)
+
+    return result
+
+
+# ---------------------------------------------------------------------------
+# Organization Merge
+# ---------------------------------------------------------------------------
+
+def get_merge_preview(source: str, target: str) -> dict:
+    """Preview what will be merged when merging source org into target org.
+
+    Returns counts of data that will be migrated.
+    """
+    # Count prospects
+    source_prospects = get_prospects_for_org(source)
+
+    # Count contacts
+    source_contacts = get_contacts_for_org(source)
+
+    # Count email log entries
+    email_log = load_email_log()
+    email_count = sum(
+        1 for e in email_log.get('emails', [])
+        if e.get('orgMatch', '').lower() == source.lower()
+    )
+
+    # Count briefs
+    briefs_data = _load_briefs()
+    brief_count = sum(
+        1 for key in briefs_data.get('prospect', {}).keys()
+        if key.split('::')[0].lower() == source.lower()
+    )
+
+    # Count prospect notes
+    notes_data = {}
+    if os.path.exists(PROSPECT_NOTES_PATH):
+        with open(PROSPECT_NOTES_PATH, 'r', encoding='utf-8') as f:
+            notes_data = json.load(f)
+    notes_count = sum(
+        len(entries) for key, entries in notes_data.items()
+        if key.split('::')[0].lower() == source.lower()
+    )
+
+    # Count prospect meetings
+    meetings_data = {}
+    if os.path.exists(PROSPECT_MEETINGS_PATH):
+        with open(PROSPECT_MEETINGS_PATH, 'r', encoding='utf-8') as f:
+            meetings_data = json.load(f)
+    meetings_count = sum(
+        len(entries) for key, entries in meetings_data.items()
+        if key.split('::')[0].lower() == source.lower()
+    )
+
+    return {
+        'source': source,
+        'target': target,
+        'prospects': len(source_prospects),
+        'contacts': len(source_contacts),
+        'emails': email_count,
+        'briefs': brief_count,
+        'notes': notes_count,
+        'meetings': meetings_count,
+    }
+
+
+def merge_organizations(source: str, target: str) -> dict:
+    """Merge source org into target org, then delete source.
+
+    This is a destructive operation. All data from source is migrated to target:
+    - Org fields are combined (aliases union, notes concatenated, etc.)
+    - Prospects are re-parented
+    - Contacts are moved
+    - People files Company field updated
+    - Email log entries re-attributed
+    - Briefs re-keyed
+    - Prospect notes and meetings re-keyed
+    - Source org name added as alias on target
+    - Source org deleted
+
+    Returns dict with migration stats.
+    """
+    # Validate both orgs exist
+    source_org = get_organization(source)
+    target_org = get_organization(target)
+
+    if not source_org:
+        raise ValueError(f"Source org '{source}' not found")
+    if not target_org:
+        raise ValueError(f"Target org '{target}' not found")
+
+    stats = {
+        'prospects_moved': 0,
+        'contacts_moved': 0,
+        'people_updated': 0,
+        'emails_updated': 0,
+        'briefs_rekeyed': 0,
+        'notes_rekeyed': 0,
+        'meetings_rekeyed': 0,
+    }
+
+    # 1. Combine org fields
+    _merge_org_fields(source, target, source_org, target_org)
+
+    # 2. Re-parent prospects
+    stats['prospects_moved'] = _merge_prospects(source, target)
+
+    # 3. Move contacts
+    stats['contacts_moved'] = _merge_contacts(source, target)
+
+    # 4. Update people files
+    stats['people_updated'] = _merge_people_files(source, target)
+
+    # 5. Update email log
+    stats['emails_updated'] = _merge_email_log(source, target)
+
+    # 6. Re-key briefs
+    stats['briefs_rekeyed'] = _merge_briefs(source, target)
+
+    # 7. Re-key prospect notes
+    stats['notes_rekeyed'] = _merge_prospect_notes(source, target)
+
+    # 8. Re-key prospect meetings
+    stats['meetings_rekeyed'] = _merge_prospect_meetings(source, target)
+
+    # 9. Delete source org
+    delete_organization(source)
+
+    return {'ok': True, **stats}
+
+
+def _merge_org_fields(source: str, target: str, source_org: dict, target_org: dict) -> None:
+    """Combine org fields per the merge strategy and add source name as alias."""
+    merged = dict(target_org)
+
+    # Type: keep target's, fall back to source's
+    if not merged.get('Type') and source_org.get('Type'):
+        merged['Type'] = source_org['Type']
+
+    # Domain: keep target's (single-valued field)
+    # If target has no domain, use source's
+    if not merged.get('Domain') and source_org.get('Domain'):
+        merged['Domain'] = source_org['Domain']
+
+    # Aliases: union of both lists + add source org name
+    target_aliases = set()
+    if merged.get('Aliases'):
+        target_aliases = {a.strip() for a in merged['Aliases'].split(',') if a.strip()}
+    if source_org.get('Aliases'):
+        source_aliases = {a.strip() for a in source_org['Aliases'].split(',') if a.strip()}
+        target_aliases.update(source_aliases)
+    # Add source org canonical name as an alias
+    target_aliases.add(source)
+    merged['Aliases'] = ', '.join(sorted(target_aliases))
+
+    # Notes: concatenate (target first, then separator, then source)
+    target_notes = (merged.get('Notes') or '').strip()
+    source_notes = (source_org.get('Notes') or '').strip()
+    if target_notes and source_notes:
+        # Avoid duplicating identical notes
+        if target_notes != source_notes:
+            merged['Notes'] = f"{target_notes}\n\n---\n\n{source_notes}"
+    elif source_notes:
+        merged['Notes'] = source_notes
+
+    # Write combined org
+    write_organization(target, merged)
+
+
+def _merge_prospects(source: str, target: str) -> int:
+    """Re-parent all prospects from source to target in prospects.md.
+
+    Returns count of prospects moved.
+    """
+    path = os.path.join(CRM_ROOT, "prospects.md")
+    if not os.path.exists(path):
+        return 0
+
+    text = _read_file(path)
+    lines = text.splitlines()
+    out = []
+    count = 0
+
+    for line in lines:
+        # Check for prospect heading: ### OrgName
+        h3 = re.match(r'^### (.+)', line)
+        if h3 and h3.group(1).strip().lower() == source.lower():
+            # Replace source org name with target org name
+            out.append(f"### {target}")
+            count += 1
+        else:
+            out.append(line)
+
+    if count > 0:
+        _write_file(path, '\n'.join(out))
+
+    return count
+
+
+def _merge_contacts(source: str, target: str) -> int:
+    """Move all contacts from source org to target org in contacts_index.md.
+
+    Returns count of contacts moved.
+    """
+    index_path = os.path.join(CRM_ROOT, "contacts_index.md")
+    if not os.path.exists(index_path):
+        return 0
+
+    text = _read_file(index_path)
+    lines = text.splitlines()
+    out = []
+    source_slugs = []
+    i = 0
+
+    # First pass: collect source org's contact slugs and remove source org section
+    while i < len(lines):
+        line = lines[i]
+        h2 = re.match(r'^## (.+)', line)
+        if h2 and h2.group(1).strip().lower() == source.lower():
+            # Found source org section — collect slugs
+            i += 1
+            while i < len(lines) and not lines[i].startswith('##'):
+                slug_line = lines[i].strip()
+                if slug_line and not slug_line.startswith('#'):
+                    source_slugs.append(slug_line)
+                i += 1
+            # Don't add source org section to output (it's deleted)
+        else:
+            out.append(line)
+            i += 1
+
+    if not source_slugs:
+        return 0
+
+    # Second pass: add source slugs under target org section
+    final = []
+    i = 0
+    target_found = False
+
+    while i < len(out):
+        line = out[i]
+        h2 = re.match(r'^## (.+)', line)
+        if h2 and h2.group(1).strip().lower() == target.lower():
+            # Found target org section
+            final.append(line)
+            target_found = True
+            i += 1
+            # Add all existing target slugs
+            while i < len(out) and not out[i].startswith('##'):
+                final.append(out[i])
+                i += 1
+            # Add source slugs
+            for slug in source_slugs:
+                final.append(slug)
+        else:
+            final.append(line)
+            i += 1
+
+    # If target org section doesn't exist, create it
+    if not target_found:
+        final.append(f"\n## {target}")
+        for slug in source_slugs:
+            final.append(slug)
+
+    _write_file(index_path, '\n'.join(final))
+    return len(source_slugs)
+
+
+def _merge_people_files(source: str, target: str) -> int:
+    """Update Company field from source to target in all people/*.md files.
+
+    Returns count of people files updated.
+    """
+    if not os.path.isdir(PEOPLE_ROOT):
+        return 0
+
+    count = 0
+    for fname in os.listdir(PEOPLE_ROOT):
+        if not fname.endswith('.md'):
+            continue
+
+        path = os.path.join(PEOPLE_ROOT, fname)
+        try:
+            text = _read_file(path)
+            lines = text.splitlines()
+            updated = False
+
+            for i, line in enumerate(lines):
+                # Match Company/Organization/Org field
+                m = re.match(r'^-?\s*\*\*(Company|Organization|Org):\*\*\s*(.+)', line.strip(), re.IGNORECASE)
+                if m:
+                    field_name = m.group(1)
+                    org_val = m.group(2).strip()
+                    if org_val.lower() == source.lower():
+                        lines[i] = f"- **{field_name}:** {target}"
+                        updated = True
+                        break
+
+            if updated:
+                _write_file(path, '\n'.join(lines))
+                count += 1
+        except Exception:
+            # Skip files that can't be read/written
+            pass
+
+    return count
+
+
+def _merge_email_log(source: str, target: str) -> int:
+    """Update orgMatch field from source to target in email_log.json.
+
+    Returns count of email entries updated.
+    """
+    if not os.path.exists(EMAIL_LOG_PATH):
+        return 0
+
+    log_data = load_email_log()
+    emails = log_data.get('emails', [])
+    count = 0
+
+    for email in emails:
+        if email.get('orgMatch', '').lower() == source.lower():
+            email['orgMatch'] = target
+            count += 1
+
+    if count > 0:
+        save_email_log(log_data)
+
+    return count
+
+
+def _merge_briefs(source: str, target: str) -> int:
+    """Re-key briefs from 'source::FundName' to 'target::FundName' in briefs.json.
+
+    Returns count of briefs re-keyed.
+    """
+    briefs_data = _load_briefs()
+    prospect_briefs = briefs_data.get('prospect', {})
+    count = 0
+    keys_to_rekey = []
+
+    # Find all keys starting with source org
+    for key in list(prospect_briefs.keys()):
+        parts = key.split('::')
+        if len(parts) >= 2 and parts[0].lower() == source.lower():
+            keys_to_rekey.append(key)
+
+    # Re-key them
+    for old_key in keys_to_rekey:
+        parts = old_key.split('::', 1)
+        new_key = f"{target}::{parts[1]}"
+        prospect_briefs[new_key] = prospect_briefs.pop(old_key)
+        count += 1
+
+    if count > 0:
+        _save_briefs(briefs_data)
+
+    return count
+
+
+def _merge_prospect_notes(source: str, target: str) -> int:
+    """Re-key prospect notes from 'source::FundName' to 'target::FundName'.
+
+    Returns count of note entries re-keyed.
+    """
+    if not os.path.exists(PROSPECT_NOTES_PATH):
+        return 0
+
+    with open(PROSPECT_NOTES_PATH, 'r', encoding='utf-8') as f:
+        notes_data = json.load(f)
+
+    count = 0
+    keys_to_rekey = []
+
+    for key in list(notes_data.keys()):
+        parts = key.split('::')
+        if len(parts) >= 2 and parts[0].lower() == source.lower():
+            keys_to_rekey.append(key)
+
+    for old_key in keys_to_rekey:
+        parts = old_key.split('::', 1)
+        new_key = f"{target}::{parts[1]}"
+        notes_data[new_key] = notes_data.pop(old_key)
+        count += len(notes_data[new_key])
+
+    if keys_to_rekey:
+        with open(PROSPECT_NOTES_PATH, 'w', encoding='utf-8') as f:
+            json.dump(notes_data, f, indent=2, ensure_ascii=False)
+
+    return count
+
+
+def _merge_prospect_meetings(source: str, target: str) -> int:
+    """Re-key prospect meetings from 'source::FundName' to 'target::FundName'.
+
+    Returns count of meeting entries re-keyed.
+    """
+    if not os.path.exists(PROSPECT_MEETINGS_PATH):
+        return 0
+
+    with open(PROSPECT_MEETINGS_PATH, 'r', encoding='utf-8') as f:
+        meetings_data = json.load(f)
+
+    count = 0
+    keys_to_rekey = []
+
+    for key in list(meetings_data.keys()):
+        parts = key.split('::')
+        if len(parts) >= 2 and parts[0].lower() == source.lower():
+            keys_to_rekey.append(key)
+
+    for old_key in keys_to_rekey:
+        parts = old_key.split('::', 1)
+        new_key = f"{target}::{parts[1]}"
+        meetings_data[new_key] = meetings_data.pop(old_key)
+        count += len(meetings_data[new_key])
+
+    if keys_to_rekey:
+        with open(PROSPECT_MEETINGS_PATH, 'w', encoding='utf-8') as f:
+            json.dump(meetings_data, f, indent=2, ensure_ascii=False)
+
+    return count

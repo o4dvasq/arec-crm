@@ -1,5 +1,9 @@
 # Julia McArdle
 
+- **Email:** julia.mcardle@futurefund.gov.au
+- **Title:** Director, Unlisted Property
+- **Organization:** Future Fund
+
 **Organization:** Future Fund (futurefund.gov.au)
 **Role:** (TBD)
 **Email:** Julia.McArdle@futurefund.gov.au

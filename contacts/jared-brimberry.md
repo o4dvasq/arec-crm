@@ -1,6 +1,7 @@
 # Jared Brimberry
 
 **Organization:** UTIMCO (University of Texas Investment Management Company)
+- **Primary:** true
 **Role:** Investment team (exact title TBD)
 **Type:** LP Prospect — Primary Contact
 

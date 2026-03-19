@@ -2,6 +2,7 @@
 
 ## Overview
 - **Organization:** Sumitomo Mitsui Trust Bank
+- **Primary:** true
 - **Role:** 
 - **Email:** 
 - **Phone:** 

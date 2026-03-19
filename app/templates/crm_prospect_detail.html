@@ -382,35 +382,49 @@
         }
         .show-more-btn:hover { color: var(--accent-hover); }
 
-        /* EMAIL THREAD ROWS */
-        .thread-row {
-            display: flex;
-            align-items: flex-start;
+        /* DEEP SCAN BUTTON + STATUS */
+        .btn-scan {
+            background: none;
+            border: 1px solid #475569;
+            color: var(--muted);
+            font-size: 11px;
+            padding: 3px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: var(--transition);
+            white-space: nowrap;
+        }
+        .btn-scan:hover:not(:disabled) { border-color: #22c55e; color: #22c55e; }
+        .btn-scan:disabled { opacity: 0.5; cursor: default; }
+        .scan-status {
+            font-size: 11px;
+            padding: 3px 8px;
+            border-radius: 4px;
+            margin-left: 6px;
+        }
+        .scan-status.running { color: #60a5fa; }
+        .scan-status.success { color: #22c55e; }
+        .scan-status.error   { color: #ef4444; }
+
+        /* EMAIL HISTORY ROWS (reused from old template) */
+        .email-row {
+            display: grid;
+            grid-template-columns: 90px 1fr 150px;
             gap: 8px;
-            padding: 9px 0;
+            padding: 7px 0;
             border-bottom: 1px solid #1e293b;
             font-size: 13px;
             cursor: pointer;
             transition: var(--transition);
         }
-        .thread-row:last-of-type { border-bottom: none; }
-        .thread-row:hover { background: rgba(37,99,235,.05); }
-        .thread-arrow { color: var(--muted); font-size: 10px; width: 12px; flex-shrink: 0; padding-top: 2px; }
-        .thread-row-content { flex: 1; min-width: 0; }
-        .thread-row-top { display: flex; align-items: center; gap: 8px; margin-bottom: 3px; }
-        .thread-subject { color: #60a5fa; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
-        .thread-count { color: #475569; font-size: 11px; white-space: nowrap; flex-shrink: 0; }
-        .thread-row-meta { color: var(--muted); font-size: 12px; }
-        .email-dir-badge { font-size: 11px; padding: 1px 5px; border-radius: 3px; margin-right: 2px; }
-        .email-dir-badge.sent { color: #34d399; background: rgba(52,211,153,.1); }
-        .email-dir-badge.received { color: #60a5fa; background: rgba(96,165,250,.1); }
-        .email-via { font-size: 11px; color: #475569; }
-        .thread-expanded { padding: 4px 0 4px 20px; border-bottom: 1px solid #1e293b; }
-        .thread-expanded.hidden { display: none; }
-        .email-thread-item { padding: 7px 0; border-bottom: 1px solid #0f172a; }
-        .email-thread-item:last-child { border-bottom: none; }
-        .email-thread-meta { color: var(--muted); font-size: 12px; margin-bottom: 4px; }
-        .email-thread-body { color: #cbd5e1; font-size: 13px; line-height: 1.5; margin-bottom: 4px; }
+        .email-row:last-child { border-bottom: none; }
+        .email-row:hover { background: rgba(37,99,235,.05); }
+        .email-date-col { color: var(--muted); font-variant-numeric: tabular-nums; }
+        .email-subject-col { color: #60a5fa; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .email-from-col { color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .email-detail-row { display: none; padding: 0.75rem 0; border-bottom: 1px solid #1e293b; }
+        .email-detail-row.open { display: block; }
+        .email-detail-row .detail-summary { color: var(--text); font-size: 13px; line-height: 1.6; margin-bottom: 0.5rem; }
         .email-view-link { color: var(--accent); font-size: 12px; text-decoration: none; }
         .email-view-link:hover { color: var(--accent-hover); }
 
@@ -466,18 +480,18 @@
         }
         .notes-input-text:focus { border-color: var(--accent); }
         .btn-add-note {
-            background: var(--accent);
-            border: none;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
             border-radius: 4px;
-            color: white;
-            font-size: 13px;
-            font-weight: 600;
-            padding: 7px 18px;
+            color: var(--text);
+            font-size: 12px;
+            font-weight: 500;
+            padding: 3px 10px;
             cursor: pointer;
             align-self: flex-end;
-            transition: background 0.15s;
+            transition: var(--transition);
         }
-        .btn-add-note:hover { background: var(--accent-hover); }
+        .btn-add-note:hover { background: var(--border); }
         .btn-add-note:disabled { opacity: 0.5; cursor: default; }
         .note-save-status {
             font-size: 12px;
@@ -560,6 +574,9 @@
         .upcoming-meeting-input-time { width: 110px; }
         .upcoming-meeting-input-attendees { flex: 1; min-width: 160px; }
         .upcoming-meeting-input-purpose { width: 100%; }
+
+        @keyframes taskFlash { 0% { background: #1e3a5f; } 100% { background: transparent; } }
+        .task-card-flash { animation: taskFlash 0.7s ease; }
 
         /* UTILITY */
         .hidden { display: none !important; }
@@ -731,7 +748,9 @@
                 <div class="page-title">{{ org }}</div>
                 <div class="page-subtitle">{{ offering }}</div>
             </div>
-            <div style="display:flex;gap:8px">
+            <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+                <span class="scan-status hidden" id="scan-email-status"></span>
+                <button class="btn btn-secondary" id="scan-email-btn" onclick="runScanEmail()">Scan Email</button>
                 <a href="/crm/org/{{ org }}/edit" class="btn btn-secondary">Edit Org</a>
                 <a href="/crm/prospect/{{ offering }}/{{ org }}" class="btn btn-primary">Edit Prospect</a>
             </div>
@@ -750,58 +769,48 @@
                     </div>
                 </div>
 
-                <!-- Org Type — only show if populated -->
-                {% if org_data.Type %}
+                <!-- Org Type — always present -->
                 <div class="field-editable" data-field="org_type" data-type="select" data-options="{{ config.org_types | join('||') }}">
                     <div class="field-label">Type</div>
-                    <div class="field-value">{{ org_data.Type }}</div>
+                    <div class="field-value">{{ org_data.Type or '—' }}</div>
                 </div>
-                {% endif %}
 
-                <!-- Primary Contact — only show if populated -->
-                {% set primary_contact = prospect.get('Primary Contact', '').split(';')[0].strip() %}
-                {% if primary_contact %}
+                <!-- Primary Contact -->
                 <div>
                     <div class="field-label">Primary Contact</div>
-                    <div class="field-value">{{ primary_contact }}</div>
+                    <div class="field-value">
+                        {%- if primary_contact_name -%}<span data-person-name>{{ primary_contact_name }}</span>{%- else -%}—{%- endif -%}
+                    </div>
                 </div>
-                {% endif %}
 
-                <!-- Assigned To — only show if populated -->
-                {% if prospect.get('Assigned To') %}
+                <!-- Assigned To -->
                 <div class="field-editable" data-field="assigned_to" data-type="select" data-options="{{ config.team | map(attribute='name') | join('||') }}">
                     <div class="field-label">Assigned To</div>
-                    <div class="field-value">{{ prospect.get('Assigned To') }}</div>
+                    <div class="field-value">{{ prospect.get('Assigned To') or '—' }}</div>
                 </div>
-                {% endif %}
 
-                <!-- Target — only show if populated and non-zero -->
-                {% set target_val = prospect.get('Target', '') %}
-                {% if target_val and target_val != '$0' %}
+                <!-- Target -->
                 <div class="field-editable" data-field="target" data-type="text">
                     <div class="field-label">Target</div>
-                    <div class="field-value">{{ target_val }}</div>
+                    <div class="field-value">{{ prospect.get('Target') or '—' }}</div>
                 </div>
-                {% endif %}
 
-                <!-- Last Touch — only show if populated -->
-                {% if prospect.get('Last Touch') %}
+                <!-- Last Touch -->
                 <div>
                     <div class="field-label">Last Touch</div>
                     <div class="field-value">
+                        {% if prospect.get('Last Touch') %}
                         <span data-relative-date="{{ prospect['Last Touch'] }}">{{ prospect['Last Touch'] }}</span>
                         <span class="staleness-dot" data-stale-date="{{ prospect['Last Touch'] }}"></span>
+                        {% else %}—{% endif %}
                     </div>
                 </div>
-                {% endif %}
 
-                <!-- Closing — only show if populated -->
-                {% if prospect.get('Closing') %}
+                <!-- Closing -->
                 <div class="field-editable" data-field="closing" data-type="select" data-options="{{ config.closing_options | join('||') }}">
                     <div class="field-label">Closing</div>
-                    <div class="field-value">{{ prospect.get('Closing') }}</div>
+                    <div class="field-value">{{ prospect.get('Closing') or '—' }}</div>
                 </div>
-                {% endif %}
 
                 <!-- Urgent — only show if truly urgent -->
                 {% if prospect.urgent_bool %}
@@ -822,9 +831,16 @@
             </div>
         </div>
 
-        <!-- Prospect Briefing (AI-synthesized, with caching) -->
+        <!-- Relationship Brief (AI-synthesized, with caching) -->
         <div class="card" id="brief-card">
             <div id="relationship-brief">
+                <div class="brief-header">
+                    <div class="section-title">Relationship Brief</div>
+                </div>
+                <div class="brief-loading">
+                    <div class="loading-pulse"></div>
+                    <span>Synthesizing intelligence...</span>
+                </div>
             </div>
         </div>
 
@@ -837,58 +853,6 @@
             <ul class="task-list" id="tasks-list">
                 <li style="color:var(--muted);font-size:13px;font-style:italic;padding:0.4rem 0;">No open tasks.</li>
             </ul>
-        </div>
-
-        <!-- Contacts (rendered by JS, hidden if empty) -->
-        <div class="card hidden" id="contacts-card">
-            <div class="section-header">
-                <div class="section-title">Organization Information & Contacts</div>
-                <span class="section-count" id="contacts-count"></span>
-            </div>
-            <div id="contacts-body"></div>
-
-            <!-- Add Contact Section -->
-            <div class="add-contact-section" id="add-contact-section">
-                <button class="btn-add-contact-detail" id="btn-show-add-contact-detail" onclick="showAddContactFormDetail()">+ Add Contact</button>
-
-                <div class="add-contact-form-detail hidden" id="add-contact-form-detail">
-                    <!-- Search Existing Mode -->
-                    <div id="search-mode-detail">
-                        <label class="form-label-detail">Search for existing contact:</label>
-                        <div class="search-input-wrap-detail">
-                            <input type="text"
-                                   id="contact-search-input-detail"
-                                   class="form-input-detail"
-                                   placeholder="Type name to search..."
-                                   autocomplete="off"
-                                   oninput="searchPeopleDetail(this.value)">
-                            <div class="search-results-dropdown-detail hidden" id="search-results-detail"></div>
-                        </div>
-                        <button class="btn-switch-mode-detail" onclick="switchToCreateModeDetail()">Or create new contact</button>
-                    </div>
-
-                    <!-- Create New Mode -->
-                    <div id="create-mode-detail" class="hidden">
-                        <label class="form-label-detail">Create new contact:</label>
-                        <div class="form-row-detail">
-                            <input type="text" id="new-contact-name-detail" class="form-input-detail" placeholder="Name *" required>
-                        </div>
-                        <div class="form-row-detail">
-                            <input type="text" id="new-contact-title-detail" class="form-input-detail" placeholder="Title">
-                        </div>
-                        <div class="form-row-detail">
-                            <input type="email" id="new-contact-email-detail" class="form-input-detail" placeholder="Email">
-                        </div>
-                        <div class="form-row-detail">
-                            <input type="tel" id="new-contact-phone-detail" class="form-input-detail" placeholder="Phone">
-                        </div>
-                        <div class="form-actions-detail">
-                            <button class="btn-cancel-detail" onclick="hideAddContactFormDetail()">Cancel</button>
-                            <button class="btn-save-detail" onclick="submitNewContactDetail()">Save</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
         </div>
 
         <!-- Interaction History (collapsible, starts expanded) -->
@@ -932,31 +896,10 @@
                               rows="2"></textarea>
                     <div style="display:flex;gap:10px;align-items:center;align-self:flex-end">
                         <span class="note-save-status hidden" id="note-status"></span>
-                        <button class="btn-add-note" id="btn-add-note" onclick="submitNote()">Add Note</button>
+                        <button class="btn btn-secondary" id="btn-add-note" onclick="submitNote()">Add Note</button>
                     </div>
                 </div>
             </div>
-        </div>
-
-        <!-- Upcoming Meetings -->
-        <div class="card" id="upcoming-meetings-card">
-            <div class="section-header">
-                <div class="section-title">Upcoming Meetings</div>
-                <span class="section-count" id="upcoming-meetings-count"></span>
-            </div>
-            <div id="upcoming-meetings-body">
-                <div class="notes-empty">No upcoming meetings scheduled.</div>
-            </div>
-            <!-- Meeting creation removed — all meetings come from Graph calendar pull -->
-        </div>
-
-        <!-- Past Meetings (from unified meetings.json) -->
-        <div class="card hidden" id="past-meetings-card">
-            <div class="section-header">
-                <div class="section-title">Past Meetings</div>
-                <span class="section-count" id="past-meetings-count"></span>
-            </div>
-            <div id="past-meetings-body"></div>
         </div>
 
         <!-- Email History (collapsible, starts collapsed) -->
@@ -966,7 +909,13 @@
                     <div class="section-title">Email History</div>
                     <span class="section-count" id="emails-count"></span>
                 </div>
-                <span class="collapsible-toggle" id="emails-toggle" onclick="toggleSection('emails')" style="cursor:pointer">▼</span>
+                <div style="display:flex;align-items:center;gap:6px;" onclick="event.stopPropagation()">
+                    <button class="btn-scan" id="deep-scan-btn" onclick="runDeepEmailScan()">
+                        ⟳ Deep Scan (90d)
+                    </button>
+                    <span class="scan-status hidden" id="scan-status"></span>
+                    <span class="collapsible-toggle" id="emails-toggle" onclick="toggleSection('emails')" style="cursor:pointer">▼</span>
+                </div>
             </div>
             <div class="collapsible-body collapsed" id="emails-body"></div>
         </div>
@@ -978,7 +927,7 @@
     // ============================================
     const ORG = {{ org | tojson }};
     const OFFERING = {{ offering | tojson }};
-    const CURRENT_USER = {{ config.current_user | tojson }};
+    // BRIEF_CACHE_PREFIX kept for legacy cleanup only (no longer used for caching)
     const enc = encodeURIComponent;
 
     // ============================================
@@ -1099,13 +1048,10 @@
 
             // Render all reference sections immediately
             loadTasks();
-            renderContacts(data.merged_contacts);
             renderInteractions(data.interactions);
             renderMeetings(data.meeting_summaries);
             renderEmails(data.email_history);
             renderNotesLog(data.notes_log || []);
-            renderUpcomingMeetings(data.scheduled_meetings || data.upcoming_meetings || []);
-            renderPastMeetings(data.past_meetings || []);
 
             // Render At a Glance if available from saved brief
             if (data.saved_brief && data.saved_brief.at_a_glance) {
@@ -1117,7 +1063,7 @@
 
         } catch (err) {
             console.error('Page data load failed:', err);
-            showBriefError();
+            showBriefError(err.message);
         }
     }
 
@@ -1159,7 +1105,11 @@
                 `/crm/api/prospect/${enc(OFFERING)}/${enc(ORG)}/brief`,
                 { method: 'POST' }
             );
-            if (!resp.ok) throw new Error('Refresh failed');
+            if (!resp.ok) {
+                const errorData = await resp.json().catch(() => ({}));
+                const errorMsg = errorData.error || 'API request failed';
+                throw new Error(errorMsg);
+            }
             const synth = await resp.json();
             renderNarrative(synth.narrative, synth.brief_refreshed);
             if (synth.at_a_glance) {
@@ -1167,7 +1117,7 @@
             }
         } catch (err) {
             console.error('Brief refresh error:', err);
-            showBriefError();
+            showBriefError(err.message);
         }
     }
 
@@ -1175,16 +1125,16 @@
         const card = document.getElementById('glance-card');
         const el = document.getElementById('glance-text');
         if (!text || !text.trim()) { card.classList.add('hidden'); return; }
-        el.textContent = text;
+        el.textContent = stripMarkdown(text);
         card.classList.remove('hidden');
     }
 
     function narrativeToHtml(text) {
         if (!text) return '';
-        return text.trim()
+        return markdownToHtml(text).trim()
             .split(/\n\n+/)
             .filter(p => p.trim())
-            .map(p => `<p>${esc(p.trim().replace(/\n/g, ' '))}</p>`)
+            .map(p => `<p>${p.trim().replace(/\n/g, ' ')}</p>`)
             .join('');
     }
 
@@ -1194,7 +1144,7 @@
             : '';
         document.getElementById('relationship-brief').innerHTML = `
             <div class="brief-header">
-                <div class="section-title">Prospect Briefing</div>
+                <div class="section-title">Relationship Brief</div>
                 <button class="btn-refresh" onclick="refreshBrief()">⟳ Refresh</button>
             </div>
             <div class="brief-narrative">${narrativeToHtml(narrative)}</div>
@@ -1205,7 +1155,7 @@
     function showBriefPlaceholder() {
         document.getElementById('relationship-brief').innerHTML = `
             <div class="brief-header">
-                <div class="section-title">Prospect Briefing</div>
+                <div class="section-title">Relationship Brief</div>
                 <button class="btn-refresh" onclick="refreshBrief()">⟳ Generate Brief</button>
             </div>
             <div style="color:var(--muted);font-size:13px;padding:0.75rem 0;font-style:italic;">
@@ -1226,7 +1176,7 @@
     function showBriefLoading() {
         document.getElementById('relationship-brief').innerHTML = `
             <div class="brief-header">
-                <div class="section-title">Prospect Briefing</div>
+                <div class="section-title">Relationship Brief</div>
             </div>
             <div class="brief-loading">
                 <div class="loading-pulse"></div>
@@ -1235,14 +1185,15 @@
         `;
     }
 
-    function showBriefError() {
+    function showBriefError(errorMsg) {
+        const detailMsg = errorMsg ? `Error: ${errorMsg}. ` : '';
         document.getElementById('relationship-brief').innerHTML = `
             <div class="brief-header">
-                <div class="section-title">Prospect Briefing</div>
+                <div class="section-title">Relationship Brief</div>
                 <button class="btn-refresh" onclick="refreshBrief()">Retry</button>
             </div>
             <div style="color:var(--muted);font-size:13px;padding:1rem 0;">
-                Brief generation unavailable. See reference sections below for full context.
+                ${detailMsg}Brief generation unavailable. See reference sections below for full context.
             </div>
         `;
     }
@@ -1252,7 +1203,7 @@
     // ============================================
     async function loadTasks() {
         try {
-            const resp = await fetch(`/tasks/api/tasks/for-org?org=${enc(ORG)}`);
+            const resp = await fetch(`/crm/api/tasks?org=${enc(ORG)}`);
             const tasks = resp.ok ? await resp.json() : [];
             renderTasks(tasks);
         } catch (_) { /* silently ignore */ }
@@ -1267,12 +1218,13 @@
         list.innerHTML = tasks.map(task => {
             const priClass = { Hi: 'task-pri-hi', Med: 'task-pri-med', Lo: 'task-pri-lo' }[task.priority] || 'task-pri-med';
             const priBadge = `<span class="task-pri ${priClass}">${esc(task.priority)}</span>`;
-            const ownerBadge = task.assigned_to ? `<span class="task-owner">${esc(task.assigned_to)}</span>` : '';
+            const ownerBadge = task.assigned_to ? `<span class="task-owner" data-person-name>${esc(task.assigned_to)}</span>` : '';
             return `<li class="task-item" onclick='openEditTaskModal(${JSON.stringify(task)})'>
-                <span class="task-text">${esc(task.text)}</span>
+                <span class="task-text">${esc(stripMarkdown(task.text))}</span>
                 <span class="task-meta">${ownerBadge}${priBadge}</span>
             </li>`;
         }).join('');
+        linkifyPersonNames();
     }
 
     function openEditTaskModal(task) {
@@ -1308,42 +1260,6 @@
     }
 
     // ============================================
-    // CONTACTS
-    // ============================================
-    function renderContacts(merged) {
-        const body = document.getElementById('contacts-body');
-        const card = document.getElementById('contacts-card');
-        const addSection = document.getElementById('add-contact-section');
-
-        // Always show the card (even if empty) so the "+ Add Contact" button is visible
-        card.classList.remove('hidden');
-
-        if (!merged || merged.length === 0) {
-            body.innerHTML = '<p style="color:var(--muted);font-size:13px;font-style:italic;">No contacts yet.</p>';
-            document.getElementById('contacts-count').textContent = '';
-        } else {
-            body.innerHTML = merged.map(c => {
-                let html = `<div class="contact-card">`;
-                const nameHtml = c.slug
-                    ? `<a href="/crm/people/${encodeURIComponent(c.slug)}" class="contact-name-link">${esc(c.name)}</a>`
-                    : esc(c.name);
-                html += `<div class="contact-name">${nameHtml}</div>`;
-                const titleParts = [c.title, c.role].filter(Boolean);
-                if (titleParts.length) html += `<div class="contact-title">${esc(titleParts.join(' · '))}</div>`;
-                if (c.email) html += `<div class="contact-email"><a href="mailto:${esc(c.email)}" style="color:inherit;text-decoration:none;">${esc(c.email)}</a></div>`;
-                if (c.phone) html += `<div class="contact-phone">${esc(c.phone)}</div>`;
-                if (c.notes) html += `<div class="contact-notes">${esc(c.notes)}</div>`;
-                html += `</div>`;
-                return html;
-            }).join('');
-            document.getElementById('contacts-count').textContent = merged.length;
-        }
-
-        // Always show the add contact section
-        if (addSection) addSection.classList.remove('hidden');
-    }
-
-    // ============================================
     // INTERACTION HISTORY
     // ============================================
     function renderInteractions(interactions) {
@@ -1367,36 +1283,12 @@
     // ============================================
     // MEETING SUMMARIES
     // ============================================
-    function stripMeetingHeaderLines(content) {
-        // Remove redundant H1 title, Date, Participants, Format, Source lines
-        // and leading HR (---) since these are already in the filename-derived title
-        const lines = content.split('\n');
-        let startIdx = 0;
-        for (let i = 0; i < Math.min(lines.length, 12); i++) {
-            const line = lines[i].trim();
-            if (line.startsWith('# ') ||
-                line.startsWith('**Date') ||
-                line.startsWith('**Participants') ||
-                line.startsWith('**Format') ||
-                line.startsWith('**Source') ||
-                line.startsWith('**Attendees') ||
-                line === '---' ||
-                line === '') {
-                startIdx = i + 1;
-            } else {
-                break;
-            }
-        }
-        return lines.slice(startIdx).join('\n');
-    }
-
     function renderMeetings(summaries) {
         if (!summaries || summaries.length === 0) return;
         const body = document.getElementById('meetings-body');
         body.innerHTML = summaries.map((ms, i) => {
             const title = parseFilenameToTitle(ms.filename);
-            const strippedContent = stripMeetingHeaderLines(ms.content);
-            const contentHtml = renderMarkdown(strippedContent);
+            const contentHtml = renderMarkdown(ms.content);
             const id = `meeting-${i}`;
             return `<div class="meeting-item">
                 <div class="meeting-date-title">${esc(title)}</div>
@@ -1450,111 +1342,44 @@
     }
 
     // ============================================
-    // EMAIL HISTORY (THREAD-GROUPED)
+    // EMAIL HISTORY
     // ============================================
     function renderEmails(emails) {
-        const countEl = document.getElementById('emails-count');
-        const card = document.getElementById('emails-card');
-        card.classList.remove('hidden');
-
         if (!emails || emails.length === 0) {
-            countEl.textContent = '0';
+            document.getElementById('emails-count').textContent = '0';
+            document.getElementById('emails-card').classList.remove('hidden');
             return;
         }
-
-        countEl.textContent = emails.length;
-
-        // Group by conversationId; emails with null/missing conversationId are ungrouped
-        const threadMap = {};
-        const threadOrder = [];
-        emails.forEach(e => {
-            const cid = e.conversationId || null;
-            const key = cid || `__no_conv__${e.messageId || Math.random()}`;
-            if (!threadMap[key]) {
-                threadMap[key] = { conversationId: cid, emails: [] };
-                threadOrder.push(key);
-            }
-            threadMap[key].emails.push(e);
-        });
-
-        // Sort each thread newest first; sort threads by latest date descending
-        const threads = threadOrder.map(k => {
-            const t = threadMap[k];
-            t.emails.sort((a, b) =>
-                (b.timestamp || b.date || '') > (a.timestamp || a.date || '') ? 1 : -1
-            );
-            return t;
-        });
-        threads.sort((a, b) => {
-            const ad = a.emails[0]?.timestamp || a.emails[0]?.date || '';
-            const bd = b.emails[0]?.timestamp || b.emails[0]?.date || '';
-            return bd > ad ? 1 : -1;
-        });
-
         const body = document.getElementById('emails-body');
-        body.innerHTML = threads.map((t, i) => {
-            const latest = t.emails[0];
-            const count = t.emails.length;
-            const threadId = `thread-${i}`;
-            const countLabel = count === 1 ? '1 email' : `${count} emails`;
-
-            const dirBadge = latest.direction
-                ? `<span class="email-dir-badge ${esc(latest.direction)}">${esc(latest.direction)}</span>`
-                : '';
-            const viaName = mailboxFirstName(latest.mailboxSource || latest.mailbox);
-            const viaLabel = viaName ? ` <span class="email-via">via ${esc(viaName)}</span>` : '';
-            const arrow = count > 1
-                ? `<span class="thread-arrow" id="${threadId}-arrow">▶</span>`
-                : `<span class="thread-arrow"></span>`;
-
-            const expandedItems = t.emails.map(e => {
-                const eDirBadge = e.direction
-                    ? `<span class="email-dir-badge ${esc(e.direction)}">${esc(e.direction)}</span>`
-                    : '';
-                const eVia = mailboxFirstName(e.mailboxSource || e.mailbox);
-                const eViaLabel = eVia ? ` <span class="email-via">via ${esc(eVia)}</span>` : '';
-                const outlookLink = e.outlookUrl
-                    ? `<a href="${esc(e.outlookUrl)}" target="_blank" rel="noopener" class="email-view-link">View in Outlook →</a>`
-                    : '';
-                return `<div class="email-thread-item">
-                    <div class="email-thread-meta">${esc(e.date || '')} ${eDirBadge}${eViaLabel} — ${esc(e.fromName || e.from || '')}</div>
-                    <div class="email-thread-body">${esc(e.summary || e.subject || '')}</div>
-                    ${outlookLink}
-                </div>`;
-            }).join('');
-
-            const expanded = `<div class="thread-expanded hidden" id="${threadId}-expanded">${expandedItems}</div>`;
-            const clickAttr = count > 1 ? `onclick="toggleThread('${threadId}')"` : '';
-
-            return `<div class="thread-row" ${clickAttr}>
-                ${arrow}
-                <div class="thread-row-content">
-                    <div class="thread-row-top">
-                        <span class="thread-subject">${esc(latest.subject || '')}</span>
-                        <span class="thread-count">${countLabel}</span>
-                    </div>
-                    <div class="thread-row-meta">${esc(latest.date || '')} ${dirBadge}${viaLabel}</div>
-                </div>
+        body.innerHTML = emails.map((e, i) => {
+            const detailId = `email-detail-${i}`;
+            // Extract first name from delegate mailbox for "via Tony" indicator
+            let viaBadge = '';
+            if (e.mailbox && e.mailbox.includes('@')) {
+                const localPart = e.mailbox.split('@')[0];
+                const firstName = localPart.charAt(0).toUpperCase() + localPart.slice(1);
+                viaBadge = ` <span style="font-size:10px;color:#94a3b8;font-weight:normal;">via ${firstName}</span>`;
+            }
+            return `<div class="email-row" onclick="toggleEmailDetail('${detailId}')">
+                <span class="email-date-col">${esc(e.date || '')}</span>
+                <span class="email-subject-col">${esc(e.subject || '')}</span>
+                <span class="email-from-col">${esc(e.fromName || e.from || '')}${viaBadge}</span>
             </div>
-            ${expanded}`;
+            <div class="email-detail-row" id="${detailId}">
+                <div class="detail-summary">${esc(e.summary || '')}</div>
+                ${e.outlookUrl ? `<a href="${esc(e.outlookUrl)}" target="_blank" rel="noopener" class="email-view-link">View in Outlook →</a>` : ''}
+            </div>`;
         }).join('');
+        document.getElementById('emails-count').textContent = emails.length;
+        document.getElementById('emails-card').classList.remove('hidden');
+        // starts collapsed — don't set maxHeight
     }
 
-    function mailboxFirstName(upn) {
-        if (!upn) return '';
-        const known = { ovasquez: 'Oscar', tavila: 'Tony', tony: 'Tony', oscar: 'Oscar' };
-        const local = upn.split('@')[0].toLowerCase();
-        return known[local] || (local.charAt(0).toUpperCase() + local.slice(1));
-    }
-
-    function toggleThread(threadId) {
-        const expanded = document.getElementById(`${threadId}-expanded`);
-        const arrow = document.getElementById(`${threadId}-arrow`);
-        if (!expanded) return;
-        const isHidden = expanded.classList.contains('hidden');
-        expanded.classList.toggle('hidden', !isHidden);
-        if (arrow) arrow.textContent = isHidden ? '▼' : '▶';
-        // Re-measure collapsible parent
+    function toggleEmailDetail(id) {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.classList.toggle('open');
+        // Re-measure parent
         const body = document.getElementById('emails-body');
         if (!body.classList.contains('collapsed') && body.style.maxHeight) {
             body.style.maxHeight = body.scrollHeight + 'px';
@@ -1670,13 +1495,14 @@
             const dateStr = formatNoteDate(n.date || '');
             return `<div class="note-entry">
                 <div class="note-meta">
-                    <span class="note-author">${esc(n.author || 'Unknown')}</span>
+                    <span class="note-author" data-person-name>${esc(n.author || 'Unknown')}</span>
                     <span class="note-date">${esc(dateStr)}</span>
                 </div>
-                <div class="note-text">${esc(n.text || '')}</div>
+                <div class="note-text">${esc(stripMarkdown(n.text || ''))}</div>
             </div>`;
         }).join('');
         countEl.textContent = notes.length;
+        linkifyPersonNames();
     }
 
     function formatNoteDate(isoStr) {
@@ -1695,7 +1521,6 @@
         const statusEl = document.getElementById('note-status');
         const btn = document.getElementById('btn-add-note');
 
-        const author = CURRENT_USER;
         const text = (textEl.value || '').trim();
 
         if (!text) { textEl.focus(); return; }
@@ -1711,25 +1536,39 @@
                 {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ author, text }),
+                    body: JSON.stringify({ text }),
                 }
             );
             if (!resp.ok) throw new Error('Save failed');
             const result = await resp.json();
 
-            // Reload notes from server to get full updated list
-            const briefResp = await fetch(
-                `/crm/api/prospect/${enc(OFFERING)}/${enc(ORG)}/brief`
-            );
-            if (briefResp.ok) {
-                const data = await briefResp.json();
-                renderNotesLog(data.notes_log || []);
-            }
+            // Render notes immediately from the response (no refetch needed)
+            renderNotesLog(result.notes_log || []);
 
             textEl.value = '';
             statusEl.className = 'note-save-status ok';
-            statusEl.textContent = 'Saved';
-            setTimeout(() => statusEl.classList.add('hidden'), 2500);
+            statusEl.textContent = 'Saved — regenerating brief…';
+
+            // Kick off brief regeneration in the background (note is now part of context)
+            fetch(
+                `/crm/api/prospect/${enc(OFFERING)}/${enc(ORG)}/brief`,
+                { method: 'POST' }
+            ).then(async r => {
+                if (r.ok) {
+                    const briefData = await r.json();
+                    if (briefData.narrative) {
+                        renderNarrative(briefData.narrative, briefData.brief_refreshed);
+                    }
+                    if (briefData.at_a_glance) showGlance(briefData.at_a_glance);
+                }
+                statusEl.className = 'note-save-status ok';
+                statusEl.textContent = 'Saved';
+                setTimeout(() => statusEl.classList.add('hidden'), 2500);
+            }).catch(() => {
+                statusEl.className = 'note-save-status ok';
+                statusEl.textContent = 'Saved';
+                setTimeout(() => statusEl.classList.add('hidden'), 2500);
+            });
         } catch (err) {
             statusEl.className = 'note-save-status err';
             statusEl.textContent = 'Error — try again';
@@ -1739,166 +1578,86 @@
     }
 
     // ============================================
-    // UPCOMING MEETINGS
+    // SCAN EMAIL (header button — scans + auto-refreshes brief)
     // ============================================
-
-    function renderUpcomingMeetings(meetings) {
-        const body = document.getElementById('upcoming-meetings-body');
-        const countEl = document.getElementById('upcoming-meetings-count');
-
-        if (!meetings || meetings.length === 0) {
-            body.innerHTML = '<div class="notes-empty">No upcoming meetings scheduled.</div>';
-            countEl.textContent = '';
-            return;
-        }
-
-        body.innerHTML = meetings.map(m => {
-            const dateStr = formatMeetingDateTime(m.meeting_date, m.meeting_time);
-            const sourceBadge = m.source === 'calendar'
-                ? '<span style="font-size:10px;color:#60a5fa;margin-left:6px">Calendar</span>'
-                : m.source === 'email'
-                ? '<span style="font-size:10px;color:#94a3b8;margin-left:6px">Email</span>'
-                : '';
-            return `<div class="upcoming-meeting-entry">
-                <div class="upcoming-meeting-info">
-                    <div class="upcoming-meeting-date">${esc(dateStr)}${sourceBadge}</div>
-                    ${m.title ? `<div class="upcoming-meeting-purpose">${esc(m.title)}</div>` : (m.purpose ? `<div class="upcoming-meeting-purpose">${esc(m.purpose)}</div>` : '')}
-                    ${m.attendees ? `<div class="upcoming-meeting-attendees">With: ${esc(m.attendees)}</div>` : ''}
-                </div>
-                <button class="upcoming-meeting-delete" title="Remove"
-                        onclick="deleteUpcomingMeeting('${esc(m.id)}')">✕</button>
-            </div>`;
-        }).join('');
-        countEl.textContent = meetings.length;
-    }
-
-    function renderPastMeetings(meetings) {
-        // Render past meetings from the unified meetings.json model
-        if (!meetings || meetings.length === 0) return;
-        const card = document.getElementById('past-meetings-card');
-        const body = document.getElementById('past-meetings-body');
-        const countEl = document.getElementById('past-meetings-count');
-        if (!card || !body) return;
-
-        const limit = 3;
-        const hasMore = meetings.length > limit;
-        const shown = hasMore ? meetings.slice(0, limit) : meetings;
-
-        body.innerHTML = shown.map(m => {
-            const dateStr = formatMeetingDateTime(m.meeting_date, m.meeting_time);
-            const statusCls = m.status === 'reviewed' ? 'color:#4ade80' : 'color:#fbbf24';
-            const pendingCount = (m.insights || []).filter(i => i.status === 'pending').length;
-            let notesPreview = m.notes_summary ? m.notes_summary.slice(0, 100) + (m.notes_summary.length > 100 ? '…' : '') : 'No notes yet';
-            let insightsBadge = pendingCount > 0 ? `<span style="color:#fbbf24;font-size:11px;margin-left:6px">(${pendingCount} insights pending)</span>` : '';
-
-            return `<div class="upcoming-meeting-entry" style="cursor:pointer" onclick="window.open('/crm/meetings','_self')">
-                <div class="upcoming-meeting-info">
-                    <div class="upcoming-meeting-date">
-                        ${esc(dateStr)}
-                        <span class="badge" style="font-size:10px;${statusCls};margin-left:6px">${esc(m.status)}</span>
-                        ${insightsBadge}
-                    </div>
-                    ${m.title ? `<div class="upcoming-meeting-purpose">${esc(m.title)}</div>` : ''}
-                    <div style="color:#94a3b8;font-size:12px">${esc(notesPreview)}</div>
-                </div>
-            </div>`;
-        }).join('');
-
-        if (hasMore) {
-            body.innerHTML += `<div style="text-align:center;padding:8px">
-                <a href="/crm/meetings" style="color:#60a5fa;font-size:12px;text-decoration:none">Show all ${meetings.length} past meetings →</a>
-            </div>`;
-        }
-
-        countEl.textContent = meetings.length;
-        card.classList.remove('hidden');
-    }
-
-    function formatMeetingDateTime(dateStr, timeStr) {
-        if (!dateStr) return 'TBD';
-        try {
-            const [y, mo, d] = dateStr.split('-').map(Number);
-            const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-            let label = `${months[mo - 1]} ${d}, ${y}`;
-            if (timeStr) {
-                const [h, min] = timeStr.split(':').map(Number);
-                const ampm = h >= 12 ? 'PM' : 'AM';
-                const h12 = h % 12 || 12;
-                label += ` at ${h12}:${String(min).padStart(2, '0')} ${ampm}`;
-            }
-            return label;
-        } catch (_) {
-            return dateStr + (timeStr ? ` ${timeStr}` : '');
-        }
-    }
-
-    async function submitUpcomingMeeting() {
-        const dateEl = document.getElementById('um-date');
-        const timeEl = document.getElementById('um-time');
-        const attendeesEl = document.getElementById('um-attendees');
-        const purposeEl = document.getElementById('um-purpose');
-        const statusEl = document.getElementById('um-status');
-        const btn = document.getElementById('btn-add-meeting');
-
-        const meeting_date = (dateEl.value || '').trim();
-        const meeting_time = (timeEl.value || '').trim();
-        const attendees = (attendeesEl.value || '').trim();
-        const purpose = (purposeEl.value || '').trim();
-
-        if (!meeting_date) { dateEl.focus(); return; }
+    async function runScanEmail() {
+        const btn = document.getElementById('scan-email-btn');
+        const status = document.getElementById('scan-email-status');
 
         btn.disabled = true;
-        statusEl.className = 'note-save-status';
-        statusEl.textContent = 'Saving…';
-        statusEl.classList.remove('hidden');
+        status.className = 'scan-status running';
+        status.textContent = 'Scanning…';
+        status.classList.remove('hidden');
 
         try {
             const resp = await fetch(
-                `/crm/api/prospect/${enc(OFFERING)}/${enc(ORG)}/add-meeting`,
-                {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ meeting_date, meeting_time, attendees, purpose }),
-                }
+                `/crm/api/prospect/${enc(OFFERING)}/${enc(ORG)}/email-scan`,
+                { method: 'POST' }
             );
-            if (!resp.ok) throw new Error('Save failed');
+            const data = await resp.json();
+            if (!resp.ok) throw new Error(data.error || 'Scan failed');
 
+            status.textContent = (data.message || `+${data.added} emails found`) + ' Refreshing brief…';
+
+            // Refresh email list
             const briefResp = await fetch(`/crm/api/prospect/${enc(OFFERING)}/${enc(ORG)}/brief`);
             if (briefResp.ok) {
-                const data = await briefResp.json();
-                renderUpcomingMeetings(data.upcoming_meetings || []);
+                const briefData = await briefResp.json();
+                renderEmails(briefData.email_history);
             }
 
-            dateEl.value = '';
-            timeEl.value = '';
-            attendeesEl.value = '';
-            purposeEl.value = '';
-            statusEl.className = 'note-save-status ok';
-            statusEl.textContent = 'Scheduled';
-            setTimeout(() => statusEl.classList.add('hidden'), 2500);
+            // Auto-refresh relationship brief
+            await refreshBrief();
+
+            status.className = 'scan-status success';
+            status.textContent = data.message || `+${data.added} emails found. Brief refreshed.`;
+            setTimeout(() => status.classList.add('hidden'), 6000);
         } catch (err) {
-            statusEl.className = 'note-save-status err';
-            statusEl.textContent = 'Error — try again';
+            status.className = 'scan-status error';
+            status.textContent = err.message || 'Scan failed';
         } finally {
             btn.disabled = false;
         }
     }
 
-    async function deleteUpcomingMeeting(meetingId) {
-        if (!confirm('Remove this upcoming meeting?')) return;
+    // ============================================
+    // DEEP EMAIL SCAN
+    // ============================================
+    async function runDeepEmailScan() {
+        const btn = document.getElementById('deep-scan-btn');
+        const status = document.getElementById('scan-status');
+
+        btn.disabled = true;
+        status.className = 'scan-status running';
+        status.textContent = 'Scanning…';
+        status.classList.remove('hidden');
+
         try {
             const resp = await fetch(
-                `/crm/api/meetings/${encodeURIComponent(meetingId)}`,
-                { method: 'DELETE' }
+                `/crm/api/prospect/${enc(OFFERING)}/${enc(ORG)}/email-scan`,
+                { method: 'POST' }
             );
-            if (!resp.ok) throw new Error('Delete failed');
-            const briefResp = await fetch(`/crm/api/prospect/${enc(OFFERING)}/${enc(ORG)}/brief`);
-            if (briefResp.ok) {
-                const data = await briefResp.json();
-                renderUpcomingMeetings(data.scheduled_meetings || data.upcoming_meetings || []);
+            const data = await resp.json();
+            if (!resp.ok) throw new Error(data.error || 'Scan failed');
+
+            status.className = 'scan-status success';
+            status.textContent = data.message || `+${data.added} emails found`;
+
+            // Refresh email list if new emails were found
+            if (data.added > 0) {
+                const briefResp = await fetch(
+                    `/crm/api/prospect/${enc(OFFERING)}/${enc(ORG)}/brief`
+                );
+                if (briefResp.ok) {
+                    const briefData = await briefResp.json();
+                    renderEmails(briefData.email_history);
+                }
             }
         } catch (err) {
-            alert('Could not remove meeting — try again.');
+            status.className = 'scan-status error';
+            status.textContent = err.message || 'Scan failed';
+        } finally {
+            btn.disabled = false;
         }
     }
 
@@ -1913,142 +1672,6 @@
 
     // ============================================
     // ADD CONTACT FUNCTIONALITY
-    // ============================================
-    let searchTimeoutDetail = null;
-
-    function showAddContactFormDetail() {
-        document.getElementById('btn-show-add-contact-detail').classList.add('hidden');
-        document.getElementById('add-contact-form-detail').classList.remove('hidden');
-        document.getElementById('search-mode-detail').classList.remove('hidden');
-        document.getElementById('create-mode-detail').classList.add('hidden');
-        document.getElementById('contact-search-input-detail').focus();
-    }
-
-    function hideAddContactFormDetail() {
-        document.getElementById('add-contact-form-detail').classList.add('hidden');
-        document.getElementById('btn-show-add-contact-detail').classList.remove('hidden');
-        // Reset forms
-        document.getElementById('contact-search-input-detail').value = '';
-        document.getElementById('search-results-detail').classList.add('hidden');
-        document.getElementById('search-mode-detail').classList.remove('hidden');
-        document.getElementById('create-mode-detail').classList.add('hidden');
-        document.getElementById('new-contact-name-detail').value = '';
-        document.getElementById('new-contact-title-detail').value = '';
-        document.getElementById('new-contact-email-detail').value = '';
-        document.getElementById('new-contact-phone-detail').value = '';
-    }
-
-    function switchToCreateModeDetail() {
-        document.getElementById('search-mode-detail').classList.add('hidden');
-        document.getElementById('create-mode-detail').classList.remove('hidden');
-        document.getElementById('new-contact-name-detail').focus();
-    }
-
-    async function searchPeopleDetail(query) {
-        const resultsEl = document.getElementById('search-results-detail');
-
-        if (!query.trim()) {
-            resultsEl.classList.add('hidden');
-            return;
-        }
-
-        // Debounce
-        if (searchTimeoutDetail) clearTimeout(searchTimeoutDetail);
-        searchTimeoutDetail = setTimeout(async () => {
-            try {
-                const resp = await fetch(`/crm/api/people/search?q=${enc(query)}`);
-                const people = await resp.json();
-
-                if (people.length === 0) {
-                    resultsEl.innerHTML = '<div class="search-result-item-detail" style="cursor:default;">No matches found</div><div class="search-result-create-detail" onclick="switchToCreateModeDetail()">+ Create New Contact</div>';
-                } else {
-                    resultsEl.innerHTML = people.map(p => {
-                        const meta = [p.title, p.email].filter(Boolean).join(' · ');
-                        return `<div class="search-result-item-detail" onclick='selectExistingPersonDetail(${JSON.stringify(p)})'>
-                            <div class="search-result-name-detail">${esc(p.name)}</div>
-                            ${meta ? `<div class="search-result-meta-detail">${esc(meta)}</div>` : ''}
-                        </div>`;
-                    }).join('') + '<div class="search-result-create-detail" onclick="switchToCreateModeDetail()">+ Create New Contact</div>';
-                }
-                resultsEl.classList.remove('hidden');
-            } catch (err) {
-                console.error('Search failed:', err);
-            }
-        }, 300);
-    }
-
-    async function selectExistingPersonDetail(person) {
-        document.getElementById('search-results-detail').classList.add('hidden');
-
-        try {
-            const resp = await fetch(`/crm/api/org/${enc(ORG)}/contacts`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    name: person.name,
-                    title: person.title || '',
-                    email: person.email || '',
-                    phone: person.phone || '',
-                    is_new: false
-                })
-            });
-
-            if (!resp.ok) {
-                const err = await resp.json().catch(() => ({}));
-                throw new Error(err.error || 'Failed to add contact');
-            }
-
-            // Reload page to show new contact
-            window.location.reload();
-        } catch (err) {
-            alert('Failed to add contact: ' + err.message);
-        }
-    }
-
-    async function submitNewContactDetail() {
-        const name = document.getElementById('new-contact-name-detail').value.trim();
-        const title = document.getElementById('new-contact-title-detail').value.trim();
-        const email = document.getElementById('new-contact-email-detail').value.trim();
-        const phone = document.getElementById('new-contact-phone-detail').value.trim();
-
-        if (!name) {
-            alert('Name is required');
-            document.getElementById('new-contact-name-detail').focus();
-            return;
-        }
-
-        try {
-            const resp = await fetch(`/crm/api/org/${enc(ORG)}/contacts`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    name: name,
-                    title: title,
-                    email: email,
-                    phone: phone,
-                    is_new: true
-                })
-            });
-
-            if (!resp.ok) {
-                const err = await resp.json().catch(() => ({}));
-                throw new Error(err.error || 'Failed to create contact');
-            }
-
-            // Reload page to show new contact
-            window.location.reload();
-        } catch (err) {
-            alert('Failed to create contact: ' + err.message);
-        }
-    }
-
-    // Close dropdown when clicking outside
-    document.addEventListener('click', function(e) {
-        const searchWrap = document.querySelector('.search-input-wrap-detail');
-        if (searchWrap && !searchWrap.contains(e.target)) {
-            document.getElementById('search-results-detail').classList.add('hidden');
-        }
-    });
     // Task edit modal globals
     window.TASK_MODAL_TEAM = {{ config.team | map(attribute='name') | list | tojson }};
     window.TASK_MODAL_TEAM_MAP = {{ config.team_map | tojson }};

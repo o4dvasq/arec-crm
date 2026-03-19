@@ -1,5 +1,8 @@
 # Stephen O'Kane
 
+- **Email:** stephen.okane@heritageholdings.com
+- **Organization:** Heritage House
+
 **Organization:** Heritage Holdings
 **Role:** (TBD)
 **Email:** stephen.okane@heritageholdings.com

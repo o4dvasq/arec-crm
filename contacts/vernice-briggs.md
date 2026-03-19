@@ -1,6 +1,7 @@
 # Vernice Briggs
 
 - **Organization:** Starwood Property Trust (STWD)
+- **Primary:** true
 - **Type:** LP Prospect contact
 - **Email:** VBriggs@Starwood.com
 - **Role:** Organizer / primary contact at Starwood for AREC discussion

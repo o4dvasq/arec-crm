@@ -1,5 +1,9 @@
 # Sunil Gupta
 
+- **Email:** sunil@bikaneradvisors.com
+- **Title:** Director
+- **Organization:** Bikaner Advisors
+
 **Email:** sunil@bikaneradvisors.com
 **Org:** Bikaner Advisors
 **Role:** Principal / Partner

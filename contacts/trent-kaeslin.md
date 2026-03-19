@@ -1,5 +1,9 @@
 # Trent Kaeslin
 
+- **Email:** trentk@sjcera.org
+- **Title:** Investment Officer
+- **Organization:** San Joaquin County Employees' Retirement Association
+
 - **Org:** San Joaquin County Employees' Retirement Association (SJCERA)
 - **Title:** Investment Officer (sole investment person at the fund)
 - **Email:** trentk@sjcera.org

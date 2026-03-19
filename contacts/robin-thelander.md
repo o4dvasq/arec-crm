@@ -1,5 +1,8 @@
 # Robin Thelander
 
+- **Email:** robin@grammigadvisory.com
+- **Organization:** Grammig Advisory
+
 **Organization:** Grammig Advisory
 **Role:** Advisor to Family Offices
 **Email:** robin@grammigadvisory.com

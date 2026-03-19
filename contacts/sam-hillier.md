@@ -1,6 +1,7 @@
 # Sam Hillier
 
 **Organization:** BC Partners
+- **Primary:** true
 **Role:** (TBD)
 **Email:** shillier@bcpartnersllc.com
 **Type:** LP Prospect — Primary Contact

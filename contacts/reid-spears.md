@@ -1,5 +1,8 @@
 # Reid Spears
 
+- **Email:** reid.spears@texaspsf.org
+- **Organization:** Texas Permanent School Fund
+
 **Organization:** Texas Permanent School Fund (texaspsf.org)
 **Role:** Investment team (Real Assets)
 **Email:** reid.spears@texaspsf.org

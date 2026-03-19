@@ -5,7 +5,7 @@
 
 **Location:** `~/Dropbox/projects/arec-crm/`
 
-**Last audited:** 2026-03-19 (updated: drain inbox hardening — drain_last_run.json, drain_seen_ids.json)
+**Last audited:** 2026-03-19 (updated: primary contact moved to org level — contacts/{slug}.md `Primary: true`)
 
 ---
 
@@ -170,6 +170,8 @@ app/main.py (morning briefing)
 ## Key Design Patterns
 
 **Markdown-only backend** — All CRM data in markdown files and JSON files. `crm_reader.py` is the single source of truth. `crm_db.py` exists in the codebase (PostgreSQL layer) but is NOT active — do not import from it in new code.
+
+**Primary contact is org-level, not prospect-level** — One contact per org may have `- **Primary:** true` in their `contacts/{slug}.md` file. Use `get_primary_contact(org)` to resolve it. The `Primary Contact` field no longer exists in `crm/prospects.md`. `get_prospect_full()` populates the backward-compatible `Primary Contact` string key for pipeline templates. The `PROSPECT_FIELD_ORDER` and `EDITABLE_FIELDS` constants do NOT include `primary_contact`.
 
 **relationship_brief.py must import from crm_reader** — `collect_relationship_data()` imports all data functions (`get_prospect`, `get_organization`, `get_contacts_for_org`, `load_interactions`, `get_emails_for_org`, `load_prospect_notes`, `load_prospect_meetings`) from `sources.crm_reader`. If these imports ever drift back to `crm_db`, notes/contacts/emails will silently disappear from briefs.
 

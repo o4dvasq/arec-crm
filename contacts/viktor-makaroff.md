@@ -1,5 +1,9 @@
 # Viktor Makaroff
 
+- **Email:** viktor.makaroff@texaspsf.org
+- **Organization:** Texas Permanent School Fund
+- **Primary:** true
+
 **Organization:** Texas Permanent School Fund (texaspsf.org)
 **Role:** Investment team (Real Assets)
 **Email:** Viktor.Makaroff@texaspsf.org

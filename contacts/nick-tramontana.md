@@ -1,5 +1,10 @@
 # Nick Tramontana
 
+- **Email:** nick.tramontana@texaspsf.org
+- **Title:** Portfolio Manager
+- **Phone:** 512-463-6706 (work); 512-463-9432
+- **Organization:** Texas Permanent School Fund
+
 **Organization:** Texas Permanent School Fund (texaspsf.org)
 **Role:** (TBD)
 **Email:** (TBD)

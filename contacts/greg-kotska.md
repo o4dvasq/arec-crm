@@ -2,6 +2,7 @@
 
 ## Overview
 - **Organization:** Greg Kotska
+- **Primary:** true
 - **Role:** 
 - **Email:** 
 - **Phone:** 

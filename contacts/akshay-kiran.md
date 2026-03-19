@@ -1,5 +1,8 @@
 # Akshay Kiran
 
+- **Email:** akshay@kmfamilyoffice.com
+- **Organization:** KM Family Office
+
 **Organization:** KM Family Office
 **Role:** (TBD)
 **Email:** akshay@kmfamilyoffice.com

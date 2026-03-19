@@ -1,5 +1,7 @@
 # Truman Flynn
 
+- **Email:** truman@avilacapllc.com
+
 **Email:** truman@avilacapllc.com
 **Organization:** Avila Real Estate Capital (AREC)
 **Title:** Vice President, Investor Relations

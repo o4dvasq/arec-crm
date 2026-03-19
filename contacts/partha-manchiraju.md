@@ -1,5 +1,10 @@
 # Partha Manchiraju
 
+- **Email:** Partha.Manchiraju@midamerican.com
+- **Title:** Director of Investments
+- **Phone:** (515) 281 2949
+- **Organization:** Berkshire Energy
+
 - **Organization:** MidAmerican Energy (Berkshire Hathaway subsidiary)
 - **Type:** LP investor / deal contact
 - **Email:** partha.manchiraju@midamerican.com

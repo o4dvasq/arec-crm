@@ -22,19 +22,23 @@ if _APP_DIR not in sys.path:
 
 PROJECT_ROOT = os.path.dirname(_APP_DIR)
 
+# Simple pass-through decorator for local dev (no auth needed)
+def login_required(f):
+    """No-op decorator for local dev."""
+    return f
+
 from sources.crm_reader import (
     load_prospects, load_offerings, get_fund_summary, get_fund_summary_all,
     load_crm_config, get_organization, write_organization, load_organizations,
     get_contacts_for_org, create_person_file, update_contact_fields,
     get_prospects_for_org, get_prospect, write_prospect, update_prospect_field,
     load_unmatched, remove_unmatched, add_unmatched,
-    _parse_currency, load_person, load_tasks_by_org, load_all_persons,
+    _parse_currency, load_person, load_all_persons, load_tasks_by_org,
     delete_prospect, load_meeting_history, add_meeting_entry,
     get_tasks_for_prospect as get_tasks_for_prospect_db,
     get_all_prospect_tasks as get_all_tasks_for_dashboard,
+    add_prospect_task, complete_prospect_task,
     get_tasks_grouped_by_prospect, get_tasks_grouped_by_owner,
-    add_prospect_task,
-    complete_prospect_task,
     load_email_log, get_emails_for_org, find_email_by_message_id,
     load_interactions, append_interaction,
     save_brief, load_saved_brief, load_all_briefs,
@@ -46,6 +50,8 @@ from sources.crm_reader import (
     append_person_email_history, append_org_email_history,
     discover_and_enrich_contact_emails, enrich_org_domain,
     find_person_by_email,
+    get_merge_preview, merge_organizations,
+    get_primary_contact, set_primary_contact, clear_primary_contact,
 )
 from sources.relationship_brief import (
     find_people_files, find_glossary_entry, find_meeting_summaries, find_org_tasks,
@@ -55,10 +61,8 @@ from sources.relationship_brief import (
     execute_person_updates, PERSON_BRIEF_SYSTEM_PROMPT, PERSON_UPDATE_ROUTING_PROMPT,
 )
 from briefing.brief_synthesizer import call_claude_brief
-from auth.decorators import require_api_key_or_login
 
 crm_bp = Blueprint('crm', __name__, url_prefix='/crm')
-
 
 
 @crm_bp.context_processor
@@ -71,6 +75,7 @@ def inject_search_index():
                 'name': p['org'],
                 'secondary': p['offering'],
                 'type': 'prospect',
+                'typeLabel': 'Prospect',
                 'url': f"/crm/prospect/{urlquote(p['offering'], safe='')}/{urlquote(p['org'], safe='')}/detail",
             })
         for person in load_all_persons():
@@ -78,13 +83,15 @@ def inject_search_index():
                 'name': person['name'],
                 'secondary': person.get('organization', ''),
                 'type': 'person',
+                'typeLabel': 'Person',
                 'url': f"/crm/people/{person['slug']}",
             })
         for org in load_organizations():
             entries.append({
                 'name': org['name'],
-                'secondary': '',
+                'secondary': org.get('Aliases', ''),
                 'type': 'org',
+                'typeLabel': 'Org',
                 'url': f"/crm/org/{urlquote(org['name'], safe='')}",
             })
         return {'search_index_json': json.dumps(entries)}
@@ -97,20 +104,11 @@ EDITABLE_FIELDS = {
 }
 
 ORG_BRIEF_SYSTEM = (
-    "You are a fundraising intelligence analyst for a real estate private equity firm "
-    "raising institutional capital. Generate a relationship brief for an organization "
-    "that may be considering multiple investment offerings.\n\n"
-    "Your brief MUST open with a sentence identifying which offerings the organization "
-    "is currently considering and at what stage/size.\n\n"
-    "Write in direct, specific prose. Use names, dates, and dollar amounts. No bullets "
-    "in the narrative — save structured info for at_a_glance. 2-4 paragraphs.\n\n"
-    "IMPORTANT: Respond with ONLY a valid JSON object — no preamble, no markdown fences — "
-    "in this exact format:\n"
-    '{"narrative": "<2-4 paragraph prose brief>", "at_a_glance": "<3-5 bullet points, newline-separated>"}\n\n'
-    "at_a_glance should be 3-5 concise bullet points separated by newlines. Example:\n"
-    "• Considering Fund II ($50M) and Mountain House co-invest ($10M)\n"
-    "• Primary contact: John Kim, CIO\n"
-    "• Last interaction: March 12 (email)"
+    "You are a senior relationship intelligence analyst for Avila Real Estate Capital (AREC), "
+    "a private real estate credit fund manager. Write a concise 2-3 paragraph organizational "
+    "brief summarizing: who this organization is, their relationship with AREC, current status, "
+    "key contacts, and any open opportunities or risks. Be specific and actionable. "
+    "Write in plain prose — no headers, no bullets."
 )
 
 
@@ -119,7 +117,7 @@ ORG_BRIEF_SYSTEM = (
 # ---------------------------------------------------------------------------
 
 def parse_kb_person_file(path: str) -> dict:
-    """Parse a contacts/*.md file into a person dict."""
+    """Parse a memory/people/*.md file into a person dict."""
     slug = os.path.splitext(os.path.basename(path))[0]
     name_fallback = ' '.join(w.capitalize() for w in slug.replace('-', ' ').split())
     fields = {'name': name_fallback, 'org': '', 'title': '', 'email': '', 'phone': '', 'company': ''}
@@ -160,21 +158,30 @@ def parse_kb_person_file(path: str) -> dict:
 # ---------------------------------------------------------------------------
 
 @crm_bp.route('/api/kb-people')
+@login_required
 def api_kb_people():
     q = request.args.get('q', '').lower().strip()
     config = load_crm_config()
     team = config.get('team', [])
     arec_team = {(m['name'] if isinstance(m, dict) else m).lower() for m in team}
-    all_people = load_all_persons()
-    results = [
-        p for p in all_people
-        if p['name'].lower() not in arec_team
-        and (not q or q in p['name'].lower())
-    ]
+    people_dir = os.path.join(PROJECT_ROOT, 'memory', 'people')
+    results = []
+    if os.path.isdir(people_dir):
+        for fname in sorted(os.listdir(people_dir)):
+            if not fname.endswith('.md'):
+                continue
+            path = os.path.join(people_dir, fname)
+            person = parse_kb_person_file(path)
+            if person['name'].lower() in arec_team:
+                continue
+            if not q or q in person['name'].lower():
+                results.append(person)
+    results.sort(key=lambda p: p['name'].lower())
     return jsonify(results[:10] if q else results)
 
 
 @crm_bp.route('/api/people/search')
+@login_required
 def api_people_search():
     """Alias for /api/kb-people for spec compliance."""
     return api_kb_people()
@@ -185,8 +192,9 @@ def api_people_search():
 # ---------------------------------------------------------------------------
 
 @crm_bp.route('/person/<slug>')
+@login_required
 def person_detail(slug):
-    people_dir = os.path.join(PROJECT_ROOT, 'contacts')
+    people_dir = os.path.join(PROJECT_ROOT, 'memory', 'people')
     path = os.path.join(people_dir, f'{slug}.md')
     if not os.path.exists(path):
         abort(404)
@@ -213,6 +221,7 @@ def person_detail(slug):
 
 @crm_bp.route('/')
 @crm_bp.route('')
+@login_required
 def pipeline():
     config = load_crm_config()
     offerings = load_offerings()
@@ -220,25 +229,30 @@ def pipeline():
 
 
 @crm_bp.route('/people')
+@login_required
 def people_list():
     return render_template('crm_people.html')
 
 
 @crm_bp.route('/people/<slug>')
+@login_required
 def people_person_detail(slug):
     return _render_person_detail(slug)
 
 
 def _render_person_detail(slug):
-    person = load_person(slug)
-    if not person:
+    people_dir = os.path.join(PROJECT_ROOT, 'memory', 'people')
+    path = os.path.join(people_dir, f'{slug}.md')
+    if not os.path.exists(path):
         abort(404)
+    person = parse_kb_person_file(path)
     return render_template('crm_person_detail.html', person=person, slug=slug)
 
 
 @crm_bp.route('/people/<slug>/delete', methods=['POST'])
+@login_required
 def delete_person(slug):
-    people_dir = os.path.join(PROJECT_ROOT, 'contacts')
+    people_dir = os.path.join(PROJECT_ROOT, 'memory', 'people')
     path = os.path.join(people_dir, f'{slug}.md')
     if not os.path.exists(path):
         abort(404)
@@ -257,11 +271,13 @@ def delete_person(slug):
 
 
 @crm_bp.route('/orgs')
+@login_required
 def orgs_list():
     return render_template('crm_orgs.html')
 
 
 @crm_bp.route('/org/<path:name>/edit')
+@login_required
 def org_edit(name):
     config = load_crm_config()
     offerings = load_offerings()
@@ -278,12 +294,14 @@ def org_edit(name):
 
 
 @crm_bp.route('/org/<path:name>')
+@login_required
 def org_detail(name):
     """Redirect to org edit page for backward compatibility."""
     return redirect(url_for('crm.org_edit', name=name))
 
 
 @crm_bp.route('/prospect/<offering>/<path:org>')
+@login_required
 def prospect_edit(offering, org):
     prospect = get_prospect(org, offering)
     if not prospect:
@@ -309,18 +327,20 @@ def prospect_edit(offering, org):
 
 
 @crm_bp.route('/prospect/<offering>/<path:org>/detail')
+@login_required
 def prospect_detail(offering, org):
     prospect = get_prospect(org, offering)
     if not prospect:
         abort(404)
     config = load_crm_config()
-    config['current_user'] = getattr(g, 'user', None) or os.environ.get('DEV_USER', 'Oscar Vasquez')
     urgent_raw = prospect.get('Urgent', '') or prospect.get('urgent', '')
     prospect['urgent_bool'] = str(urgent_raw).strip().lower() in ('yes', 'true', 'high', '1')
 
     # Load org data for the org sub-section
     org_data = get_organization(org) or {'name': org, 'Type': ''}
     contacts = get_contacts_for_org(org)
+    primary = get_primary_contact(org)
+    primary_contact_name = primary['name'] if primary else ''
 
     return render_template('crm_prospect_detail.html',
                            prospect=prospect,
@@ -328,7 +348,8 @@ def prospect_detail(offering, org):
                            offering=offering,
                            org=org,
                            org_data=org_data,
-                           contacts=contacts)
+                           contacts=contacts,
+                           primary_contact_name=primary_contact_name)
 
 
 # ---------------------------------------------------------------------------
@@ -341,7 +362,11 @@ def _run_prospect_brief(org: str, offering: str, max_tokens: int = 1600,
 
     Returns (narrative, at_a_glance, content_hash).
     """
-    raw_data = collect_relationship_data(org, offering, base_dir=PROJECT_ROOT)
+    try:
+        raw_data = collect_relationship_data(org, offering, base_dir=PROJECT_ROOT)
+    except Exception as e:
+        print(f"[brief] collect_relationship_data failed for {org}: {e}")
+        raw_data = {}
     content_hash = compute_content_hash(raw_data)
     context_block = build_context_block(raw_data)
     try:
@@ -351,7 +376,8 @@ def _run_prospect_brief(org: str, offering: str, max_tokens: int = 1600,
             max_tokens=max_tokens,
             want_json=want_json,
         )
-    except Exception:
+    except Exception as e:
+        print(f"[brief] call_claude_brief failed for {org}: {e}")
         narrative = build_fallback_summary(raw_data)
         at_a_glance = ''
     brief_key = f"{org}::{offering}"
@@ -360,42 +386,46 @@ def _run_prospect_brief(org: str, offering: str, max_tokens: int = 1600,
 
 
 @crm_bp.route('/api/prospect/<offering>/<path:org>/brief', methods=['GET', 'POST'])
+@login_required
 def api_prospect_brief(offering, org):
     if request.method == 'GET':
-        raw_data = collect_relationship_data(org, offering, base_dir=PROJECT_ROOT)
+        try:
+            raw_data = collect_relationship_data(org, offering, base_dir=PROJECT_ROOT)
+        except Exception as e:
+            print(f"[brief] GET collect_relationship_data failed for {org}: {e}")
+            raw_data = {}
         content_hash = compute_content_hash(raw_data)
         brief_key = f"{org}::{offering}"
         saved = load_saved_brief('prospect', brief_key)
         prospect = raw_data.get('prospect', {})
-
-        # Add unified meetings data (replaces old upcoming_meetings and supplements meeting_summaries)
-        scheduled_meetings = load_meetings(org=org, offering=offering, status='scheduled', future_only=True)
-        past_meetings = load_meetings(org=org, offering=offering, status=['completed', 'reviewed'], past_only=True)
-
         return jsonify({
             **raw_data,
             'content_hash': content_hash,
             'saved_brief': saved,
             'relationship_brief': prospect.get('Relationship Brief', ''),
             'brief_refreshed': prospect.get('Brief Refreshed', ''),
-            'scheduled_meetings': scheduled_meetings,
-            'past_meetings': past_meetings,
         })
 
     # POST — synthesize and persist
-    today_str = date.today().isoformat()
-    narrative, at_a_glance, _ = _run_prospect_brief(org, offering)
-    brief_text = narrative.replace('\n', ' ').strip()
-    update_prospect_field(org, offering, 'relationship_brief', brief_text)
-    update_prospect_field(org, offering, 'brief_refreshed', today_str)
-    return jsonify({
-        'narrative': narrative,
-        'brief_refreshed': today_str,
-        'at_a_glance': at_a_glance,
-    })
+    try:
+        today_str = date.today().isoformat()
+        narrative, at_a_glance, _ = _run_prospect_brief(org, offering)
+        brief_text = narrative.replace('\n', ' ').strip()
+        update_prospect_field(org, offering, 'relationship_brief', brief_text)
+        update_prospect_field(org, offering, 'brief_refreshed', today_str)
+        return jsonify({
+            'narrative': narrative,
+            'brief_refreshed': today_str,
+            'at_a_glance': at_a_glance,
+        })
+    except Exception as e:
+        print(f"[brief] POST synthesis failed for {org}/{offering}: {e}")
+        import traceback; traceback.print_exc()
+        return jsonify({'error': str(e), 'narrative': '', 'at_a_glance': []}), 500
 
 
 @crm_bp.route('/api/synthesize-brief', methods=['POST'])
+@login_required
 def api_synthesize_brief():
     """Call Claude API to synthesize a narrative relationship brief from raw data."""
     data = request.get_json(force=True)
@@ -421,6 +451,7 @@ def api_synthesize_brief():
 # ---------------------------------------------------------------------------
 
 @crm_bp.route('/api/emails/<path:org>')
+@login_required
 def api_emails_for_org(org):
     """Return paginated emails for an org from email_log.json."""
     limit = request.args.get('limit', 20, type=int)
@@ -436,6 +467,7 @@ def api_emails_for_org(org):
 
 
 @crm_bp.route('/api/email/<path:message_id>')
+@login_required
 def api_email_detail(message_id):
     """Return a single email entry from the log."""
     email = find_email_by_message_id(message_id)
@@ -445,9 +477,209 @@ def api_email_detail(message_id):
 
 
 @crm_bp.route('/api/prospect/<offering>/<path:org>/email-scan', methods=['POST'])
+@login_required
 def api_prospect_email_scan(offering, org):
-    """Disabled on postgres-local branch (no Graph API)."""
-    return jsonify({'error': 'Email scanning requires Graph API (not available on this branch)', 'added': 0}), 501
+    """
+    Deep email scan for a specific org — searches Archive + Sent Items over
+    the last 90 days for any email related to the org's domain or contacts.
+    Adds new matches to email_log.json (deduped). Returns count added.
+    """
+    try:
+        from auth.graph_auth import get_access_token
+    except Exception as e:
+        return jsonify({'error': f'MS Graph auth not configured: {e}', 'added': 0}), 503
+
+    try:
+        from sources.ms_graph import search_emails_deep
+    except Exception as e:
+        return jsonify({'error': f'MS Graph module unavailable: {e}', 'added': 0}), 503
+
+    # Use crm_reader (markdown backend) for org domain + email log functions
+    from sources.crm_reader import get_org_domains, add_emails_to_log
+
+    org_domains = get_org_domains()
+    domain = ''
+    for org_name, d in org_domains.items():
+        if org_name.lower() == org.lower():
+            domain = d
+            break
+
+    contacts = get_contacts_for_org(org)
+    contact_emails = [c.get('email', '') for c in contacts if c.get('email')]
+
+    if not domain and not contact_emails:
+        return jsonify({
+            'error': (
+                'No domain or contacts found for this org. '
+                'Add a Domain field to the org in organizations.md first.'
+            ),
+            'added': 0,
+        }), 400
+
+    try:
+        token = get_access_token(allow_device_flow=False)
+    except Exception as e:
+        return jsonify({'error': f'MS Graph auth failed: {e}', 'added': 0}), 500
+
+    # Query both Oscar's mailbox and delegate mailboxes
+    config = load_crm_config()
+    delegate_mailboxes = config.get('delegate_mailboxes', [])
+
+    raw_emails = []
+    seen_message_ids = set()
+
+    # Search Oscar's mailbox
+    try:
+        oscar_emails = search_emails_deep(token, domain, contact_emails, days_back=90, mailbox=None)
+        for email in oscar_emails:
+            msg_id = email.get('messageId')
+            if msg_id and msg_id not in seen_message_ids:
+                seen_message_ids.add(msg_id)
+                raw_emails.append(email)
+    except Exception as e:
+        return jsonify({'error': f'Email search (Oscar) failed: {e}', 'added': 0}), 500
+
+    # Search delegate mailboxes (e.g., Tony)
+    for delegate_mailbox in delegate_mailboxes:
+        try:
+            delegate_emails = search_emails_deep(
+                token, domain, contact_emails, days_back=90, mailbox=delegate_mailbox
+            )
+            for email in delegate_emails:
+                msg_id = email.get('messageId')
+                if msg_id and msg_id not in seen_message_ids:
+                    seen_message_ids.add(msg_id)
+                    raw_emails.append(email)
+        except Exception as e:
+            # Log but don't fail — delegate mailbox access might be limited
+            print(f"[crm_blueprint] Delegate mailbox {delegate_mailbox} scan failed: {e}")
+
+    if not raw_emails:
+        return jsonify({
+            'added': 0,
+            'total': 0,
+            'message': 'No matching emails found in the last 90 days.',
+        })
+
+    client = anthropic.Anthropic()
+    log_entries = []
+    for email in raw_emails:
+        subject = email.get('subject', '')
+        preview = email.get('preview', '')
+        from_addr = email.get('from', '')
+        is_sent = email.get('isSent', False)
+        try:
+            resp = client.messages.create(
+                model='claude-haiku-4-5-20251001',
+                max_tokens=100,
+                messages=[{
+                    'role': 'user',
+                    'content': (
+                        f"Summarize this {'outgoing' if is_sent else 'incoming'} "
+                        f"real estate investor email in 1-2 sentences. "
+                        f"Focus on the key action, commitment, or decision. Be specific.\n\n"
+                        f"Subject: {subject}\n"
+                        f"From: {from_addr}\n"
+                        f"Preview: {preview}"
+                    ),
+                }],
+            )
+            summary = resp.content[0].text.strip()
+        except Exception:
+            summary = f"{'Sent' if is_sent else 'Received'}: {subject}"
+
+        log_entries.append({
+            'messageId': email.get('messageId'),
+            'date': email.get('date', ''),
+            'timestamp': email.get('timestamp', ''),
+            'subject': subject,
+            'from': from_addr,
+            'fromName': email.get('fromName', ''),
+            'to': email.get('to', []),
+            'orgMatch': org,
+            'matchType': 'deep-scan',
+            'confidence': 0.90,
+            'summary': summary,
+            'outlookUrl': '',
+            'mailbox': email.get('mailbox'),  # Preserve mailbox for "via Tony" indicator
+        })
+
+    added = add_emails_to_log(log_entries)
+    already_logged = len(raw_emails) - added
+
+    # --- Email enrichment (a)(b)(c) ---
+    enrichment_stats = {'domains_added': 0, 'emails_enriched': 0, 'history_entries': 0}
+
+    # Collect all external email addresses seen in this scan
+    all_participants = []
+    for email in raw_emails:
+        from_addr = email.get('from', '')
+        from_name = email.get('fromName', '')
+        is_sent = email.get('isSent', False)
+        email_subject = email.get('subject', '')
+        email_date = email.get('date', '')
+        direction = 'outgoing' if is_sent else 'incoming'
+
+        if from_addr and not is_sent:
+            all_participants.append((from_addr, from_name))
+
+            # (a) Enrich org domain from sender
+            from_domain = from_addr.split('@')[-1].lower()
+            if enrich_org_domain(org, from_domain):
+                enrichment_stats['domains_added'] += 1
+
+            # (b) Append email history to person and org
+            person = find_person_by_email(from_addr)
+            if person and person.get('slug'):
+                append_person_email_history(
+                    person['slug'], email_date, email_subject, direction
+                )
+                enrichment_stats['history_entries'] += 1
+            append_org_email_history(
+                org, email_date, email_subject, from_name or from_addr, direction
+            )
+
+        # For sent emails, check TO recipients
+        for to_addr in email.get('to', []):
+            if isinstance(to_addr, str) and to_addr:
+                all_participants.append((to_addr, ''))
+                if is_sent:
+                    to_person = find_person_by_email(to_addr)
+                    if to_person and to_person.get('slug'):
+                        append_person_email_history(
+                            to_person['slug'], email_date, email_subject, direction
+                        )
+                        enrichment_stats['history_entries'] += 1
+                    append_org_email_history(
+                        org, email_date, email_subject, to_addr, direction
+                    )
+
+    # (c) Discover and enrich contact emails from all participants
+    enrichment = discover_and_enrich_contact_emails(org, all_participants)
+    enrichment_stats['emails_enriched'] += enrichment['emails_enriched']
+    if enrichment['domain_added']:
+        enrichment_stats['domains_added'] += 1
+
+    # Build enrichment message
+    enrichment_parts = []
+    if enrichment_stats['domains_added']:
+        enrichment_parts.append(f"{enrichment_stats['domains_added']} domain(s) added")
+    if enrichment_stats['emails_enriched']:
+        enrichment_parts.append(f"{enrichment_stats['emails_enriched']} contact email(s) enriched")
+    if enrichment_stats['history_entries']:
+        enrichment_parts.append(f"{enrichment_stats['history_entries']} history entries added")
+    enrichment_msg = (' | Enriched: ' + ', '.join(enrichment_parts)) if enrichment_parts else ''
+
+    return jsonify({
+        'added': added,
+        'total': len(raw_emails),
+        'enrichment': enrichment_stats,
+        'message': (
+            f'Scan complete — {added} new email{"s" if added != 1 else ""} added'
+            + (f' ({already_logged} already logged)' if already_logged else '')
+            + f'.{enrichment_msg}'
+        ),
+    })
 
 
 # ---------------------------------------------------------------------------
@@ -455,41 +687,27 @@ def api_prospect_email_scan(offering, org):
 # ---------------------------------------------------------------------------
 
 @crm_bp.route('/api/prospect/<offering>/<path:org>/add-note', methods=['POST'])
+@login_required
 def api_add_prospect_note(offering, org):
     data = request.get_json(force=True)
-    author = (data.get('author') or '').strip()
+    # Author is auto-populated from the logged-in user
+    author = (g.user.get('display_name') or g.user.get('email') or 'Unknown').strip()
     text = (data.get('text') or '').strip()
-    if not author or not text:
-        return jsonify({'error': 'author and text are required'}), 400
+    if not text:
+        return jsonify({'error': 'text is required'}), 400
     entry = save_prospect_note(org, offering, author, text)
-    return jsonify({'ok': True, 'entry': entry})
+    # Return full updated notes list so the client can render immediately
+    all_notes = load_prospect_notes(org, offering)
+    return jsonify({'ok': True, 'entry': entry, 'notes_log': all_notes})
 
 
 # ---------------------------------------------------------------------------
 # Upcoming Meetings API
 # ---------------------------------------------------------------------------
 
-@crm_bp.route('/api/prospect/<offering>/<path:org>/add-meeting', methods=['POST'])
-def api_add_prospect_meeting(offering, org):
-    data = request.get_json(force=True)
-    meeting_date = (data.get('meeting_date') or '').strip()
-    meeting_time = (data.get('meeting_time') or '').strip()
-    attendees = (data.get('attendees') or '').strip()
-    purpose = (data.get('purpose') or '').strip()
-    if not meeting_date:
-        return jsonify({'error': 'meeting_date is required'}), 400
-    entry = save_prospect_meeting(org, offering, meeting_date, meeting_time, attendees, purpose)
-    return jsonify({'ok': True, 'entry': entry})
-
-
-@crm_bp.route('/api/prospect/<offering>/<path:org>/delete-meeting', methods=['POST'])
-def api_delete_prospect_meeting(offering, org):
-    data = request.get_json(force=True)
-    meeting_id = (data.get('id') or '').strip()
-    if not meeting_id:
-        return jsonify({'error': 'id is required'}), 400
-    removed = delete_prospect_meeting(org, offering, meeting_id)
-    return jsonify({'ok': removed})
+# Prospect upcoming meetings API removed — feature moved to calendar integration
+# @crm_bp.route('/api/prospect/<offering>/<path:org>/add-meeting', methods=['POST'])
+# @crm_bp.route('/api/prospect/<offering>/<path:org>/delete-meeting', methods=['POST'])
 
 
 # ---------------------------------------------------------------------------
@@ -497,6 +715,7 @@ def api_delete_prospect_meeting(offering, org):
 # ---------------------------------------------------------------------------
 
 @crm_bp.route('/api/person-data')
+@login_required
 def api_person_data():
     name = request.args.get('name', '').strip()
     if not name:
@@ -506,10 +725,20 @@ def api_person_data():
         json.dumps(data, sort_keys=True, default=str).encode()
     ).hexdigest()[:12]
     saved = load_saved_brief('person', name)
+
+    # Augment profile with DB enrichment fields (linkedin_url, enriched_at)
+    slug = re.sub(r'[^a-z0-9\s-]', '', name.lower().strip())
+    slug = re.sub(r'\s+', '-', slug).strip('-')
+    db_person = load_person(slug)
+    if db_person:
+        data['profile']['linkedin_url'] = db_person.get('linkedin_url') or ''
+        data['profile']['enriched_at'] = db_person.get('enriched_at')
+
     return jsonify({**data, 'content_hash': content_hash, 'saved_brief': saved})
 
 
 @crm_bp.route('/api/synthesize-person-brief', methods=['POST'])
+@login_required
 def api_synthesize_person_brief():
     """Synthesize a person-focused AI narrative brief."""
     data = request.get_json(force=True)
@@ -538,6 +767,7 @@ def api_synthesize_person_brief():
 
 
 @crm_bp.route('/api/person-update', methods=['POST'])
+@login_required
 def api_person_update():
     """Accept free-text context about a person, AI routes updates to data stores."""
     data = request.get_json(force=True)
@@ -582,9 +812,10 @@ def api_person_update():
 
 
 @crm_bp.route('/people/api/<slug>/contact', methods=['PATCH'])
+@login_required
 def api_person_contact_update(slug):
     data = request.get_json(force=True)
-    people_dir = os.path.join(PROJECT_ROOT, 'contacts')
+    people_dir = os.path.join(PROJECT_ROOT, 'memory', 'people')
     path = os.path.join(people_dir, f'{slug}.md')
     if not os.path.exists(path):
         return jsonify({'error': 'Person not found'}), 404
@@ -670,15 +901,187 @@ def api_person_contact_update(slug):
 
 
 # ---------------------------------------------------------------------------
+# Contact Enrichment
+# ---------------------------------------------------------------------------
+
+def _search_linkedin_url(name: str, org: str, timeout: int = 10) -> str | None:
+    """
+    Search DuckDuckGo for a LinkedIn profile URL for the given person + org.
+    Returns the first matching linkedin.com/in/ URL, or None.
+    """
+    import requests as _requests
+    from urllib.parse import unquote, urlencode
+
+    query = f'"{name}" "{org}" site:linkedin.com/in'
+    try:
+        resp = _requests.get(
+            'https://html.duckduckgo.com/html/',
+            params={'q': query},
+            headers={'User-Agent': 'Mozilla/5.0 (compatible; AREC-CRM/1.0)'},
+            timeout=timeout,
+        )
+        if resp.status_code != 200:
+            return None
+        # DuckDuckGo HTML encodes result URLs in uddg= parameters
+        matches = re.findall(r'uddg=(https?%3A%2F%2F(?:www\.)?linkedin\.com%2Fin%2F[\w\-]+)', resp.text)
+        if matches:
+            return unquote(matches[0])
+    except Exception as e:
+        print(f"[enrich] LinkedIn search failed: {e}")
+    return None
+
+
+@crm_bp.route('/api/people/<slug>/enrich', methods=['POST'])
+@login_required
+def api_person_enrich(slug):
+    """
+    Run the contact enrichment pipeline for a person:
+      1. LinkedIn URL via web search
+      2. Email footer parsing (phone, title) from recent emails
+      3. Outlook contacts lookup (phone, title, email)
+
+    Returns a JSON preview of discovered fields — does NOT auto-save.
+    """
+    person = load_person(slug)
+    if not person:
+        return jsonify({'error': 'Person not found'}), 404
+
+    current = {
+        'phone': person.get('phone') or '',
+        'title': person.get('role') or '',
+        'email': person.get('email') or '',
+        'linkedin_url': person.get('linkedin_url') or '',
+    }
+
+    findings = []
+    graph_error = None
+
+    # --- 1. LinkedIn search ---
+    if person.get('organization'):
+        linkedin_url = _search_linkedin_url(person['name'], person['organization'])
+        if linkedin_url:
+            findings.append({
+                'field': 'linkedin_url',
+                'label': 'LinkedIn',
+                'found': linkedin_url,
+                'current': current['linkedin_url'],
+                'status': 'CONFIRMED' if linkedin_url == current['linkedin_url']
+                          else ('NEW' if not current['linkedin_url'] else 'CONFLICT'),
+                'source': 'web search',
+            })
+
+    # --- 2 & 3. Graph API: email footer + Outlook contacts ---
+    try:
+        from auth.graph_auth import get_access_token
+        from sources.ms_graph import search_contact_emails_for_signature, lookup_outlook_contact
+
+        token = get_access_token(allow_device_flow=False)
+
+        # Email footer scan
+        if person.get('email'):
+            sig = search_contact_emails_for_signature(
+                token, person['name'], person['email'], days_back=30
+            )
+            if sig.get('phone'):
+                source_label = f"email footer ({sig['email_count']} email{'s' if sig['email_count'] != 1 else ''})"
+                findings.append({
+                    'field': 'phone',
+                    'label': 'Phone',
+                    'found': sig['phone'],
+                    'current': current['phone'],
+                    'status': 'CONFIRMED' if sig['phone'] == current['phone']
+                              else ('NEW' if not current['phone'] else 'CONFLICT'),
+                    'source': source_label,
+                })
+            if sig.get('title'):
+                findings.append({
+                    'field': 'title',
+                    'label': 'Title',
+                    'found': sig['title'],
+                    'current': current['title'],
+                    'status': 'CONFIRMED' if sig['title'] == current['title']
+                              else ('NEW' if not current['title'] else 'CONFLICT'),
+                    'source': 'email footer',
+                })
+
+        # Outlook contacts lookup
+        outlook = lookup_outlook_contact(token, person['name'], person.get('email', ''))
+        if outlook:
+            for field_key, label, outlook_key in [
+                ('phone', 'Phone', 'phone'),
+                ('title', 'Title', 'title'),
+                ('email', 'Email', 'email'),
+            ]:
+                # Skip if already found from email footer
+                already_found = any(f['field'] == field_key for f in findings)
+                val = outlook.get(outlook_key, '')
+                if val and not already_found:
+                    findings.append({
+                        'field': field_key,
+                        'label': label,
+                        'found': val,
+                        'current': current[field_key],
+                        'status': 'CONFIRMED' if val == current[field_key]
+                                  else ('NEW' if not current[field_key] else 'CONFLICT'),
+                        'source': 'Outlook contacts',
+                    })
+
+    except Exception as e:
+        graph_error = str(e)
+        print(f"[enrich] Graph API error for {slug}: {e}")
+
+    enriched_at = datetime.now().isoformat()
+    return jsonify({
+        'findings': findings,
+        'enriched_at': enriched_at,
+        'graph_error': graph_error,
+        'no_graph_consent': graph_error is not None,
+    })
+
+
+@crm_bp.route('/api/people/<slug>/enrich/save', methods=['POST'])
+@login_required
+def api_person_enrich_save(slug):
+    """
+    Save confirmed enrichment results to the contact record.
+    Expects: { fields: {field: value, ...}, sources: {field: source, ...} }
+    """
+    person = load_person(slug)
+    if not person:
+        return jsonify({'error': 'Person not found'}), 404
+
+    data = request.get_json(force=True)
+    incoming = data.get('fields', {})
+    sources = data.get('sources', {})
+
+    save_fields = {}
+    for key in ('phone', 'title', 'email', 'linkedin_url'):
+        if key in incoming and incoming[key]:
+            save_fields[key] = incoming[key]
+
+    if sources:
+        save_fields['enrichment_source'] = sources
+
+    ok = save_enrichment_results(person['name'], save_fields)
+    if not ok:
+        return jsonify({'error': 'Save failed — contact not found in DB'}), 500
+
+    enriched_at = datetime.now().isoformat()
+    return jsonify({'ok': True, 'enriched_at': enriched_at})
+
+
+# ---------------------------------------------------------------------------
 # Offerings / Prospects API
 # ---------------------------------------------------------------------------
 
 @crm_bp.route('/api/offerings')
+@login_required
 def api_offerings():
     return jsonify(load_offerings())
 
 
 @crm_bp.route('/api/prospects')
+@login_required
 def api_prospects():
     offering = request.args.get('offering', '')
     include_closed = request.args.get('include_closed', 'false').lower() == 'true'
@@ -686,26 +1089,14 @@ def api_prospects():
     if not include_closed:
         excluded = {'8. Closed', '0. Not Pursuing', '0. Declined'}
         prospects = [p for p in prospects if p.get('Stage', '') not in excluded]
-    tasks_by_org = load_tasks_by_org()
-    all_new_tasks = get_all_tasks_for_dashboard()
-    new_tasks_by_org: dict = {}
-    for t in all_new_tasks:
-        new_tasks_by_org.setdefault(t['org'], []).append(
-            {k: v for k, v in t.items() if k != 'org'}
-        )
+    # Get tasks from PostgreSQL for each prospect
     for p in prospects:
         org_name = p.get('org', '')
-        org_tasks = tasks_by_org.get(org_name, [])
-        if org_tasks:
-            p['Tasks'] = ' | '.join(
-                f"[@{t['owner']}] {t['task']}" for t in org_tasks
-            )
-        else:
-            p['Tasks'] = ''
-        p['_tasks'] = org_tasks
-        new_tasks = new_tasks_by_org.get(org_name, [])
-        p['prospect_tasks'] = new_tasks
-        p['open_task_count'] = sum(1 for t in new_tasks if t['status'] == 'open')
+        prospect_tasks = get_tasks_for_prospect_db(org_name)
+        p['Tasks'] = ''  # No legacy markdown tasks
+        p['_tasks'] = []  # Legacy field, empty
+        p['prospect_tasks'] = prospect_tasks
+        p['open_task_count'] = len(prospect_tasks)
     all_briefs = load_all_briefs()
     prospect_briefs = all_briefs.get('prospect', {})
     for p in prospects:
@@ -716,6 +1107,7 @@ def api_prospects():
 
 
 @crm_bp.route('/api/fund-summary')
+@login_required
 def api_fund_summary():
     offering = request.args.get('offering', '')
     if offering:
@@ -728,6 +1120,7 @@ def api_fund_summary():
 # ---------------------------------------------------------------------------
 
 @crm_bp.route('/api/prospect/field', methods=['PATCH'])
+@login_required
 def api_patch_prospect_field():
     data = request.get_json(force=True)
     org = data.get('org', '').strip()
@@ -761,47 +1154,100 @@ def api_patch_prospect_field():
 
 
 # ---------------------------------------------------------------------------
-# Prospect Task API
+# Tasks Page
 # ---------------------------------------------------------------------------
 
+PRIORITY_ORDER = {'Hi': 1, 'High': 1, 'Med': 2, 'Medium': 2, 'Lo': 3, 'Low': 3}
+
+
 @crm_bp.route('/tasks')
-def crm_tasks_page():
-    config = load_crm_config()
-    active_view = request.args.get('view', 'prospect')
-    if active_view not in ('prospect', 'owner'):
-        active_view = 'prospect'
-    groups_by_prospect = get_tasks_grouped_by_prospect()
-    groups_by_owner = get_tasks_grouped_by_owner()
-    all_prospect_orgs = sorted({p['org'] for p in load_prospects()})
-    total_tasks = sum(len(g['tasks']) for g in groups_by_prospect)
+@login_required
+def crm_tasks():
+    all_tasks = get_all_tasks_for_dashboard()
+
+    # Load prospect data to enrich tasks with target and offering
+    prospects = load_prospects()
+    org_prospect_map = {}
+    for prospect in prospects:
+        org = prospect.get('org', '')
+        if org:
+            org_prospect_map[org.lower()] = prospect
+
+    # Enrich tasks with prospect data
+    enriched_tasks = []
+    for task in all_tasks:
+        if task.get('status') == 'done':
+            continue
+        if not task.get('owner', '').strip():
+            continue
+
+        org = task.get('org', '')
+        prospect = org_prospect_map.get(org.lower())
+        if prospect:
+            target_str = prospect.get('Target', '$0')
+            target_val = _parse_currency(target_str)
+            task['target'] = target_val
+            task['target_display'] = target_str
+            task['offering'] = prospect.get('offering', '')
+        else:
+            task['target'] = 0
+            task['target_display'] = '—'
+            task['offering'] = ''
+
+        enriched_tasks.append(task)
+
+    user_display = (g.user.get('display_name') or '').strip().lower()
+    user_email = (g.user.get('email') or '').strip().lower()
+    user_ids = {user_display, user_email} - {''}
+
+    def sort_key(t):
+        pri = PRIORITY_ORDER.get(t['priority'], 4)
+        return (pri, -(t['target'] or 0))
+
+    def add_url(tasks):
+        result = []
+        for t in tasks:
+            offering = t.get('offering', '')
+            org = t.get('org', '')
+            if offering and org:
+                url = f"/crm/prospect/{urlquote(offering, safe='')}/{urlquote(org, safe='')}/detail"
+            else:
+                url = '#'
+            result.append({**t, 'detail_url': url})
+        return result
+
+    my_tasks = add_url(sorted(
+        [t for t in enriched_tasks if t['owner'].strip().lower() in user_ids],
+        key=sort_key
+    ))
+    team_tasks = add_url(sorted(
+        [t for t in enriched_tasks if t['owner'].strip().lower() not in user_ids],
+        key=sort_key
+    ))
+
     return render_template(
         'crm_tasks.html',
-        config=config,
-        active_view=active_view,
-        groups_by_prospect=groups_by_prospect,
-        groups_by_owner=groups_by_owner,
-        all_prospect_orgs=all_prospect_orgs,
-        total_tasks=total_tasks,
+        active_tab='tasks',
+        my_tasks=my_tasks,
+        team_tasks=team_tasks,
     )
 
 
-@crm_bp.route('/api/tasks/dashboard', methods=['GET'])
-@require_api_key_or_login
-def api_tasks_dashboard():
-    tasks = get_all_tasks_for_dashboard()
-    return jsonify({'ok': True, 'tasks': tasks, 'count': len(tasks)})
-
+# ---------------------------------------------------------------------------
+# Prospect Task API
+# ---------------------------------------------------------------------------
 
 @crm_bp.route('/api/tasks', methods=['GET'])
-@require_api_key_or_login
+@login_required
 def api_crm_tasks_list():
     org = request.args.get('org', '').strip()
-    tasks = get_tasks_for_prospect_db(org) if org else get_all_tasks_for_dashboard()
-    return jsonify(tasks)
+    if not org:
+        return jsonify({'error': 'org parameter required'}), 400
+    return jsonify(get_tasks_for_prospect_db(org))
 
 
 @crm_bp.route('/api/tasks', methods=['POST'])
-@require_api_key_or_login
+@login_required
 def api_crm_tasks_create():
     data = request.get_json(force=True)
     org = data.get('org', '').strip()
@@ -810,30 +1256,41 @@ def api_crm_tasks_create():
     priority = data.get('priority', 'Med').strip()
     if not org or not text or not owner:
         return jsonify({'ok': False, 'error': 'org, text, and owner are required'}), 400
-    ok = add_prospect_task(org, text, owner, priority)
-    if not ok:
+    success = add_prospect_task(org, text, owner, priority)
+    if not success:
         return jsonify({'ok': False, 'error': 'Failed to add task'}), 500
-    return jsonify({'ok': True, 'task': {'org': org, 'text': text, 'owner': owner, 'priority': priority}}), 201
+    # Return the newly created task by fetching it
+    tasks = get_tasks_for_prospect_db(org)
+    # Find the most recently added task matching this text
+    for task in reversed(tasks):
+        if task.get('text') == text:
+            return jsonify({'ok': True, **task}), 201
+    return jsonify({'ok': False, 'error': 'Task created but could not retrieve'}), 500
 
 
 @crm_bp.route('/api/tasks/complete', methods=['PATCH'])
-@require_api_key_or_login
+@login_required
 def api_crm_tasks_complete():
     data = request.get_json(force=True)
     org = data.get('org', '').strip()
     text = data.get('text', '').strip()
     if not org or not text:
         return jsonify({'ok': False, 'error': 'org and text are required'}), 400
-    ok = complete_prospect_task(org, text)
-    if not ok:
+    success = complete_prospect_task(org, text)
+    if not success:
         return jsonify({'ok': False, 'error': 'Task not found'}), 404
     return jsonify({'ok': True})
 
 
 @crm_bp.route('/api/tasks/<int:task_id>', methods=['PATCH'])
-@require_api_key_or_login
+@login_required
 def api_crm_tasks_update(task_id):
-    return jsonify({'ok': False, 'error': 'Task update by ID requires a database.'}), 501
+    """Update task fields: text, owner, priority, status.
+
+    NOTE: This endpoint is not yet implemented for markdown-backed tasks.
+    Task updates must be done by editing TASKS.md directly.
+    """
+    return jsonify({'ok': False, 'error': 'Task update not implemented for markdown backend'}), 501
 
 
 # ---------------------------------------------------------------------------
@@ -841,6 +1298,7 @@ def api_crm_tasks_update(task_id):
 # ---------------------------------------------------------------------------
 
 @crm_bp.route('/api/org/<path:name>', methods=['GET'])
+@login_required
 def api_org_get(name):
     org = get_organization(name)
     if not org:
@@ -848,17 +1306,16 @@ def api_org_get(name):
     contacts = get_contacts_for_org(name)
     prospects = get_prospects_for_org(name)
     saved = load_saved_brief('org', name)
-    org_notes = load_org_notes(name)
     return jsonify({
         'org': org,
         'contacts': contacts,
         'prospects': prospects,
         'saved_brief': saved,
-        'org_notes': org_notes,
     })
 
 
 @crm_bp.route('/api/org/<path:name>', methods=['PATCH'])
+@login_required
 def api_org_patch(name):
     data = request.get_json(force=True)
     payload = {}
@@ -866,6 +1323,8 @@ def api_org_patch(name):
         payload['Type'] = data['type']
     if 'domain' in data:
         payload['Domain'] = data['domain']
+    if 'aliases' in data:
+        payload['Aliases'] = data['aliases']
     if 'notes' in data:
         payload['Notes'] = data['notes']
     if not payload:
@@ -880,134 +1339,72 @@ def api_org_patch(name):
 
 
 @crm_bp.route('/api/synthesize-org-brief', methods=['POST'])
+@login_required
 def api_synthesize_org_brief():
     """Synthesize an AI relationship brief for an organization."""
     data = request.get_json(force=True)
     org_name = data.get('org', '').strip()
     if not org_name:
         return jsonify({'error': 'org required'}), 400
-
     org = get_organization(org_name) or {'name': org_name}
     contacts = get_contacts_for_org(org_name)
     prospects = get_prospects_for_org(org_name)
-    interactions = load_interactions(org=org_name, limit=20)
-    emails = get_emails_for_org(org_name)[:20]
-    org_notes = load_org_notes(org_name)
-
+    interactions = load_interactions(org=org_name, limit=10)
+    emails = get_emails_for_org(org_name)[:10]
     context_lines = [f"Organization: {org_name}"]
     if org.get('Type'):
         context_lines.append(f"Type: {org['Type']}")
     if org.get('Domain'):
         context_lines.append(f"Domain: {org['Domain']}")
-
+    if org.get('Notes'):
+        context_lines.append(f"Notes: {org['Notes']}")
     if contacts:
         context_lines.append(f"\nContacts ({len(contacts)}):")
         for c in contacts:
-            parts = [c.get('name', '')]
-            if c.get('role'):
-                parts.append(c['role'])
-            if c.get('email'):
-                parts.append(c['email'])
-            context_lines.append(f"  - {', '.join(p for p in parts if p)}")
-
+            context_lines.append(f"  - {c.get('name', '')} ({c.get('role', '')})")
     if prospects:
         context_lines.append(f"\nProspects ({len(prospects)}):")
         for p in prospects:
             context_lines.append(
-                f"  - {p.get('offering', '')} | Stage: {p.get('Stage', p.get('stage', ''))} | "
-                f"Target: {p.get('Target', p.get('target', ''))} | "
-                f"Assigned To: {p.get('Assigned To', p.get('assigned_to', ''))} | "
-                f"Next Action: {p.get('Notes', p.get('notes', ''))}"
+                f"  - {p.get('offering', '')} | Stage: {p.get('stage', '')} | "
+                f"Target: {p.get('target', '')}"
             )
-        # Include any cached prospect briefs for richer context
-        prospect_briefs = []
-        for p in prospects:
-            offering = p.get('offering', '')
-            pb = load_saved_brief('prospect', f"{org_name}::{offering}")
-            if pb and pb.get('narrative'):
-                prospect_briefs.append(f"  [{offering}]: {pb['narrative'][:400]}")
-        if prospect_briefs:
-            context_lines.append(f"\nProspect Briefs:")
-            context_lines.extend(prospect_briefs)
-
-    if org_notes:
-        context_lines.append(f"\nOrg Notes (newest first, {len(org_notes)} total):")
-        for n in org_notes[:10]:
-            context_lines.append(f"  - [{n.get('date', '')}] {n.get('author', '')}: {n.get('text', '')}")
-
     if interactions:
         context_lines.append(f"\nRecent Interactions ({len(interactions)}):")
-        for i in interactions[:20]:
+        for i in interactions[:5]:
             context_lines.append(f"  - [{i.get('date', '')}] {i.get('summary', '')}")
-
     if emails:
         context_lines.append(f"\nRecent Emails ({len(emails)}):")
-        for e in emails[:20]:
+        for e in emails[:5]:
             context_lines.append(
                 f"  - [{e.get('date', '')}] {e.get('subject', '')} — {e.get('summary', '')}"
             )
-
     context_block = "\n".join(context_lines)
     content_hash = hashlib.md5(context_block.encode()).hexdigest()[:12]
-    generated_by = (g.user or {}).get('display_name', '') if g.user else ''
-
-    narrative = ''
-    at_a_glance = ''
     try:
-        raw, _ = call_claude_brief(
+        narrative, _ = call_claude_brief(
             ORG_BRIEF_SYSTEM,
-            f"Generate an org brief for {org_name}.\n\n{context_block}",
-            max_tokens=1600,
+            f"Generate an organizational brief for {org_name}.\n\n{context_block}",
+            max_tokens=800,
             want_json=False,
         )
-        # Parse JSON response (ORG_BRIEF_SYSTEM includes the JSON instruction)
-        clean = raw.strip()
-        start = clean.find('{')
-        end = clean.rfind('}')
-        if start != -1 and end != -1 and end > start:
-            clean = clean[start:end + 1]
-        try:
-            parsed = json.loads(clean)
-            narrative = parsed.get('narrative', raw)
-            at_a_glance = (parsed.get('at_a_glance', '') or '').strip()
-        except (json.JSONDecodeError, AttributeError):
-            narrative = raw
     except Exception:
-        parts = [f"{org_name} is a {org.get('Type', 'organization')} in AREC's network."]
+        parts = [f"**{org_name}** is a {org.get('Type', 'organization')} in AREC's network."]
         if prospects:
-            offerings = ', '.join(p.get('offering', '') for p in prospects if p.get('offering'))
-            if offerings:
-                parts.append(f"They are considering {offerings}.")
+            p = prospects[0]
+            parts.append(
+                f"They are a prospect for {p.get('offering', 'Fund II')} "
+                f"(Stage: {p.get('stage', 'Unknown')})."
+            )
         if contacts:
-            names = ', '.join(c.get('name', '') for c in contacts[:3] if c.get('name'))
-            if names:
-                parts.append(f"Key contacts: {names}.")
+            names = ', '.join(c.get('name', '') for c in contacts[:3])
+            parts.append(f"Key contacts: {names}.")
         narrative = ' '.join(parts)
-
-    save_brief('org', org_name, narrative, content_hash,
-               at_a_glance=at_a_glance, generated_by=generated_by)
+    save_brief('org', org_name, narrative, content_hash)
     return jsonify({
         'narrative': narrative,
-        'at_a_glance': at_a_glance,
-        'generated_by': generated_by,
         'content_hash': content_hash,
     })
-
-
-# ---------------------------------------------------------------------------
-# Org Notes API
-# ---------------------------------------------------------------------------
-
-@crm_bp.route('/api/org/<path:org_name>/notes', methods=['POST'])
-def api_org_add_note(org_name):
-    """Append a timestamped note to an org's notes log."""
-    data = request.get_json(force=True)
-    text = (data.get('text') or '').strip()
-    if not text:
-        return jsonify({'error': 'text required'}), 400
-    author = (g.user or {}).get('display_name', 'Unknown') if g.user else 'Unknown'
-    entry = save_org_note(org_name, author, text)
-    return jsonify(entry), 201
 
 
 # ---------------------------------------------------------------------------
@@ -1015,6 +1412,7 @@ def api_org_add_note(org_name):
 # ---------------------------------------------------------------------------
 
 @crm_bp.route('/api/org/<path:org_name>/contacts', methods=['POST'])
+@login_required
 def api_org_add_contact(org_name):
     """Add a contact to an organization."""
     data = request.get_json(force=True)
@@ -1037,8 +1435,6 @@ def api_org_add_contact(org_name):
             update_contact_fields(org_name, name, {'phone': phone})
     else:
         # Link existing person to this org
-        # For now, we assume the person file exists and update it
-        # to associate with this org
         people_dir = os.path.join(PROJECT_ROOT, 'contacts')
         # Find the person file by name
         found = False
@@ -1061,11 +1457,34 @@ def api_org_add_contact(org_name):
         if not found:
             return jsonify({'error': 'Person not found'}), 404
 
+    # Auto-set as primary if this is the org's first contact
+    all_contacts = get_contacts_for_org(org_name)
+    if len(all_contacts) == 1:
+        set_primary_contact(org_name, name)
+
     person = load_person(slug)
     return jsonify({'ok': True, 'person': person}), 201
 
 
+@crm_bp.route('/api/org/<path:org_name>/primary-contact', methods=['POST'])
+@login_required
+def api_org_set_primary_contact(org_name):
+    """Set or clear the primary contact for an org.
+    Body: {"contact_name": "Julia McArdle"} to set, {"contact_name": null} to clear.
+    """
+    data = request.get_json(force=True)
+    contact_name = data.get('contact_name')
+    if not contact_name:
+        clear_primary_contact(org_name)
+        return jsonify({'status': 'ok', 'primary_contact': None})
+    success = set_primary_contact(org_name, contact_name)
+    if not success:
+        return jsonify({'error': 'contact not found'}), 404
+    return jsonify({'status': 'ok', 'primary_contact': contact_name})
+
+
 @crm_bp.route('/api/contact', methods=['POST'])
+@login_required
 def api_contact_create():
     data = request.get_json(force=True)
     name = data.get('name', '').strip()
@@ -1081,6 +1500,7 @@ def api_contact_create():
 
 
 @crm_bp.route('/api/contact/<path:org_and_name>', methods=['PATCH'])
+@login_required
 def api_contact_patch(org_and_name):
     parts = org_and_name.rsplit('/', 1)
     if len(parts) != 2:
@@ -1102,6 +1522,7 @@ def api_contact_patch(org_and_name):
 # ---------------------------------------------------------------------------
 
 @crm_bp.route('/api/prospect/save', methods=['POST'])
+@login_required
 def api_prospect_save():
     data = request.get_json(force=True)
     org = data.get('org', '').strip()
@@ -1118,6 +1539,7 @@ def api_prospect_save():
 
 
 @crm_bp.route('/api/prospect', methods=['POST'])
+@login_required
 def api_prospect_create():
     data = request.get_json(force=True)
     org = data.get('org', '').strip()
@@ -1133,7 +1555,6 @@ def api_prospect_create():
         'Stage': data.get('stage', '1. Prospect'),
         'Target': data.get('target', '$0'),
         'Committed': '$0',
-        'Primary Contact': '',
         'Closing': '',
         'Urgent': '',
         'Assigned To': '',
@@ -1146,6 +1567,7 @@ def api_prospect_create():
 
 
 @crm_bp.route('/api/prospect', methods=['DELETE'])
+@login_required
 def api_prospect_delete():
     data = request.get_json(force=True)
     org = data.get('org', '').strip()
@@ -1164,11 +1586,13 @@ def api_prospect_delete():
 # ---------------------------------------------------------------------------
 
 @crm_bp.route('/api/unmatched', methods=['GET'])
+@login_required
 def api_unmatched_list():
     return jsonify(load_unmatched())
 
 
 @crm_bp.route('/api/unmatched/resolve', methods=['POST'])
+@login_required
 def api_unmatched_resolve():
     data = request.get_json(force=True)
     email = data.get('participant_email', '').strip()
@@ -1194,6 +1618,7 @@ def api_unmatched_resolve():
 
 
 @crm_bp.route('/api/unmatched/<path:email>', methods=['DELETE'])
+@login_required
 def api_unmatched_dismiss(email):
     remove_unmatched(email)
     return jsonify({'ok': True})
@@ -1204,18 +1629,35 @@ def api_unmatched_dismiss(email):
 # ---------------------------------------------------------------------------
 
 @crm_bp.route('/api/auto-capture', methods=['POST'])
+@login_required
 def api_auto_capture():
-    """Disabled on postgres-local branch (no Graph API)."""
-    return jsonify({'error': 'Auto-capture requires Graph API (not available on this branch)', 'added': 0}), 501
+    try:
+        from auth.graph_auth import get_access_token
+        from sources.crm_graph_sync import run_auto_capture
+        token = get_access_token(allow_device_flow=False)
+        stats = run_auto_capture(token)
+        return jsonify({
+            'ok': True,
+            'emails_scanned': stats.get('matched', 0) + stats.get('unmatched', 0) + stats.get('skipped_dedup', 0),
+            'meetings_scanned': 0,
+            'interactions_logged': stats.get('matched', 0),
+            'prospects_touched': stats.get('matched', 0),
+            'duplicates_skipped': stats.get('skipped_dedup', 0),
+            'unmatched_count': stats.get('unmatched', 0),
+        })
+    except Exception as e:
+        return jsonify({'ok': False, 'error': str(e)}), 500
 
 
 @crm_bp.route('/api/orgs')
+@login_required
 def api_orgs():
     orgs = load_organizations()
     return jsonify([o['name'] for o in orgs])
 
 
 @crm_bp.route('/api/export')
+@login_required
 def api_export_pipeline():
     import io
     from openpyxl import Workbook
@@ -1414,6 +1856,7 @@ def api_export_pipeline():
 
 
 @crm_bp.route('/api/org', methods=['POST'])
+@login_required
 def api_org_create():
     data = request.get_json(force=True)
     name = data.get('name', '').strip()
@@ -1435,12 +1878,14 @@ def api_org_create():
 # ---------------------------------------------------------------------------
 
 @crm_bp.route('/api/org/<path:name>/meetings', methods=['GET'])
+@login_required
 def api_org_meetings(name):
     meetings = load_meeting_history(name)
     return jsonify(meetings)
 
 
 @crm_bp.route('/api/org/<path:name>/meetings', methods=['POST'])
+@login_required
 def api_org_meeting_add(name):
     data = request.get_json(force=True)
     add_meeting_entry(
@@ -1454,87 +1899,77 @@ def api_org_meeting_add(name):
     return jsonify({'ok': True})
 
 
-@crm_bp.route('/api/followup', methods=['POST'])
-def api_followup_create():
+@crm_bp.route('/api/org/<path:source>/merge-preview', methods=['GET'])
+@login_required
+def api_org_merge_preview(source):
+    """Preview what will be merged when merging source into target."""
+    target = request.args.get('target', '').strip()
+    if not target:
+        return jsonify({'error': 'target parameter required'}), 400
+
+    try:
+        preview = get_merge_preview(source, target)
+        return jsonify(preview)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@crm_bp.route('/api/org/merge', methods=['POST'])
+@login_required
+def api_org_merge():
+    """Merge source org into target org."""
     data = request.get_json(force=True)
-    org = data.get('org', '').strip()
-    description = data.get('description', '').strip()
-    priority = data.get('priority', 'Med').strip()
-    assignee = data.get('assignee', '').strip()
-    if not org or not description:
-        return jsonify({'error': 'org and description required'}), 400
-    if not assignee:
-        return jsonify({'error': 'assignee is required'}), 400
+    source = data.get('source', '').strip()
+    target = data.get('target', '').strip()
 
-    from sources.memory_reader import append_task_to_section
+    if not source or not target:
+        return jsonify({'error': 'source and target required'}), 400
 
-    # Find short name from team_map
-    config = load_crm_config()
-    team_map = config.get('team_map', [])
-    short_name = None
-    for member in team_map:
-        if member['full'] == assignee:
-            short_name = member['short']
-            break
+    if source.lower() == target.lower():
+        return jsonify({'error': 'Cannot merge an org into itself'}), 400
 
-    if not short_name:
-        # Fallback: use first name
-        short_name = assignee.split()[0] if assignee else 'Me'
+    try:
+        result = merge_organizations(source, target)
+        return jsonify(result)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
-    # Format task line with assignee tag
-    task_line = f'- [ ] **[{priority}]** **@{short_name}** {description} ({org})'
 
-    # Determine section based on assignee
-    # For now, use "Fundraising - {FirstName}" pattern
-    section = f'Fundraising - {short_name}'
-
-    success = append_task_to_section(section, task_line)
-    if not success:
-        return jsonify({'error': 'Failed to write task'}), 500
-    return jsonify({'ok': True}), 201
+# /api/followup endpoint removed — use /crm/api/tasks POST instead
+# Tasks are now managed in prospect_tasks table, not TASKS.md
 
 
 # ---------------------------------------------------------------------------
-# Meetings — Page + API
+# Meetings Page and API
 # ---------------------------------------------------------------------------
 
 @crm_bp.route('/meetings')
+@login_required
 def meetings_page():
-    config = load_crm_config()
-    config['current_user'] = getattr(g, 'user', None) or os.environ.get('DEV_USER', 'Oscar Vasquez')
-    return render_template('crm_meetings.html', config=config)
+    return render_template('crm_meetings.html', active_tab='meetings')
 
 
 @crm_bp.route('/api/meetings', methods=['GET'])
+@login_required
 def api_meetings_list():
-    """List meetings with optional filters: org, offering, status, future_only, past_only."""
-    org = request.args.get('org')
-    offering = request.args.get('offering')
-    status = request.args.get('status')
-    future_only = request.args.get('future_only', '').lower() == 'true'
-    past_only = request.args.get('past_only', '').lower() == 'true'
-
-    if status and status != 'all':
-        status_list = status.split(',')
-    else:
-        status_list = None
-
-    meetings = load_meetings(org=org, offering=offering, status=status_list,
-                             future_only=future_only, past_only=past_only)
+    """Return all meetings as JSON array."""
+    meetings = load_meetings()
     return jsonify(meetings)
 
 
 @crm_bp.route('/api/meetings', methods=['POST'])
-@require_api_key_or_login
+@login_required
 def api_meetings_create():
     """Create a new meeting."""
-    data = request.get_json(silent=True) or {}
+    data = request.get_json(force=True)
     org = data.get('org', '').strip()
     offering = data.get('offering', '').strip()
     meeting_date = data.get('meeting_date', '').strip()
 
-    if not org or not meeting_date:
-        return jsonify({'error': 'org and meeting_date are required'}), 400
+    if not org or not offering or not meeting_date:
+        return jsonify({'error': 'org, offering, and meeting_date are required'}), 400
+
+    created_by = (g.user.get('email') or g.user.get('display_name', 'oscar')).strip()
 
     meeting = save_meeting(
         org=org,
@@ -1545,15 +1980,18 @@ def api_meetings_create():
         attendees=data.get('attendees', ''),
         source=data.get('source', 'manual'),
         graph_event_id=data.get('graph_event_id'),
-        notes_raw=data.get('notes_raw'),
-        created_by=getattr(g, 'user', 'oscar'),
+        notes_raw=data.get('notes_raw', ''),
+        transcript_url=data.get('transcript_url', ''),
+        created_by=created_by,
     )
-    return jsonify(meeting), 201
+
+    return jsonify({'ok': True, 'meeting': meeting}), 201
 
 
 @crm_bp.route('/api/meetings/<meeting_id>', methods=['GET'])
-def api_meeting_detail(meeting_id):
-    """Get a single meeting by ID."""
+@login_required
+def api_meetings_get(meeting_id):
+    """Get single meeting by UUID."""
     meeting = get_meeting(meeting_id)
     if not meeting:
         abort(404)
@@ -1561,63 +1999,63 @@ def api_meeting_detail(meeting_id):
 
 
 @crm_bp.route('/api/meetings/<meeting_id>', methods=['PATCH'])
-@require_api_key_or_login
-def api_meeting_update(meeting_id):
-    """Update meeting fields."""
-    data = request.get_json(silent=True) or {}
-    meeting = update_meeting(meeting_id, **data)
-    if not meeting:
+@login_required
+def api_meetings_update(meeting_id):
+    """Update fields on a meeting."""
+    data = request.get_json(force=True)
+    updated = update_meeting(meeting_id, **data)
+    if not updated:
         abort(404)
-    return jsonify(meeting)
+    return jsonify(updated)
 
 
 @crm_bp.route('/api/meetings/<meeting_id>', methods=['DELETE'])
-@require_api_key_or_login
-def api_meeting_delete(meeting_id):
+@login_required
+def api_meetings_delete(meeting_id):
     """Delete a meeting."""
-    if delete_meeting(meeting_id):
-        return jsonify({'ok': True})
-    abort(404)
+    success = delete_meeting(meeting_id)
+    if not success:
+        abort(404)
+    return jsonify({'ok': True})
 
 
 @crm_bp.route('/api/meetings/<meeting_id>/notes', methods=['POST'])
-@require_api_key_or_login
-def api_meeting_add_notes(meeting_id):
-    """Attach notes to a meeting and optionally trigger AI processing."""
-    data = request.get_json(silent=True) or {}
+@login_required
+def api_meetings_notes(meeting_id):
+    """Attach notes to a meeting and trigger AI processing."""
+    data = request.get_json(force=True)
     notes_raw = data.get('notes_raw', '').strip()
-    process_ai = data.get('process_ai', False)
 
     if not notes_raw:
         return jsonify({'error': 'notes_raw is required'}), 400
 
-    meeting = update_meeting(meeting_id, notes_raw=notes_raw, status='completed')
-    if not meeting:
+    # Update meeting with notes
+    updated = update_meeting(meeting_id, notes_raw=notes_raw)
+    if not updated:
         abort(404)
 
-    if process_ai:
-        meeting = process_meeting_notes(meeting_id)
-
-    return jsonify(meeting or get_meeting(meeting_id))
+    # Process notes with AI
+    processed = process_meeting_notes(meeting_id)
+    return jsonify(processed)
 
 
 @crm_bp.route('/api/meetings/<meeting_id>/insights/<insight_id>/approve', methods=['POST'])
-@require_api_key_or_login
-def api_meeting_insight_approve(meeting_id, insight_id):
-    """Approve a meeting insight — writes to prospect Notes."""
-    username = getattr(g, 'user', 'oscar')
-    meeting = approve_meeting_insight(meeting_id, insight_id, username)
-    if not meeting:
+@login_required
+def api_meetings_insight_approve(meeting_id, insight_id):
+    """Approve a meeting insight."""
+    username = g.user.get('email') or g.user.get('display_name', 'oscar')
+    updated = approve_meeting_insight(meeting_id, insight_id, username)
+    if not updated:
         abort(404)
-    return jsonify(meeting)
+    return jsonify(updated)
 
 
 @crm_bp.route('/api/meetings/<meeting_id>/insights/<insight_id>/dismiss', methods=['POST'])
-@require_api_key_or_login
-def api_meeting_insight_dismiss(meeting_id, insight_id):
-    """Dismiss a meeting insight — does NOT write to prospect Notes."""
-    username = getattr(g, 'user', 'oscar')
-    meeting = dismiss_meeting_insight(meeting_id, insight_id, username)
-    if not meeting:
+@login_required
+def api_meetings_insight_dismiss(meeting_id, insight_id):
+    """Dismiss a meeting insight."""
+    username = g.user.get('email') or g.user.get('display_name', 'oscar')
+    updated = dismiss_meeting_insight(meeting_id, insight_id, username)
+    if not updated:
         abort(404)
-    return jsonify(meeting)
+    return jsonify(updated)

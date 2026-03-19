@@ -6,7 +6,7 @@
 ---
 
 ## Last Updated
-2026-03-19 — SPEC_drain-inbox-hardening implemented
+2026-03-19 — SPEC_primary-contact-on-org implemented
 
 ---
 
@@ -36,20 +36,28 @@
 - **Person Name Linking**: App-wide clickable person names linking to `/crm/people/<slug>` using client-side `linkifyPersonNames()` function
 - **Task Grouping APIs**: `/crm/api/tasks/by-prospect` and `/crm/api/tasks/by-owner` fully functional with filtering, sorting, and enrichment
 - **Drain Inbox Hardening**: `drain_inbox.py` runs safely as unattended launchd process — dedup via `drain_seen_ids.json`, last-run metadata in `drain_last_run.json`, `Mail.ReadWrite.Shared` scope added to fix 403 on mark-as-read
+- **Primary Contact on Org**: Primary contact is now an org-level attribute. `contacts/{slug}.md` files carry `Primary: true`. Star toggle on org detail page. Prospect detail + pipeline resolve primary through org, not the prospect record.
 
 ---
 
 ## What Was Just Completed (March 19, 2026)
 
-### Drain Inbox Hardening (SPEC_drain-inbox-hardening.md)
+### Primary Contact on Org (SPEC_primary-contact-on-org.md)
 
 **What Was Done:**
-- ✅ `crm/drain_last_run.json` written after every run (success, failure, and quiet inbox). Schema: `{last_run, messages_processed, messages_skipped_dedup, exit_code, error}`.
-- ✅ `crm/drain_seen_ids.json` dedup: messages already written to `inbox.md` are skipped on subsequent runs even if still unread in the mailbox (mark-as-read failure protection). Entries older than 30 days pruned automatically.
-- ✅ Seen IDs written to `drain_seen_ids.json` **before** `mark_as_read` call — ensures dedup holds even if mark-as-read fails silently.
-- ✅ `Mail.ReadWrite.Shared` added to `DELEGATED_SCOPES` in `graph_auth.py` — fixes 403 on shared mailbox write operations. (Note: re-auth required after this change to pick up new scope.)
-- ✅ Both `crm/drain_last_run.json` and `crm/drain_seen_ids.json` added to `.gitignore` (machine-local state).
-- ✅ `ms_graph.py` confirmed already correct — `mark_as_read` and `move_message` already use `users/{mailbox}` URLs, not `/me/`.
+- ✅ `PEOPLE_ROOT` fixed to `contacts/` (had been accidentally reverted to `memory/people/`)
+- ✅ `load_person()` now parses `Primary:` field and returns `is_primary: bool`
+- ✅ `get_primary_contact(org)`, `set_primary_contact(org, name)`, `clear_primary_contact(org)` added to `crm_reader.py`
+- ✅ Helper `_set_contact_primary_field(slug, value)` writes/removes `- **Primary:** true` in contact files
+- ✅ `Primary Contact` removed from `PROSPECT_FIELD_ORDER` and `EDITABLE_FIELDS`
+- ✅ Auto-link trigger for primary contact removed from `update_prospect_field()`
+- ✅ `get_prospect_full()` resolves `Primary Contact` string through org's contacts (backward-compatible)
+- ✅ `POST /crm/api/org/<org_name>/primary-contact` added (set with `{contact_name: "Name"}`, clear with `{contact_name: null}`)
+- ✅ `api_org_add_contact()`: fixed `people_dir` to `contacts/`; auto-sets primary when first contact added to org
+- ✅ Org detail page: star button (filled gold = primary, outline = not) with `togglePrimary()` JS; `lucide.createIcons()` called after re-render
+- ✅ Prospect detail: resolved from `primary_contact_name` passed by route (server-side), not prospect record
+- ✅ Prospect edit form: Primary Contact field + JS removed entirely
+- ✅ Migration script `scripts/migrate_primary_contact_to_org.py` created and run: 98 orgs updated, 4 conflicts resolved (highest stage wins), 200 `Primary Contact:` lines removed from `crm/prospects.md`
 
 **Test Results:** 89/89 passing
 
@@ -63,34 +71,24 @@
 
 ## In Progress / Next Up
 
-### 1. SPEC_primary-contact-on-org.md — READY TO IMPLEMENT
-
-Spec is written and reviewed. Implementation plan confirmed. No code written yet.
-
-**Key changes:**
-- `crm_reader.py`: restore `PEOPLE_ROOT = contacts/` (working tree accidentally reverted to `memory/people/`); add `get_primary_contact()`, `set_primary_contact()`, `clear_primary_contact()`; update `load_person()` to parse `Primary:` field; update `get_contacts_for_org()` to include `is_primary`; update `get_prospect_full()` to resolve primary from org; remove `Primary Contact` from `PROSPECT_FIELD_ORDER`/`EDITABLE_FIELDS`; remove auto-link trigger in `update_prospect_field()`
-- `crm_blueprint.py`: add `POST /api/org/<org_name>/primary-contact`; update `api_org_add_contact` for auto-primary
-- `crm_org_detail.html`: star toggle on contact cards
-- `crm_prospect_detail.html`: resolve primary contact via server-side `primary_contact_name`
-- `crm_prospect_edit.html`: remove Primary Contact field
-- `scripts/migrate_primary_contact_to_org.py`: new migration script (run manually after implementation)
-
-**Path discrepancy to fix:** Working tree has `PEOPLE_ROOT = memory/people/` but HEAD commit (and correct location) is `contacts/`. Fix as first step of implementation.
-
-### 2. Re-auth required for drain inbox
+### 1. SPEC_drain-inbox-hardening — Re-auth required
 After adding `Mail.ReadWrite.Shared` scope, the cached MSAL token needs to be refreshed. Delete `~/.arec_briefing_token_cache.json` and re-run `drain_inbox.py` to trigger a new device code flow that includes the new scope.
 
-### 3. Tony Sync Setup Required
+### 2. Tony Sync Setup Required
 - **EGNYTE_API_TOKEN needed** — Must be obtained from Egnyte developer console and added to `app/.env`
 - **Not scheduled yet** — Needs launchd job for 6 AM daily run
 - **Manual review workflow not implemented** — Desktop/CoWork workflow for resolving low-confidence matches from `crm/tony_sync_pending.json`
+
+### 3. SPEC_drain-inbox-hardening.md — Next spec ready
+Only spec remaining in `docs/specs/` is `SPEC_drain-inbox-hardening.md`.
 
 ---
 
 ## Known Issues
 
 - **No test coverage for org merge** — Feature manually tested but no automated tests yet
-- **`PEOPLE_ROOT` working tree revert** — Current working tree has `memory/people/` but should be `contacts/`; will be fixed as part of SPEC_primary-contact-on-org implementation
+- **MetLife contact ambiguity**: "Chris Aiken" and "Christopher Aiken" both exist; migration chose Chris Aiken (Stage 5). Worth auditing manually.
+- **33 orgs without primary contact** — Migration skipped contacts where the prospect's Primary Contact string didn't match a contact file (e.g., "TBD", informal descriptions, email-appended names). These orgs show "—" for primary contact.
 
 ---
 

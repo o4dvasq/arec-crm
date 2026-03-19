@@ -141,44 +141,6 @@
         </div>
       </div>
 
-      <div class="field-row">
-        <label class="field-label" for="field-primary_contact">Primary Contact</label>
-        <div class="field-control">
-          <select id="field-primary_contact" onchange="handleContactSelectChange(this)">
-            <option value="">— Select —</option>
-            {% if contacts %}
-            <optgroup label="This org">
-              {% for contact in contacts %}
-              <option value="{{ contact.name }}"
-                      {% if prospect['Primary Contact'] == contact.name %}selected{% endif %}>
-                {{ contact.name }}{% if contact.role %} — {{ contact.role }}{% endif %}
-              </option>
-              {% endfor %}
-            </optgroup>
-            {% endif %}
-            {% if other_contacts %}
-            <optgroup label="Known contacts">
-              {% for contact in other_contacts %}
-              <option value="{{ contact.name }}"
-                      {% if prospect['Primary Contact'] == contact.name %}selected{% endif %}>
-                {{ contact.name }}{% if contact.organization %} — {{ contact.organization }}{% endif %}
-              </option>
-              {% endfor %}
-            </optgroup>
-            {% endif %}
-            <option value="__add_new__">+ Add new contact...</option>
-          </select>
-          <!-- Inline add-contact form (Delta 3) -->
-          <div id="add-contact-form" class="add-contact-inline">
-            <div class="hint">Create a new contact and link them to this org.</div>
-            <div class="row">
-              <input type="text" id="new-contact-name" placeholder="Full name *">
-              <input type="text" id="new-contact-email" placeholder="Email (optional)">
-              <button class="btn-add" onclick="addNewContact()">Add</button>
-            </div>
-          </div>
-        </div>
-      </div>
     </div>
 
     <!-- Text areas -->
@@ -243,61 +205,18 @@
 const ORG = {{ org | tojson }};
 const OFFERING = {{ offering | tojson }};
 
-function handleContactSelectChange(sel) {
-  const form = document.getElementById('add-contact-form');
-  if (sel.value === '__add_new__') {
-    form.classList.add('visible');
-    document.getElementById('new-contact-name').focus();
-  } else {
-    form.classList.remove('visible');
-  }
-}
-
-async function addNewContact() {
-  const name = document.getElementById('new-contact-name').value.trim();
-  const email = document.getElementById('new-contact-email').value.trim();
-  if (!name) {
-    document.getElementById('new-contact-name').focus();
-    return;
-  }
-
-  const resp = await fetch('/crm/api/contact', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ name, org: ORG, email, role: '', type: 'LP Prospect' }),
-  });
-
-  if (resp.ok) {
-    const data = await resp.json();
-    const select = document.getElementById('field-primary_contact');
-    // Insert new option before the "add new" option
-    const addNewOpt = select.querySelector('option[value="__add_new__"]');
-    const opt = new Option(name, name, true, true);
-    select.insertBefore(opt, addNewOpt);
-    // Hide inline form
-    document.getElementById('add-contact-form').classList.remove('visible');
-    document.getElementById('new-contact-name').value = '';
-    document.getElementById('new-contact-email').value = '';
-  } else {
-    const err = await resp.json().catch(() => ({}));
-    showError(err.error || 'Failed to add contact.');
-  }
-}
-
 async function saveProspect() {
   const btn = document.getElementById('save-btn');
   btn.disabled = true;
   btn.textContent = 'Saving…';
 
-  const primaryContact = document.getElementById('field-primary_contact').value;
   const fields = {
-    stage:           document.getElementById('field-stage').value,
-    urgent:          document.getElementById('field-urgent').checked,
-    target:          document.getElementById('field-target').value,
-    closing:         document.getElementById('field-closing').value,
-    assigned_to:     document.getElementById('field-assigned_to').value,
-    primary_contact: primaryContact === '__add_new__' ? '' : primaryContact,
-    notes:           document.getElementById('field-notes').value,
+    stage:       document.getElementById('field-stage').value,
+    urgent:      document.getElementById('field-urgent').checked,
+    target:      document.getElementById('field-target').value,
+    closing:     document.getElementById('field-closing').value,
+    assigned_to: document.getElementById('field-assigned_to').value,
+    notes:       document.getElementById('field-notes').value,
   };
 
   const resp = await fetch('/crm/api/prospect/save', {
@@ -400,7 +319,7 @@ async function addTask() {
   const resp = await fetch('/crm/api/tasks', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ org: ORG, text, owner, priority, section: 'IR / Fundraising' }),
+    body: JSON.stringify({ org: ORG, text, owner, priority }),
   });
   if (resp.ok) {
     document.getElementById('new-task-text').value = '';
@@ -417,7 +336,7 @@ async function completeTask(idx) {
   const resp = await fetch('/crm/api/tasks/complete', {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ org: ORG, task_text: task.text }),
+    body: JSON.stringify({ id: task.id }),
   });
   if (resp.ok) {
     await loadTasks();

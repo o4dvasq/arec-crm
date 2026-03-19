@@ -428,6 +428,38 @@
 
 ---
 
+## 2026-03-19 — Primary Contact Moved to Org Level (contact file `Primary: true`)
+
+**Decision:** Primary contact is now a property of the organization's contact list, not the prospect record. One contact per org may have `- **Primary:** true` in their `contacts/{slug}.md` file. The `Primary Contact` field is removed from `crm/prospects.md` entirely.
+
+**Rationale:** Primary contacts belong to organizations, not individual fund offerings. An org like "Future Fund" has one primary contact (Julia McArdle) regardless of whether it has one or three prospect records. The old model caused "TBD" to display on the prospect detail page even when the org had known contacts, because the prospect-level field was never kept in sync.
+
+**Key implementation choices:**
+
+1. **`Primary: true` in contact file** — Written as `- **Primary:** true` using the existing `- **Field:** Value` format. `load_person()` parses it and returns `is_primary: bool`. Absent = false; only one contact per org should have it.
+
+2. **Radio behavior enforced in code** — `set_primary_contact(org, name)` clears `Primary: true` from all other contacts for that org before setting it on the target. File constraints do not enforce this (any `.md` file could have the field) — application code is the enforcer.
+
+3. **Backward-compatible `Primary Contact` string in `get_prospect_full()`** — The pipeline template reads `p['Primary Contact']` as a string. Rather than touching the pipeline template, `get_prospect_full()` resolves the primary contact through the org and populates the `Primary Contact` key before returning. This keeps the pipeline working without template changes.
+
+4. **Migration: highest stage wins on conflict** — 4 orgs had disagreeing primary contact names across their prospect records. The contact linked to the highest-stage offering was chosen. Conflicts logged to console during migration.
+
+5. **33 orgs could not be migrated** — Their prospect `Primary Contact` field contained informal descriptions ("TBD", "London office head (name TBD)", email-appended names). These orgs show "—" for primary contact until manually set via the star toggle on the org detail page.
+
+6. **Auto-primary on first contact added** — When `api_org_add_contact()` adds a contact and the org now has exactly 1 contact, that contact is automatically set as primary. No manual star required for new orgs.
+
+**Impact:**
+- `app/sources/crm_reader.py` — Fixed `PEOPLE_ROOT = contacts/`; updated `load_person()` for `is_primary`; added `get_primary_contact()`, `set_primary_contact()`, `clear_primary_contact()`, `_set_contact_primary_field()`; removed `Primary Contact` from `PROSPECT_FIELD_ORDER`/`EDITABLE_FIELDS`; removed auto-link trigger from `update_prospect_field()`; updated `get_prospect_full()` to resolve from org
+- `app/delivery/crm_blueprint.py` — Added `POST /crm/api/org/<org>/primary-contact`; fixed `people_dir` to `contacts/`; auto-primary logic in `api_org_add_contact()`; removed `'Primary Contact': ''` from new prospect creation
+- `app/templates/crm_org_detail.html` — Star toggle on contact cards; `togglePrimary()` JS function
+- `app/templates/crm_prospect_detail.html` — `primary_contact_name` from route context replaces prospect-record lookup
+- `app/templates/crm_prospect_edit.html` — Primary Contact field and all related JS removed
+- `contacts/*.md` — 98 files updated with `- **Primary:** true` (via migration script)
+- `crm/prospects.md` — 200 `Primary Contact:` lines removed (via migration script)
+- `scripts/migrate_primary_contact_to_org.py` — NEW migration script (idempotent)
+
+---
+
 ## 2026-03-19 — Drain Inbox Hardening: Dedup Before Mark-as-Read
 
 **Decision:** `drain_seen_ids.json` is written (message ID recorded) **before** the `mark_as_read` call, not after. The seen-IDs file is also saved once per run (after the full message loop), not per-message.

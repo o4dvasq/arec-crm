@@ -1,5 +1,10 @@
 # Matt Saverin
 
+- **Email:** msaverin@utimco.org
+- **Title:** Senior Director - Real Assets
+- **Organization:** University of Texas Investment Management Company (UTIMCO)
+- **Primary:** true
+
 **Organization:** UTIMCO → Texas Permanent (TRS) (pending move)
 **Role:** Investment professional; informal AREC advocate
 **Type:** Inside Champion / Relationship

@@ -1,5 +1,8 @@
 # Nigel Braidy
 
+- **Email:** burtonn@emiratesnbd.com
+- **Organization:** Emirates NBD
+
 **Organization:** Emirates NBD
 **Role:** (TBD)
 **Email:** nigelb@emiratesnbd.com

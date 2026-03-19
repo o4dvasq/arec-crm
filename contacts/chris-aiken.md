@@ -1,5 +1,11 @@
 # Chris Aiken
 
+- **Email:** christopher.aiken@metlife.com
+- **Title:** Managing Director, Head of Acquisitions - Real Estate
+- **Phone:** +1-917-783-2654
+- **Organization:** MetLife Insurance Company
+- **Primary:** true
+
 - **Organization:** MetLife Insurance Company
 - **Type:** LP Prospect contact
 - **Email:** (TBD)
