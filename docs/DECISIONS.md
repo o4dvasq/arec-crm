@@ -487,3 +487,69 @@
 - `app/sources/tony_sync.py` — Removed `ALIASES_PATH`, `load_aliases()`. Now imports `get_org_aliases_map` from `crm_reader`. Diff report text updated to reference CRM UI instead of JSON file.
 
 ---
+
+
+## 2026-03-19 — Pipeline Type Column: Pull from Org, Not Prospect
+
+**Decision:** The `/api/prospects` endpoint now enriches each prospect with the `Type` field from its linked org before returning JSON. The Type filter on the pipeline (`?type=...`) now filters prospects correctly by org Type.
+
+**Rationale:** Type is an org-level attribute stored in `organizations.md`, not a prospect-level field. The pipeline's Type column was empty because the API never looked up the org's Type when building the response. The `/api/export` endpoint already did this correctly; applying the same pattern to `/api/prospects` fixes the column.
+
+**Implementation:**
+1. Load organizations dict once at the start of the request (`orgs = {o['name']: o for o in load_organizations()}`)
+2. Apply type filter from query params before enriching prospects (same pattern as `/api/export`)
+3. Inject `Type` field from org record onto each prospect in the tasks loop (empty string for orgs without Type or prospects without org)
+
+**Impact:**
+- `app/delivery/crm_blueprint.py` — `api_prospects()` function (8 lines added)
+- Pipeline Type column now displays correctly
+- Type filter dropdown on pipeline now works
+- No changes to stored data (read-path enrichment only)
+
+---
+
+## 2026-03-19 — Meeting Deduplication: Three-Tier Strategy with Any-Status Matching
+
+**Decision:** Fixed three gaps in the meeting deduplication system: (1) `save_meeting()` Tier 2 dedup now works regardless of meeting status (removed `status='scheduled'` gate), (2) added read-time dedup safety net in `load_meetings()` that auto-cleans the JSON file when duplicates exist, (3) verified Tony's calendar scanner already implements org+date fallback dedup with `graph_event_id` backfill.
+
+**Rationale:** The original Tier 2 dedup logic only matched meetings with `status='scheduled'`. Once a meeting transitioned to `completed`, a second insert from a different source (e.g., manual entry after a calendar scan) bypassed dedup and created a duplicate. Additionally, there was no safety net at read time — if a duplicate sneaked in through any code path, it would show forever in the UI.
+
+**Key implementation choices:**
+
+1. **Status-agnostic fuzzy matching** — Tier 2 dedup now matches meetings with the same org (case-insensitive, trimmed) AND meeting_date ±1 day, regardless of current status. This catches cross-source duplicates even after status transitions.
+
+2. **Backfill-only merge behavior** — When Tier 2 finds a match, it only updates empty fields on the existing meeting. Never overwrites `notes_raw`, `title`, `attendees`, `transcript_url`, or `graph_event_id` if they already have values. This preserves data regardless of which source wrote first.
+
+3. **Read-time dedup safety net** — `load_meetings()` now includes a dedup pass before filter logic. Groups meetings by `(org.lower().strip(), meeting_date)`, keeps the first occurrence, merges `graph_event_id`, `notes_raw`, and `notes_summary` from duplicates into the keeper, then auto-saves the cleaned list back to `meetings.json`.
+
+4. **Tony's scanner already correct** — `tony_calendar_scan.py` lines 368-386 implement the org+date fallback dedup after the `graph_event_id` check. If a meeting already exists with the same org and date (from any source), the scanner skips creating a new record and backfills the `graph_event_id` if missing.
+
+**Rejected alternatives:**
+- **Delete duplicates without merging** — Would lose `graph_event_id` or notes from the duplicate record. Merging useful fields preserves all data.
+- **Leave read-time dedup out** — Would require all write paths to be perfect. The safety net ensures duplicates never persist in the UI even if a bug sneaks through.
+
+**For the next designer:**
+- If you see duplicate meetings in the UI, they will auto-clean on the next page load (next `load_meetings()` call).
+- The `graph_event_id` backfill is opportunistic — if Tony's scanner sees a meeting that was manually created (no `graph_event_id`), it will add the ID on next scan. This connects manual entries to the calendar source for future updates.
+
+**Impact:**
+- `app/sources/crm_reader.py` — Updated `save_meeting()` docstring and Tier 2 dedup block (~35 lines); added dedup safety net in `load_meetings()` (~25 lines)
+- `tools/tony_calendar_scan.py` — Already correct (no changes needed)
+- All 67 existing tests passing
+
+---
+
+## 2026-03-19 — Remove Deep Scan Button: Cowork Skill Replaces Per-Prospect Scanning
+
+**Decision:** Removed the "Deep Scan (90d)" button from the prospect detail page. Email scanning is now exclusively handled by the `/email-scan` Cowork skill, which performs a 6-pass scan across all mailboxes in a single run.
+
+**Rationale:** The per-prospect scan button called `api_prospect_email_scan()` in `crm_blueprint.py`, which invoked `search_emails_deep()` in `ms_graph.py` and summarized each email with Haiku (per-email Claude API cost). The Cowork skill replaced this with a comprehensive scan that covers all orgs at once. Keeping both created confusion about which mechanism was authoritative and wasted API credits on single-org scans.
+
+**Impact:**
+- `app/templates/crm_prospect_detail.html` — Removed `.btn-scan` CSS, button HTML, `runDeepEmailScan()` JS function. `.scan-status` CSS kept (used by header "Scan Email" button).
+- `app/delivery/crm_blueprint.py` — Removed `api_prospect_email_scan()` route (~200 lines)
+- `app/sources/ms_graph.py` — Removed `search_emails_deep()` function (~105 lines)
+- Route `/crm/api/prospect/{offering}/{org}/email-scan` now returns 404
+
+---
+

@@ -476,212 +476,6 @@ def api_email_detail(message_id):
     return jsonify(email)
 
 
-@crm_bp.route('/api/prospect/<offering>/<path:org>/email-scan', methods=['POST'])
-@login_required
-def api_prospect_email_scan(offering, org):
-    """
-    Deep email scan for a specific org — searches Archive + Sent Items over
-    the last 90 days for any email related to the org's domain or contacts.
-    Adds new matches to email_log.json (deduped). Returns count added.
-    """
-    try:
-        from auth.graph_auth import get_access_token
-    except Exception as e:
-        return jsonify({'error': f'MS Graph auth not configured: {e}', 'added': 0}), 503
-
-    try:
-        from sources.ms_graph import search_emails_deep
-    except Exception as e:
-        return jsonify({'error': f'MS Graph module unavailable: {e}', 'added': 0}), 503
-
-    # Use crm_reader (markdown backend) for org domain + email log functions
-    from sources.crm_reader import get_org_domains, add_emails_to_log
-
-    org_domains = get_org_domains()
-    domain = ''
-    for org_name, d in org_domains.items():
-        if org_name.lower() == org.lower():
-            domain = d
-            break
-
-    contacts = get_contacts_for_org(org)
-    contact_emails = [c.get('email', '') for c in contacts if c.get('email')]
-
-    if not domain and not contact_emails:
-        return jsonify({
-            'error': (
-                'No domain or contacts found for this org. '
-                'Add a Domain field to the org in organizations.md first.'
-            ),
-            'added': 0,
-        }), 400
-
-    try:
-        token = get_access_token(allow_device_flow=False)
-    except Exception as e:
-        return jsonify({'error': f'MS Graph auth failed: {e}', 'added': 0}), 500
-
-    # Query both Oscar's mailbox and delegate mailboxes
-    config = load_crm_config()
-    delegate_mailboxes = config.get('delegate_mailboxes', [])
-
-    raw_emails = []
-    seen_message_ids = set()
-
-    # Search Oscar's mailbox
-    try:
-        oscar_emails = search_emails_deep(token, domain, contact_emails, days_back=90, mailbox=None)
-        for email in oscar_emails:
-            msg_id = email.get('messageId')
-            if msg_id and msg_id not in seen_message_ids:
-                seen_message_ids.add(msg_id)
-                raw_emails.append(email)
-    except Exception as e:
-        return jsonify({'error': f'Email search (Oscar) failed: {e}', 'added': 0}), 500
-
-    # Search delegate mailboxes (e.g., Tony)
-    for delegate_mailbox in delegate_mailboxes:
-        try:
-            delegate_emails = search_emails_deep(
-                token, domain, contact_emails, days_back=90, mailbox=delegate_mailbox
-            )
-            for email in delegate_emails:
-                msg_id = email.get('messageId')
-                if msg_id and msg_id not in seen_message_ids:
-                    seen_message_ids.add(msg_id)
-                    raw_emails.append(email)
-        except Exception as e:
-            # Log but don't fail — delegate mailbox access might be limited
-            print(f"[crm_blueprint] Delegate mailbox {delegate_mailbox} scan failed: {e}")
-
-    if not raw_emails:
-        return jsonify({
-            'added': 0,
-            'total': 0,
-            'message': 'No matching emails found in the last 90 days.',
-        })
-
-    client = anthropic.Anthropic()
-    log_entries = []
-    for email in raw_emails:
-        subject = email.get('subject', '')
-        preview = email.get('preview', '')
-        from_addr = email.get('from', '')
-        is_sent = email.get('isSent', False)
-        try:
-            resp = client.messages.create(
-                model='claude-haiku-4-5-20251001',
-                max_tokens=100,
-                messages=[{
-                    'role': 'user',
-                    'content': (
-                        f"Summarize this {'outgoing' if is_sent else 'incoming'} "
-                        f"real estate investor email in 1-2 sentences. "
-                        f"Focus on the key action, commitment, or decision. Be specific.\n\n"
-                        f"Subject: {subject}\n"
-                        f"From: {from_addr}\n"
-                        f"Preview: {preview}"
-                    ),
-                }],
-            )
-            summary = resp.content[0].text.strip()
-        except Exception:
-            summary = f"{'Sent' if is_sent else 'Received'}: {subject}"
-
-        log_entries.append({
-            'messageId': email.get('messageId'),
-            'date': email.get('date', ''),
-            'timestamp': email.get('timestamp', ''),
-            'subject': subject,
-            'from': from_addr,
-            'fromName': email.get('fromName', ''),
-            'to': email.get('to', []),
-            'orgMatch': org,
-            'matchType': 'deep-scan',
-            'confidence': 0.90,
-            'summary': summary,
-            'outlookUrl': '',
-            'mailbox': email.get('mailbox'),  # Preserve mailbox for "via Tony" indicator
-        })
-
-    added = add_emails_to_log(log_entries)
-    already_logged = len(raw_emails) - added
-
-    # --- Email enrichment (a)(b)(c) ---
-    enrichment_stats = {'domains_added': 0, 'emails_enriched': 0, 'history_entries': 0}
-
-    # Collect all external email addresses seen in this scan
-    all_participants = []
-    for email in raw_emails:
-        from_addr = email.get('from', '')
-        from_name = email.get('fromName', '')
-        is_sent = email.get('isSent', False)
-        email_subject = email.get('subject', '')
-        email_date = email.get('date', '')
-        direction = 'outgoing' if is_sent else 'incoming'
-
-        if from_addr and not is_sent:
-            all_participants.append((from_addr, from_name))
-
-            # (a) Enrich org domain from sender
-            from_domain = from_addr.split('@')[-1].lower()
-            if enrich_org_domain(org, from_domain):
-                enrichment_stats['domains_added'] += 1
-
-            # (b) Append email history to person and org
-            person = find_person_by_email(from_addr)
-            if person and person.get('slug'):
-                append_person_email_history(
-                    person['slug'], email_date, email_subject, direction
-                )
-                enrichment_stats['history_entries'] += 1
-            append_org_email_history(
-                org, email_date, email_subject, from_name or from_addr, direction
-            )
-
-        # For sent emails, check TO recipients
-        for to_addr in email.get('to', []):
-            if isinstance(to_addr, str) and to_addr:
-                all_participants.append((to_addr, ''))
-                if is_sent:
-                    to_person = find_person_by_email(to_addr)
-                    if to_person and to_person.get('slug'):
-                        append_person_email_history(
-                            to_person['slug'], email_date, email_subject, direction
-                        )
-                        enrichment_stats['history_entries'] += 1
-                    append_org_email_history(
-                        org, email_date, email_subject, to_addr, direction
-                    )
-
-    # (c) Discover and enrich contact emails from all participants
-    enrichment = discover_and_enrich_contact_emails(org, all_participants)
-    enrichment_stats['emails_enriched'] += enrichment['emails_enriched']
-    if enrichment['domain_added']:
-        enrichment_stats['domains_added'] += 1
-
-    # Build enrichment message
-    enrichment_parts = []
-    if enrichment_stats['domains_added']:
-        enrichment_parts.append(f"{enrichment_stats['domains_added']} domain(s) added")
-    if enrichment_stats['emails_enriched']:
-        enrichment_parts.append(f"{enrichment_stats['emails_enriched']} contact email(s) enriched")
-    if enrichment_stats['history_entries']:
-        enrichment_parts.append(f"{enrichment_stats['history_entries']} history entries added")
-    enrichment_msg = (' | Enriched: ' + ', '.join(enrichment_parts)) if enrichment_parts else ''
-
-    return jsonify({
-        'added': added,
-        'total': len(raw_emails),
-        'enrichment': enrichment_stats,
-        'message': (
-            f'Scan complete — {added} new email{"s" if added != 1 else ""} added'
-            + (f' ({already_logged} already logged)' if already_logged else '')
-            + f'.{enrichment_msg}'
-        ),
-    })
-
-
 # ---------------------------------------------------------------------------
 # Prospect Notes
 # ---------------------------------------------------------------------------
@@ -1089,6 +883,15 @@ def api_prospects():
     if not include_closed:
         excluded = {'8. Closed', '0. Not Pursuing', '0. Declined'}
         prospects = [p for p in prospects if p.get('Stage', '') not in excluded]
+
+    # Load organizations for Type enrichment
+    orgs = {o['name']: o for o in load_organizations()}
+
+    # Apply type filter if present
+    type_filter = request.args.get('type')
+    if type_filter:
+        prospects = [p for p in prospects if orgs.get(p.get('org', ''), {}).get('Type') == type_filter]
+
     # Get tasks from PostgreSQL for each prospect
     for p in prospects:
         org_name = p.get('org', '')
@@ -1097,6 +900,12 @@ def api_prospects():
         p['_tasks'] = []  # Legacy field, empty
         p['prospect_tasks'] = prospect_tasks
         p['open_task_count'] = len(prospect_tasks)
+        # Inject Type and Primary Contact from org
+        org_data = orgs.get(org_name, {})
+        p['Type'] = org_data.get('Type', '')
+        primary = get_primary_contact(org_name)
+        p['Primary Contact'] = primary['name'] if primary else ''
+
     all_briefs = load_all_briefs()
     prospect_briefs = all_briefs.get('prospect', {})
     for p in prospects:
@@ -1793,7 +1602,8 @@ def api_export_pipeline():
         cell_assigned.font = data_font
         cell_assigned.alignment = Alignment(horizontal='left', vertical='top')
 
-        primary_contact = p.get('Primary Contact', '')
+        primary = get_primary_contact(org_name)
+        primary_contact = primary['name'] if primary else p.get('Primary Contact', '')
         cell_contact = ws.cell(row=row_idx, column=9, value=primary_contact)
         cell_contact.font = data_font
         cell_contact.alignment = Alignment(horizontal='left', vertical='top')

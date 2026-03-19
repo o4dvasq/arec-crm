@@ -382,20 +382,7 @@
         }
         .show-more-btn:hover { color: var(--accent-hover); }
 
-        /* DEEP SCAN BUTTON + STATUS */
-        .btn-scan {
-            background: none;
-            border: 1px solid #475569;
-            color: var(--muted);
-            font-size: 11px;
-            padding: 3px 10px;
-            border-radius: 4px;
-            cursor: pointer;
-            transition: var(--transition);
-            white-space: nowrap;
-        }
-        .btn-scan:hover:not(:disabled) { border-color: #22c55e; color: #22c55e; }
-        .btn-scan:disabled { opacity: 0.5; cursor: default; }
+        /* SCAN STATUS */
         .scan-status {
             font-size: 11px;
             padding: 3px 8px;
@@ -909,13 +896,7 @@
                     <div class="section-title">Email History</div>
                     <span class="section-count" id="emails-count"></span>
                 </div>
-                <div style="display:flex;align-items:center;gap:6px;" onclick="event.stopPropagation()">
-                    <button class="btn-scan" id="deep-scan-btn" onclick="runDeepEmailScan()">
-                        ⟳ Deep Scan (90d)
-                    </button>
-                    <span class="scan-status hidden" id="scan-status"></span>
-                    <span class="collapsible-toggle" id="emails-toggle" onclick="toggleSection('emails')" style="cursor:pointer">▼</span>
-                </div>
+                <span class="collapsible-toggle" id="emails-toggle" onclick="toggleSection('emails')" style="cursor:pointer">▼</span>
             </div>
             <div class="collapsible-body collapsed" id="emails-body"></div>
         </div>
@@ -1612,47 +1593,6 @@
             status.className = 'scan-status success';
             status.textContent = data.message || `+${data.added} emails found. Brief refreshed.`;
             setTimeout(() => status.classList.add('hidden'), 6000);
-        } catch (err) {
-            status.className = 'scan-status error';
-            status.textContent = err.message || 'Scan failed';
-        } finally {
-            btn.disabled = false;
-        }
-    }
-
-    // ============================================
-    // DEEP EMAIL SCAN
-    // ============================================
-    async function runDeepEmailScan() {
-        const btn = document.getElementById('deep-scan-btn');
-        const status = document.getElementById('scan-status');
-
-        btn.disabled = true;
-        status.className = 'scan-status running';
-        status.textContent = 'Scanning…';
-        status.classList.remove('hidden');
-
-        try {
-            const resp = await fetch(
-                `/crm/api/prospect/${enc(OFFERING)}/${enc(ORG)}/email-scan`,
-                { method: 'POST' }
-            );
-            const data = await resp.json();
-            if (!resp.ok) throw new Error(data.error || 'Scan failed');
-
-            status.className = 'scan-status success';
-            status.textContent = data.message || `+${data.added} emails found`;
-
-            // Refresh email list if new emails were found
-            if (data.added > 0) {
-                const briefResp = await fetch(
-                    `/crm/api/prospect/${enc(OFFERING)}/${enc(ORG)}/brief`
-                );
-                if (briefResp.ok) {
-                    const briefData = await briefResp.json();
-                    renderEmails(briefData.email_history);
-                }
-            }
         } catch (err) {
             status.className = 'scan-status error';
             status.textContent = err.message || 'Scan failed';

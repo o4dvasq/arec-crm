@@ -6,7 +6,7 @@
 ---
 
 ## Last Updated
-2026-03-19 — SPEC_consolidate-alias-systems implemented
+2026-03-19 — SPEC_remove-email-deep-scan-button implemented
 
 ---
 
@@ -28,7 +28,8 @@
   - Delete with inline "Are you sure? Yes · No" confirmation (no browser dialog)
   - Meeting Time field removed from modal entirely
   - Column header and label renamed "Organization" → "Prospect"
-- **Organization Aliases**: Single source of truth is the `Aliases` field on each org in `organizations.md`. Used by search, briefs, merge, and Tony sync.
+  - **Three-tier deduplication**: graph_event_id exact match + org+date±1 day fuzzy match (any status) + read-time dedup safety net
+- **Organization Aliases**: Single source of truth is the `Aliases` field on each org in `organizations.md`. Used by search, briefs, merge, and Tony sync. `crm/org_aliases.json` retired and deleted.
 - **Organization Merge**: Full merge workflow on org edit page — select target, preview data migration, execute atomic merge, redirect to target org with success flash
 - **Prospect Detail Page**: Clean UI with notes log, task editing, email scanning, and markdown-free display
 - **Tony Excel Sync**: Daily Egnyte polling for Tony's Excel tracker, fuzzy org matching with alias support (`crm_reader.get_org_aliases_map()`), auto-syncs high-confidence changes to CRM with prospect notes integration
@@ -37,29 +38,30 @@
 - **Task Grouping APIs**: `/crm/api/tasks/by-prospect` and `/crm/api/tasks/by-owner` fully functional with filtering, sorting, and enrichment
 - **Drain Inbox Hardening**: `drain_inbox.py` runs safely as unattended launchd process — dedup via `drain_seen_ids.json`, last-run metadata in `drain_last_run.json`, `Mail.ReadWrite.Shared` scope added to fix 403 on mark-as-read
 - **Primary Contact on Org**: Primary contact is now an org-level attribute. `contacts/{slug}.md` files carry `Primary: true`. Star toggle on org detail page. Prospect detail + pipeline resolve primary through org, not the prospect record.
+- **Pipeline Type Column**: Type column now correctly displays org Type for each prospect. Type filter works on pipeline view.
+- **Email Scan**: Header "Scan Email" button on prospect detail uses the `/crm/api/prospect/.../email-scan` route (via `runScanEmail()`). The per-prospect "Deep Scan (90d)" button has been removed — email scanning is now handled exclusively by the `/email-scan` Cowork skill.
 
 ---
 
 ## What Was Just Completed (March 19, 2026)
 
-### Consolidate Alias Systems (SPEC_consolidate-alias-systems.md)
+### Deep Scan Button Removed (SPEC_remove-email-deep-scan-button.md)
 
 **What Was Done:**
-- ✅ Migrated all 8 entries from `crm/org_aliases.json` into `Aliases` fields on corresponding orgs in `organizations.md`
-  - Future Fund → `FutureFund`
-  - J.P. Morgan Asset Management → `JPMorgan Asset Mgmt` (already had JPAM, JP Morgan, JPMorgan AM)
-  - Mass Mutual Life Insurance Co. → `Mass Mutual, MassMutual`
-  - Merseyside Pension Fund → `Merseyside`
-  - Teachers Retirement System of Texas (Texas Teachers) → `Teachers Retirement System (TRS), TRS` (added to existing TRS aliases)
-  - UTIMCO - Hedge Fund → `UTIMCO`
-  - UTIMCO - Real Estate → `UTIMCO (Matt Saverin)`
-  - NPS (Korea SWF) — already canonical name, no alias needed
-- ✅ `tony_sync.py`: removed `ALIASES_PATH` constant and `load_aliases()` function
-- ✅ `tony_sync.py`: now imports and calls `crm_reader.get_org_aliases_map()` for alias resolution
-- ✅ Diff report text updated to reference CRM org edit page instead of `org_aliases.json`
-- ✅ `crm/org_aliases.json` deleted
+- ✅ Removed `.btn-scan`, `.btn-scan:hover`, `.btn-scan:disabled` CSS from `crm_prospect_detail.html` (`.scan-status` kept — still used by header Scan Email button)
+- ✅ Removed Deep Scan button HTML and its wrapper `<div>` from the Email History section header; kept collapsible toggle
+- ✅ Removed `runDeepEmailScan()` JS function (~40 lines)
+- ✅ Removed `api_prospect_email_scan()` Flask route and handler (~200 lines) from `crm_blueprint.py`
+- ✅ Removed `search_emails_deep()` from `ms_graph.py` (was only called by the deleted route)
+- ✅ Spec moved to `docs/specs/implemented/`
 
-**Test Results:** 89/89 passing
+**Test Results:** 67/67 passing
+
+**Impact:**
+- Route `/crm/api/prospect/{offering}/{org}/email-scan` now returns 404
+- Email History section still renders correctly — reads from brief endpoint, unaffected
+- No Haiku API credits wasted on per-email summarization
+- Email scanning now exclusively via the `/email-scan` Cowork skill (6-pass, all mailboxes)
 
 ---
 
@@ -79,13 +81,11 @@ After adding `Mail.ReadWrite.Shared` scope, the cached MSAL token needs to be re
 - **Not scheduled yet** — Needs launchd job for 6 AM daily run
 - **Manual review workflow not implemented** — Desktop/CoWork workflow for resolving low-confidence matches from `crm/tony_sync_pending.json`
 
-### 3. SPEC_primary-contact-on-org — Only remaining spec
-Only spec in `docs/specs/` (non-README) is `SPEC_primary-contact-on-org.md`.
-
 ---
 
 ## Known Issues
 
+- **No test coverage for meetings subsystem** — `test_meetings.py` mentioned in recent spec does not exist; meeting dedup tested manually
 - **No test coverage for org merge** — Feature manually tested but no automated tests yet
 - **MetLife contact ambiguity**: "Chris Aiken" and "Christopher Aiken" both exist; migration chose Chris Aiken (Stage 5). Worth auditing manually.
 - **33 orgs without primary contact** — Migration skipped contacts where the prospect's Primary Contact string didn't match a contact file (e.g., "TBD", informal descriptions, email-appended names). These orgs show "—" for primary contact.
