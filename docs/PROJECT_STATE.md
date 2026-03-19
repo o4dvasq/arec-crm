@@ -6,7 +6,7 @@
 ---
 
 ## Last Updated
-2026-03-19 — Planning session: SPEC_primary-contact-on-org.md reviewed, no code written yet
+2026-03-19 — SPEC_drain-inbox-hardening implemented
 
 ---
 
@@ -35,30 +35,21 @@
 - **Pipeline Polish**: At a Glance text with 2-line wrap, Tasks column 350px width, assignee initials in parentheses, markdown stripping throughout
 - **Person Name Linking**: App-wide clickable person names linking to `/crm/people/<slug>` using client-side `linkifyPersonNames()` function
 - **Task Grouping APIs**: `/crm/api/tasks/by-prospect` and `/crm/api/tasks/by-owner` fully functional with filtering, sorting, and enrichment
+- **Drain Inbox Hardening**: `drain_inbox.py` runs safely as unattended launchd process — dedup via `drain_seen_ids.json`, last-run metadata in `drain_last_run.json`, `Mail.ReadWrite.Shared` scope added to fix 403 on mark-as-read
 
 ---
 
-## What Was Just Completed (March 18, 2026)
+## What Was Just Completed (March 19, 2026)
 
-### Meeting Detail Modal + Row Click + Remove Time Field (SPEC_meeting-detail-modal.md)
+### Drain Inbox Hardening (SPEC_drain-inbox-hardening.md)
 
 **What Was Done:**
-- ✅ Renamed "Organization" → "Prospect" on table column header, modal field label, dropdown placeholder
-- ✅ Replaced `openMeetingDetail()` alert stub with full edit modal behavior
-- ✅ Row click opens existing `add-meeting-modal` in edit mode, pre-populated from `allMeetings` array (no extra fetch)
-- ✅ Prospect cell with org+offering renders `<a>` link only — navigates to prospect detail page, `stopPropagation()` intact
-- ✅ Prospect cell with no org/offering renders plain `—` so row click fires normally → opens edit modal
-- ✅ Edit mode: "Edit Meeting" header, "Save Changes" button, PATCH to `/crm/api/meetings/<id>`
-- ✅ Delete link ("Delete Meeting", red) visible only in edit mode, bottom-left of modal footer
-- ✅ Inline delete confirmation: "Are you sure? Yes · No" — no `confirm()` dialog
-- ✅ "Yes" → DELETE to `/crm/api/meetings/<id>`, closes modal, refreshes table
-- ✅ "No" → restores "Delete Meeting" link
-- ✅ `closeAddMeetingModal()` resets all edit state: clears `currentEditMeetingId`, resets header/button/delete section
-- ✅ Removed `form-time` `<input type="time">` and its label entirely from HTML
-- ✅ Form submit branches on `currentEditMeetingId`: PATCH (edit) vs POST (add)
-- ✅ Add mode still works correctly (no regressions)
-
-**Backend:** No changes needed — PATCH and DELETE routes already existed in `crm_blueprint.py`.
+- ✅ `crm/drain_last_run.json` written after every run (success, failure, and quiet inbox). Schema: `{last_run, messages_processed, messages_skipped_dedup, exit_code, error}`.
+- ✅ `crm/drain_seen_ids.json` dedup: messages already written to `inbox.md` are skipped on subsequent runs even if still unread in the mailbox (mark-as-read failure protection). Entries older than 30 days pruned automatically.
+- ✅ Seen IDs written to `drain_seen_ids.json` **before** `mark_as_read` call — ensures dedup holds even if mark-as-read fails silently.
+- ✅ `Mail.ReadWrite.Shared` added to `DELEGATED_SCOPES` in `graph_auth.py` — fixes 403 on shared mailbox write operations. (Note: re-auth required after this change to pick up new scope.)
+- ✅ Both `crm/drain_last_run.json` and `crm/drain_seen_ids.json` added to `.gitignore` (machine-local state).
+- ✅ `ms_graph.py` confirmed already correct — `mark_as_read` and `move_message` already use `users/{mailbox}` URLs, not `/me/`.
 
 **Test Results:** 89/89 passing
 
@@ -86,16 +77,18 @@ Spec is written and reviewed. Implementation plan confirmed. No code written yet
 
 **Path discrepancy to fix:** Working tree has `PEOPLE_ROOT = memory/people/` but HEAD commit (and correct location) is `contacts/`. Fix as first step of implementation.
 
-### 2. Tony Sync Setup Required
+### 2. Re-auth required for drain inbox
+After adding `Mail.ReadWrite.Shared` scope, the cached MSAL token needs to be refreshed. Delete `~/.arec_briefing_token_cache.json` and re-run `drain_inbox.py` to trigger a new device code flow that includes the new scope.
+
+### 3. Tony Sync Setup Required
 - **EGNYTE_API_TOKEN needed** — Must be obtained from Egnyte developer console and added to `app/.env`
-- **Not scheduled yet** — Needs launchd job for 6 AM daily run (called via `python app/main.py`)
+- **Not scheduled yet** — Needs launchd job for 6 AM daily run
 - **Manual review workflow not implemented** — Desktop/CoWork workflow for resolving low-confidence matches from `crm/tony_sync_pending.json`
 
 ---
 
 ## Known Issues
 
-- **test_drain_inbox.py import error** — Test file needs fixing or removal
 - **No test coverage for org merge** — Feature manually tested but no automated tests yet
 - **`PEOPLE_ROOT` working tree revert** — Current working tree has `memory/people/` but should be `contacts/`; will be fixed as part of SPEC_primary-contact-on-org implementation
 

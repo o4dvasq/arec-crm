@@ -427,3 +427,18 @@
 **Impact:** `renderTable()` in `crm_meetings.html`.
 
 ---
+
+## 2026-03-19 — Drain Inbox Hardening: Dedup Before Mark-as-Read
+
+**Decision:** `drain_seen_ids.json` is written (message ID recorded) **before** the `mark_as_read` call, not after. The seen-IDs file is also saved once per run (after the full message loop), not per-message.
+
+**Rationale:** The failure mode we're protecting against is: message written to `inbox.md`, but mark-as-read fails (403 or network error), so the message stays unread in the mailbox. On next run, Graph returns it again as unread. Without dedup, it gets appended to `inbox.md` a second time. By recording the ID before calling mark-as-read, we ensure the dedup check catches the message even if the mailbox write fails. A message that was written-but-not-marked is better than a message written twice.
+
+**Rationale for Mail.ReadWrite.Shared scope:** `mark_as_read` and `move_message` in `ms_graph.py` already use the correct `users/{mailbox}/messages/{id}` URL. The 403 was entirely a permission scope issue — the delegated token only had `Mail.Read.Shared`, which covers reads but not writes. Adding `Mail.ReadWrite.Shared` to `DELEGATED_SCOPES` in `graph_auth.py` fixes this. Re-auth (delete `~/.arec_briefing_token_cache.json`) required to pick up new scope.
+
+**Impact:**
+- `app/drain_inbox.py` — Added `_load_seen_ids()`, `_save_seen_ids()`, `_prune_seen_ids()`, `_write_last_run()`; updated `drain_inbox()` with dedup logic and last-run write on all exit paths
+- `app/auth/graph_auth.py` — Added `Mail.ReadWrite.Shared` to `DELEGATED_SCOPES`
+- `.gitignore` — Added `crm/drain_last_run.json` and `crm/drain_seen_ids.json`
+
+---

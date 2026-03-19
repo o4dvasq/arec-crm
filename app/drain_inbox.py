@@ -10,9 +10,11 @@ Usage:
     python3 drain_inbox.py
 """
 
+import json
 import os
 import re
 import sys
+from datetime import datetime, timedelta, timezone
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
@@ -29,6 +31,8 @@ from sources.ms_graph import (
 
 _PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 INBOX_PATH = os.path.join(_PROJECT_ROOT, "inbox.md")
+LAST_RUN_PATH = os.path.join(_PROJECT_ROOT, "crm", "drain_last_run.json")
+SEEN_IDS_PATH = os.path.join(_PROJECT_ROOT, "crm", "drain_seen_ids.json")
 
 # Forward delimiter patterns, checked in order
 FORWARD_PATTERNS = [
@@ -42,6 +46,57 @@ FORWARD_PATTERNS = [
 # Header field prefixes to consume when extracting the original email header
 HEADER_PREFIXES = ("from:", "to:", "cc:", "bcc:", "date:", "sent:", "subject:", "reply-to:")
 
+
+# ---------------------------------------------------------------------------
+# Dedup helpers
+# ---------------------------------------------------------------------------
+
+def _load_seen_ids() -> dict:
+    """Load crm/drain_seen_ids.json, return empty structure if missing."""
+    if os.path.exists(SEEN_IDS_PATH):
+        try:
+            with open(SEEN_IDS_PATH, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except (json.JSONDecodeError, OSError):
+            pass
+    return {"seen": {}}
+
+
+def _save_seen_ids(data: dict) -> None:
+    with open(SEEN_IDS_PATH, "w", encoding="utf-8") as f:
+        json.dump(data, f, indent=2)
+
+
+def _prune_seen_ids(data: dict, days: int = 30) -> dict:
+    """Remove entries older than `days` days."""
+    cutoff = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
+    data["seen"] = {
+        msg_id: ts
+        for msg_id, ts in data["seen"].items()
+        if ts >= cutoff
+    }
+    return data
+
+
+def _write_last_run(processed: int, skipped: int, exit_code: int, error: str = None) -> None:
+    """Write crm/drain_last_run.json with run metadata."""
+    meta = {
+        "last_run": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "messages_processed": processed,
+        "messages_skipped_dedup": skipped,
+        "exit_code": exit_code,
+        "error": error,
+    }
+    try:
+        with open(LAST_RUN_PATH, "w", encoding="utf-8") as f:
+            json.dump(meta, f, indent=2)
+    except OSError as e:
+        print(f"[drain_inbox] WARNING: could not write drain_last_run.json: {e}")
+
+
+# ---------------------------------------------------------------------------
+# Email parsing
+# ---------------------------------------------------------------------------
 
 def _strip_html(text: str) -> str:
     """Remove HTML tags and decode common entities."""
@@ -203,30 +258,70 @@ def write_to_inbox_md(entry: dict) -> None:
         f.write("\n".join(lines) + "\n")
 
 
+# ---------------------------------------------------------------------------
+# Main
+# ---------------------------------------------------------------------------
+
 def drain_inbox() -> int:
     """
     Main entry point. Returns count of processed messages.
+    Writes crm/drain_last_run.json on every exit (success or failure).
+    Skips messages already recorded in crm/drain_seen_ids.json to prevent
+    duplicate inbox.md entries when mark-as-read fails.
     """
-    token = get_access_token()
+    seen_data = _load_seen_ids()
+    seen_data = _prune_seen_ids(seen_data)
+
+    try:
+        token = get_access_token()
+    except Exception as e:
+        print(f"[drain_inbox] Auth failed: {e}")
+        _write_last_run(processed=0, skipped=0, exit_code=1, error=str(e))
+        return 0
+
     ai_inbox_email = os.environ.get("AI_INBOX_EMAIL", "crm@avilacapllc.com")
 
     print(f"[drain_inbox] Draining shared mailbox {ai_inbox_email}")
-    messages = get_shared_mailbox_messages(token, mailbox=ai_inbox_email)
+
+    try:
+        messages = get_shared_mailbox_messages(token, mailbox=ai_inbox_email)
+    except Exception as e:
+        print(f"[drain_inbox] Failed to fetch messages: {e}")
+        _write_last_run(processed=0, skipped=0, exit_code=1, error=str(e))
+        return 0
 
     if not messages:
         print("[drain_inbox] No unread messages found")
+        _write_last_run(processed=0, skipped=0, exit_code=0)
+        _save_seen_ids(seen_data)
         return 0
 
     processed = 0
+    skipped = 0
+    now_iso = datetime.now(timezone.utc).isoformat()
+
     for msg in messages:
+        msg_id = msg.get("id", "")
+
+        # Dedup: skip if already written to inbox.md in a prior run
+        if msg_id and msg_id in seen_data["seen"]:
+            skipped += 1
+            print(f"  ⟳ skipping (already processed): {msg.get('subject', '(no subject)')}")
+            continue
+
         entry = parse_inbox_message(msg)
         write_to_inbox_md(entry)
 
-        mark_as_read(token, mailbox=ai_inbox_email, message_id=msg["id"])
+        # Record in seen IDs before attempting mark-as-read
+        # (so even if mark-as-read fails, we won't duplicate on next run)
+        if msg_id:
+            seen_data["seen"][msg_id] = now_iso
+
+        mark_as_read(token, mailbox=ai_inbox_email, message_id=msg_id)
         move_message(
             token,
             mailbox=ai_inbox_email,
-            message_id=msg["id"],
+            message_id=msg_id,
             destination_folder="Processed",
         )
 
@@ -235,7 +330,10 @@ def drain_inbox() -> int:
         fwd = " [forward]" if entry["is_forward"] else ""
         print(f"  ✓ {subject}{fwd}")
 
-    print(f"[drain_inbox] Processed {processed} message(s) → inbox.md")
+    _save_seen_ids(seen_data)
+    _write_last_run(processed=processed, skipped=skipped, exit_code=0)
+
+    print(f"[drain_inbox] Processed {processed} message(s), skipped {skipped} duplicate(s) → inbox.md")
     return processed
 
 
