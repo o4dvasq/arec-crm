@@ -2113,6 +2113,28 @@ def load_meetings(org=None, offering=None, status=None, future_only=False, past_
     if changed:
         _save_meetings_raw(meetings)
 
+    # Deduplicate: keep first meeting per org+date (first = has more data or earlier created)
+    seen = {}
+    deduped = []
+    for m in meetings:
+        key = (m.get('org', '').lower().strip(), m.get('meeting_date', ''))
+        if key[0] and key in seen:
+            # Merge useful fields from duplicate into the keeper
+            keeper = seen[key]
+            if m.get('graph_event_id') and not keeper.get('graph_event_id'):
+                keeper['graph_event_id'] = m['graph_event_id']
+            if m.get('notes_raw') and not keeper.get('notes_raw'):
+                keeper['notes_raw'] = m['notes_raw']
+            if m.get('notes_summary') and not keeper.get('notes_summary'):
+                keeper['notes_summary'] = m['notes_summary']
+            continue
+        seen[key] = m
+        deduped.append(m)
+
+    if len(deduped) < len(meetings):
+        _save_meetings_raw(deduped)
+        meetings = deduped
+
     # Apply filters
     results = meetings
     
@@ -2167,7 +2189,7 @@ def save_meeting(org: str, offering: str, meeting_date: str, title: str = '',
     
     Dedup logic:
         1. Exact graph_event_id match (if provided) → return existing
-        2. Fuzzy match: same org AND meeting_date ±1 day AND status='scheduled' → return existing
+        2. Fuzzy match: same org AND meeting_date ±1 day (any status) → return existing
     
     Args:
         org: Organization name
@@ -2199,15 +2221,13 @@ def save_meeting(org: str, offering: str, meeting_date: str, title: str = '',
             if meeting.get('graph_event_id') == graph_event_id:
                 return meeting
     
-    # Dedup tier 2: fuzzy org+date±1 day match for scheduled meetings
+    # Dedup tier 2: fuzzy org+date±1 day match (any status)
     try:
         target_date = datetime.strptime(meeting_date, '%Y-%m-%d').date()
-        org_lower = org.lower()
+        org_lower = org.lower().strip()
 
         for meeting in meetings:
-            if meeting.get('status') != 'scheduled':
-                continue
-            if meeting.get('org', '').lower() != org_lower:
+            if meeting.get('org', '').lower().strip() != org_lower:
                 continue
 
             meeting_date_str = meeting.get('meeting_date', '')
@@ -2218,16 +2238,19 @@ def save_meeting(org: str, offering: str, meeting_date: str, title: str = '',
                 existing_date = datetime.strptime(meeting_date_str, '%Y-%m-%d').date()
                 delta = abs((existing_date - target_date).days)
                 if delta <= 1:
-                    # Found fuzzy match — update with new fields if provided
-                    if notes_raw:
+                    # Found fuzzy match — merge new data into existing
+                    if notes_raw and not meeting.get('notes_raw'):
                         meeting['notes_raw'] = notes_raw
+                    if meeting.get('status') == 'scheduled' and notes_raw:
                         meeting['status'] = 'completed'
-                    if title:
+                    if title and not meeting.get('title'):
                         meeting['title'] = title
-                    if attendees:
+                    if attendees and not meeting.get('attendees'):
                         meeting['attendees'] = attendees
-                    if transcript_url:
+                    if transcript_url and not meeting.get('transcript_url'):
                         meeting['transcript_url'] = transcript_url
+                    if graph_event_id and not meeting.get('graph_event_id'):
+                        meeting['graph_event_id'] = graph_event_id
                     meeting['updated_at'] = datetime.utcnow().isoformat() + 'Z'
                     _save_meetings_raw(meetings)
                     return meeting
