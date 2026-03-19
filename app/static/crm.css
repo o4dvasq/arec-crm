@@ -246,46 +246,72 @@ body {
    Color-Coded Card Ownership (SPEC_prospect-org-page-redesign)
    ═══════════════════════════════════════════════════════════ */
 
-/* Color-coded card borders */
-.card-prospect {
-    border-left: 4px solid #2563eb;
-}
-
-.card-org {
+/* Native section — data belongs here, editable */
+.card-native {
     border-left: 4px solid #22c55e;
 }
 
-/* Cross-reference badges */
-.card-badge {
+/* Cross-reference section — data lives elsewhere, read-only */
+.card-crossref {
+    border-right: 4px solid #2563eb;
+    border-left: none;
+}
+
+/* Cross-reference navigation badge */
+.crossref-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
     font-size: 11px;
     font-weight: 500;
-    color: #94a3b8;
+    color: #60a5fa;
     text-decoration: none;
     transition: color 0.15s;
 }
 
-.card-badge:hover {
-    color: #60a5fa;
+.crossref-badge:hover {
+    color: #93bbfc;
 }
 
-.card-badge-org::before {
-    content: '';
-    display: inline-block;
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    background: #22c55e;
-    margin-right: 4px;
-}
-
-.card-badge-prospect::before {
+.crossref-badge::before {
     content: '';
     display: inline-block;
     width: 8px;
     height: 8px;
     border-radius: 50%;
     background: #2563eb;
-    margin-right: 4px;
+    flex-shrink: 0;
+}
+
+/* Standardized Add Note button styling */
+.btn-add-note {
+    background: #2563eb;
+    border: none;
+    border-radius: 4px;
+    color: white;
+    font-size: 13px;
+    font-weight: 500;
+    padding: 6px 14px;
+    cursor: pointer;
+    transition: background 0.15s ease;
+}
+
+.btn-add-note:hover {
+    background: #1d4ed8;
+}
+
+.btn-add-note:disabled {
+    opacity: 0.5;
+    cursor: default;
+}
+
+/* Legacy classes for backward compatibility */
+.card-prospect {
+    border-left: 4px solid #2563eb;
+}
+
+.card-org {
+    border-left: 4px solid #22c55e;
 }
 
 /* Card header with badge */

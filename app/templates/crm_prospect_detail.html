@@ -735,16 +735,10 @@
                 <div class="page-title">{{ org }}</div>
                 <div class="page-subtitle">{{ offering }}</div>
             </div>
-            <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
-                <span class="scan-status hidden" id="scan-email-status"></span>
-                <button class="btn btn-secondary" id="scan-email-btn" onclick="runScanEmail()">Scan Email</button>
-                <a href="/crm/org/{{ org }}/edit" class="btn btn-secondary">Edit Org</a>
-                <a href="/crm/prospect/{{ offering }}/{{ org }}" class="btn btn-primary">Edit Prospect</a>
-            </div>
         </div>
 
-        <!-- Prospect Card (blue left-border) -->
-        <div class="card card-prospect">
+        <!-- Prospect Card (GREEN left-border — native) -->
+        <div class="card card-native">
             <div class="prospect-grid">
                 <!-- Stage — always present -->
                 <div class="field-editable" data-field="stage" data-type="select" data-options="{{ config.stages | join('||') }}">
@@ -803,11 +797,11 @@
             </div>
         </div>
 
-        <!-- Org Info Card (green left-border, read-only) -->
-        <div class="card card-org read-only-card">
+        <!-- Org Info Card (BLUE right-border — cross-reference, read-only) -->
+        <div class="card card-crossref read-only-card">
             <div class="card-header-with-badge">
                 <div class="section-title" style="margin-bottom:0;">Org Info</div>
-                <a href="/crm/org/{{ org }}/edit" class="card-badge card-badge-org">From Org →</a>
+                <a href="/crm/org/{{ org }}/edit" class="crossref-badge">From Org →</a>
             </div>
             <div class="prospect-grid" style="margin-top:1rem;">
                 <div>
@@ -834,8 +828,8 @@
             {% endif %}
         </div>
 
-        <!-- Prospect Brief Card (blue left-border) -->
-        <div class="card card-prospect" id="prospect-brief-card">
+        <!-- Prospect Brief Card (GREEN left-border — native) -->
+        <div class="card card-native" id="prospect-brief-card">
             <div id="prospect-brief">
                 <div class="brief-header">
                     <div class="section-title">Prospect Brief</div>
@@ -847,12 +841,12 @@
             </div>
         </div>
 
-        <!-- Org Brief Card (green left-border, read-only) -->
-        <div class="card card-org read-only-card" id="org-brief-card">
+        <!-- Org Brief Card (BLUE right-border — cross-reference, read-only) -->
+        <div class="card card-crossref read-only-card" id="org-brief-card">
             <div id="org-brief">
                 <div class="card-header-with-badge">
                     <div class="section-title" style="margin-bottom:0;">Org Brief</div>
-                    <a href="/crm/org/{{ org }}/edit" class="card-badge card-badge-org">From Org →</a>
+                    <a href="/crm/org/{{ org }}/edit" class="crossref-badge">From Org →</a>
                 </div>
                 <div class="brief-loading" style="margin-top:1rem;">
                     <div class="loading-pulse"></div>
@@ -884,12 +878,12 @@
             <div class="collapsible-body" id="interactions-body"></div>
         </div>
 
-        <!-- Meeting Summaries (green left-border, org-owned) -->
-        <div class="card card-org hidden" id="meetings-card">
+        <!-- Meeting Summaries (BLUE right-border — cross-reference from org) -->
+        <div class="card card-crossref hidden" id="meetings-card">
             <div class="collapsible-header" onclick="toggleSection('meetings')">
                 <div style="display:flex;align-items:center;gap:8px;">
                     <div class="section-title">Meeting Summaries</div>
-                    <a href="/crm/org/{{ org }}/edit" class="card-badge card-badge-org" style="margin-left:auto;margin-right:8px;">From Org →</a>
+                    <a href="/crm/org/{{ org }}/edit" class="crossref-badge" style="margin-left:auto;margin-right:8px;">From Org →</a>
                     <span class="section-count" id="meetings-count"></span>
                 </div>
                 <span class="collapsible-toggle" id="meetings-toggle">▲</span>
@@ -897,8 +891,8 @@
             <div class="collapsible-body" id="meetings-body"></div>
         </div>
 
-        <!-- Notes Log (blue left-border, prospect-owned) -->
-        <div class="card card-prospect" id="notes-card">
+        <!-- Notes Log (GREEN left-border — native, prospect-owned) -->
+        <div class="card card-native" id="notes-card">
             <div class="section-header">
                 <div class="section-title">Notes Log</div>
                 <span class="section-count" id="notes-count"></span>
@@ -914,18 +908,18 @@
                               rows="2"></textarea>
                     <div style="display:flex;gap:10px;align-items:center;align-self:flex-end">
                         <span class="note-save-status hidden" id="note-status"></span>
-                        <button class="btn btn-secondary" id="btn-add-note" onclick="submitNote()">Add Note</button>
+                        <button class="btn-add-note" id="btn-add-note" onclick="submitNote()">Add Note</button>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Email History (green left-border, org-owned, collapsible, starts collapsed) -->
-        <div class="card card-org hidden" id="emails-card">
+        <!-- Email History (BLUE right-border — cross-reference from org, collapsible, starts collapsed) -->
+        <div class="card card-crossref hidden" id="emails-card">
             <div class="collapsible-header" onclick="toggleSection('emails')">
                 <div style="display:flex;align-items:center;gap:8px;">
                     <div class="section-title">Email History</div>
-                    <a href="/crm/org/{{ org }}/edit" class="card-badge card-badge-org" style="margin-left:auto;margin-right:8px;">From Org →</a>
+                    <a href="/crm/org/{{ org }}/edit" class="crossref-badge" style="margin-left:auto;margin-right:8px;">From Org →</a>
                     <span class="section-count" id="emails-count"></span>
                 </div>
                 <span class="collapsible-toggle" id="emails-toggle" onclick="toggleSection('emails')" style="cursor:pointer">▼</span>
@@ -1173,7 +1167,7 @@
         document.getElementById('org-brief').innerHTML = `
             <div class="card-header-with-badge">
                 <div class="section-title" style="margin-bottom:0;">Org Brief</div>
-                <a href="/crm/org/${enc(ORG)}/edit" class="card-badge card-badge-org">From Org →</a>
+                <a href="/crm/org/${enc(ORG)}/edit" class="crossref-badge">From Org →</a>
             </div>
             <div class="brief-narrative" style="margin-top:1rem;">${narrativeToHtml(narrative)}</div>
             ${tsHtml}
@@ -1184,7 +1178,7 @@
         document.getElementById('org-brief').innerHTML = `
             <div class="card-header-with-badge">
                 <div class="section-title" style="margin-bottom:0;">Org Brief</div>
-                <a href="/crm/org/${enc(ORG)}/edit" class="card-badge card-badge-org">From Org →</a>
+                <a href="/crm/org/${enc(ORG)}/edit" class="crossref-badge">From Org →</a>
             </div>
             <div style="color:var(--muted);font-size:13px;padding:1rem 0 0.75rem;font-style:italic;">
                 No org brief yet. Generate one from the Org page.

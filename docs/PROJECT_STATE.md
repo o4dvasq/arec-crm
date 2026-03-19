@@ -6,7 +6,7 @@
 ---
 
 ## Last Updated
-2026-03-19 — SPEC_prospect-org-page-redesign implemented
+2026-03-19 — SPEC_prospect-org-page-redesign color-coding implementation
 
 ---
 
@@ -31,21 +31,17 @@
   - **Three-tier deduplication**: graph_event_id exact match + org+date±1 day fuzzy match (any status) + read-time dedup safety net
 - **Organization Aliases**: Single source of truth is the `Aliases` field on each org in `organizations.md`. Used by search, briefs, merge, and Tony sync. `crm/org_aliases.json` retired and deleted.
 - **Organization Merge**: Full merge workflow on org edit page — select target, preview data migration, execute atomic merge, redirect to target org with success flash
-- **Prospect Detail Page**: Color-coded UI (blue=prospect-owned, green=org-owned) with:
-  - Prospect Brief (offering-specific, 2-3 sentences)
-  - Org Brief (read-only, comprehensive org-level intelligence)
-  - Org Info Card (read-only, includes Type, Domain, Contacts)
-  - Cross-reference badges linking back to org page
-  - Notes Log (prospect-owned)
-  - Meeting Summaries (org-owned, badged)
-  - Email History (org-owned, badged)
-- **Org Edit Page**: Color-coded UI (green=org-owned, blue=prospect-owned) with:
-  - Org Card (Type, Domain, Notes, Contacts inline)
-  - Prospect Cards (one per offering, read-only, badged)
-  - Org Brief (refreshable)
-  - Org Notes Log (separate from prospect notes)
-  - Meeting Summaries (org-owned)
-  - Email History (org-owned)
+- **Prospect Detail Page**: Context-dependent color coding with clear ownership boundaries:
+  - **Native sections (GREEN left-border)**: Prospect Card, Prospect Brief, Notes Log
+  - **Cross-reference sections (BLUE right-border)**: Org Info Card, Org Brief, Meeting Summaries, Email History
+  - Edit Prospect, Edit Org, and Scan Email buttons removed from header
+  - All cross-reference cards have blue dot + navigation badge linking to owning page
+- **Org Edit Page**: Context-dependent color coding with clear ownership boundaries:
+  - **Native sections (GREEN left-border)**: Org Card (Type, Domain, Contacts), Org Brief, Org Notes Log, Meeting Summaries, Email History
+  - **Cross-reference sections (BLUE right-border)**: Prospect summary cards (one per offering, read-only)
+  - Notes field removed from org top card — now a standalone Notes Log card
+  - Add Note button styled consistently (blue, not white)
+  - Brief renamed "Org Brief" (was "Relationship Brief")
 - **Tony Excel Sync**: Daily Egnyte polling for Tony's Excel tracker, fuzzy org matching with alias support (`crm_reader.get_org_aliases_map()`), auto-syncs high-confidence changes to CRM with prospect notes integration
 - **Pipeline Polish**: At a Glance text with 2-line wrap, Tasks column 350px width, assignee initials in parentheses, markdown stripping throughout
 - **Person Name Linking**: App-wide clickable person names linking to `/crm/people/<slug>` using client-side `linkifyPersonNames()` function
@@ -59,45 +55,38 @@
 
 ## What Was Just Completed (March 19, 2026)
 
-### Prospect/Org Page Redesign (SPEC_prospect-org-page-redesign.md)
+### Prospect/Org Page Redesign — Color-Coded Ownership Boundaries
+
+**Spec:** `SPEC_prospect-org-page-redesign.md` (moved to `docs/specs/implemented/`)
 
 **What Was Done:**
-- ✅ Created two-tier brief system: Prospect Brief (offering-specific) + Org Brief (org-level)
-- ✅ Added `PROSPECT_BRIEF_SYSTEM_PROMPT` to `relationship_brief.py` (2-3 sentence offering-focused prompt)
-- ✅ Added `load_org_notes()` and `save_org_note()` to `crm_reader.py` (uses `org:{org}` key in `prospect_notes.json`)
-- ✅ Added `/crm/api/prospect/<offering>/<org>/prospect-brief` routes (GET/POST) to `crm_blueprint.py`
-- ✅ Added `/crm/api/org/<name>/notes` routes (GET/POST) to `crm_blueprint.py`
-- ✅ Updated `prospect_detail()` route to pass `org_brief_saved`, `prospect_brief_saved`, `meetings`, `emails` to template
-- ✅ Updated `org_edit()` route to pass `org_notes`, `meetings`, `emails` to template
-- ✅ Created `static/crm.css` with color-coded card classes (`.card-prospect`, `.card-org`, `.card-badge-*`)
-- ✅ Restructured `crm_prospect_detail.html`:
-  - Prospect Card (blue) with Stage, Assigned To, Target, Closing, Primary Contact, Last Touch
-  - Org Info Card (green, read-only) with Type, Domain, Contacts
-  - Prospect Brief Card (blue) with refresh button
-  - Org Brief Card (green, read-only) with "From Org →" badge
-  - Notes Log (blue, prospect-owned)
-  - Meeting Summaries (green, org-owned, badged)
-  - Email History (green, org-owned, badged)
-- ✅ Restructured `crm_org_edit.html`:
-  - Org Card (green) with Type, Domain, Notes, Contacts inline
-  - Prospect Cards (blue, read-only, one per offering) with "View Prospect →" badge
-  - Org Brief Card (green) with refresh button
-  - Meeting Summaries (green, collapsible)
-  - Org Notes Log (green) with add note form
-  - Email History (green, collapsible)
-- ✅ Updated JavaScript in both templates to handle new brief sections and data loading
+- ✅ Updated `app/static/crm.css` with context-dependent color classes:
+  - `.card-native` (green left-border) for native/editable sections
+  - `.card-crossref` (blue right-border) for cross-reference/read-only sections
+  - `.crossref-badge` with blue dot indicator for navigation links
+  - `.btn-add-note` standardized styling (blue button on both pages)
+- ✅ Restructured `app/templates/crm_prospect_detail.html`:
+  - Removed Edit Prospect, Edit Org, and Scan Email buttons from header
+  - Applied `.card-native` to Prospect Card, Prospect Brief Card, Notes Log
+  - Applied `.card-crossref` to Org Info Card, Org Brief Card, Meeting Summaries, Email History
+  - All cross-reference cards show `.crossref-badge` with "From Org →" link
+- ✅ Restructured `app/templates/crm_org_edit.html`:
+  - Removed Notes field from org top card
+  - Applied `.card-native` to Org Card, Org Brief, Org Notes Log, Meeting Summaries, Email History
+  - Applied `.card-crossref` to prospect summary cards
+  - All prospect cards show `.crossref-badge` with "View Prospect →" link
+  - Renamed "Relationship Brief" → "Org Brief"
+  - Standardized Add Note button styling to match prospect page (blue button)
+- ✅ All tests passing (67/67)
 - ✅ Spec moved to `docs/specs/implemented/`
 
-**Test Results:** 67/67 passing
-
 **Impact:**
-- Clear ownership boundaries: blue = prospect-owned, green = org-owned
-- Prospect Brief focuses on current offering status (2-3 sentences)
-- Org Brief provides comprehensive org-level context (read-only on prospect page)
-- Contacts now read-only on prospect page (org-owned)
-- Org page has dedicated Notes Log (separate from prospect notes)
-- Visual cross-references with badges reduce navigation confusion
-- All data flows preserved — nothing lost, just reorganized for clarity
+- **Context-dependent coloring**: Green left-border = "data belongs here", blue right-border = "data lives elsewhere"
+- **Clear visual hierarchy**: Native sections immediately identifiable, cross-references obvious with badges
+- **Cleaner prospect header**: Removed three buttons that were redundant (fields are inline-editable, org editing happens on org page)
+- **Consistent button styling**: Add Note buttons use same blue styling on both pages
+- **Org Notes separation**: Org-level notes now in dedicated standalone card, distinct from prospect notes
+- **No data loss**: All existing functionality preserved, just visually reorganized
 
 ---
 
