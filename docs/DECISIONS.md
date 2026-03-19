@@ -605,3 +605,62 @@
 - Supports dual-model architecture: orgs have org-level primary contact (star toggle), prospects can optionally override with prospect-level primary contact
 
 ---
+
+## 2026-03-19 — Prospect & Org Redesign Fixes: CSS Specificity and Brief Auto-Synthesis
+
+**Decision:** Fixed color sidebar rendering by adding `!important` to border rules in `crm.css`. Fixed unwanted brief auto-synthesis by replacing auto-generation logic with empty state functions that show "Generate" buttons.
+
+**Rationale:** Inline `<style>` blocks in templates had `.card` rules with border shorthands that overrode the colored borders from external CSS. Brief functions on both pages were calling synthesis endpoints on page load when no cached brief existed, causing unnecessary API calls and poor UX. The spec required all briefs to show explicit "Generate" buttons instead of auto-synthesizing.
+
+**Key implementation choices:**
+
+1. **CSS fix via `!important`** — Chose Option 1 from spec (add `!important` to external stylesheet) rather than modifying inline styles in both templates. Simplest fix with least risk.
+
+2. **Empty state functions** — Added `renderOrgBriefEmpty()` to org edit template. Prospect template's `showProspectBriefPlaceholder()` and `showOrgBriefPlaceholder()` were already correct.
+
+3. **Read-only org brief on prospect page** — Verified that `loadOrgBrief()` in prospect template only calls GET endpoint, shows "Generate from Org page" message when no cache exists. No changes needed — already correct.
+
+4. **Backend GET endpoints unchanged** — Verified `api_prospect_brief()` GET path and `api_org_get()` only return cached data from `load_saved_brief()`. No synthesis triggered by reads.
+
+**Rejected alternatives:**
+
+- **Option 2 (modify inline styles)** — Would require editing `.card` rules in both templates. More invasive, harder to maintain.
+- **Server-side brief generation on GET** — Would defeat the purpose of having cached briefs and waste API credits.
+
+**For the next designer:**
+
+- The `!important` flags in `crm.css` are necessary because inline `<style>` blocks in templates define `.card` borders. If you remove the inline blocks, you can remove the `!important` flags.
+- All brief synthesis must be user-initiated. Never trigger POST endpoints from page load or background processes.
+
+**Impact:**
+- `app/static/crm.css` — Added `!important` to `.card-native` and `.card-crossref` border rules (3 lines)
+- `app/templates/crm_org_edit.html` — Replaced auto-synthesis with `renderOrgBriefEmpty()` function (13 lines changed)
+- Color sidebars now render correctly on all cards
+- No brief auto-synthesis on page load — better UX and reduced API costs
+
+---
+
+## 2026-03-19 — Meetings Page Data Migration: meeting_history.md → meetings.json
+
+**Decision:** Created `crm/meetings.json` by migrating 8 meeting entries from the legacy `crm/meeting_history.md` format. Both files now coexist — `meeting_history.md` continues to serve org detail pages, while `meetings.json` serves the standalone `/crm/meetings` page.
+
+**Rationale:** The Meetings page (`/crm/meetings`) was completely blank because it reads from `crm/meetings.json` via `load_meetings()`, which returned an empty list when the file didn't exist. All meeting data was in `crm/meeting_history.md`, the older format parsed by `load_meeting_history(org)` for org detail pages. The two systems were built at different times and never connected.
+
+**Key implementation choices:**
+
+1. **One-time migration script** — Parsed the markdown `## YYYY-MM-DD — Title` sections, extracted topics, attendees, key points, and action items into the `notes_raw` field. Each meeting assigned a UUID, status=completed, source=notion.
+
+2. **Both files retained** — `meeting_history.md` is still read by `load_meeting_history()` on org detail pages. Deleting it would break org-level meeting display. Future work should unify both systems on `meetings.json`.
+
+3. **No org field populated** — The old format doesn't reliably encode which org a meeting belongs to (meetings are listed under date headers, not org headers). The `org` field is left empty. This means meetings won't filter by org on the Meetings page until they're manually linked or the next calendar scan populates the field.
+
+**For the next designer:**
+- The two meeting systems (`meeting_history.md` for org pages, `meetings.json` for the Meetings page) should eventually be unified. A spec to retire `meeting_history.md` and have org detail pages read from `meetings.json` (filtered by org) would eliminate the dual-store.
+- New meetings from Graph calendar scan already write to `meetings.json` with org populated. Only these 8 legacy meetings lack the org field.
+
+**Impact:**
+- `crm/meetings.json` — NEW FILE (8 meetings, Feb 20–25 2026)
+- `crm/meeting_history.md` — Unchanged (still read by org detail pages)
+- No code changes — existing `load_meetings()` and API routes already support the schema
+
+---

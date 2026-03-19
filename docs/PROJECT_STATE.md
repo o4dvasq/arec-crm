@@ -6,7 +6,7 @@
 ---
 
 ## Last Updated
-2026-03-19 — SPEC_primary-contact-field-order implementation
+2026-03-19 — SPEC_prospect-org-redesign-fixes implementation
 
 ---
 
@@ -22,6 +22,7 @@
 - **Navigation**: Global search, centered nav tabs (Pipeline, People, Orgs, Tasks, Meetings) with bullseye icon and hover user menu
 - **Tasks Page**: `/crm/tasks` — Two-section view (My Tasks | Team Tasks) with search, sorting by priority then deal size, enriched with prospect data
 - **Meetings Page**: `/crm/meetings` — two-tab view (Scheduled | Past) with full CRUD, AI notes processing, insight approval workflow
+  - Data backed by `crm/meetings.json` (migrated from `meeting_history.md`)
   - Row click opens edit modal pre-populated from meeting record
   - Prospect name link (when org+offering present) navigates to prospect detail page
   - Edit modal: "Edit Meeting" header, "Save Changes" button, PATCH on submit
@@ -31,17 +32,20 @@
   - **Three-tier deduplication**: graph_event_id exact match + org+date±1 day fuzzy match (any status) + read-time dedup safety net
 - **Organization Aliases**: Single source of truth is the `Aliases` field on each org in `organizations.md`. Used by search, briefs, merge, and Tony sync. `crm/org_aliases.json` retired and deleted.
 - **Organization Merge**: Full merge workflow on org edit page — select target, preview data migration, execute atomic merge, redirect to target org with success flash
-- **Prospect Detail Page**: Context-dependent color coding with clear ownership boundaries:
+- **Prospect Detail Page**: Context-dependent color coding with clear ownership boundaries (FULLY WORKING):
   - **Native sections (GREEN left-border)**: Prospect Card, Prospect Brief, Notes Log
   - **Cross-reference sections (BLUE right-border)**: Org Info Card, Org Brief, Meeting Summaries, Email History
   - Edit Prospect, Edit Org, and Scan Email buttons removed from header
   - All cross-reference cards have blue dot + navigation badge linking to owning page
-- **Org Edit Page**: Context-dependent color coding with clear ownership boundaries:
+  - No auto-synthesis on page load — all briefs show "Generate" button when empty
+  - Org Brief is strictly read-only — shows "Generate one from the Org page" when empty
+- **Org Edit Page**: Context-dependent color coding with clear ownership boundaries (FULLY WORKING):
   - **Native sections (GREEN left-border)**: Org Card (Type, Domain, Contacts), Org Brief, Org Notes Log, Meeting Summaries, Email History
   - **Cross-reference sections (BLUE right-border)**: Prospect summary cards (one per offering, read-only)
   - Notes field removed from org top card — now a standalone Notes Log card
   - Add Note button styled consistently (blue, not white)
   - Brief renamed "Org Brief" (was "Relationship Brief")
+  - No auto-synthesis on page load — shows "Generate" button when no cached brief exists
 - **Tony Excel Sync**: Daily Egnyte polling for Tony's Excel tracker, fuzzy org matching with alias support (`crm_reader.get_org_aliases_map()`), auto-syncs high-confidence changes to CRM with prospect notes integration
 - **Pipeline Polish**: At a Glance text with 2-line wrap, Tasks column 350px width, assignee initials in parentheses, markdown stripping throughout
 - **Person Name Linking**: App-wide clickable person names linking to `/crm/people/<slug>` using client-side `linkifyPersonNames()` function
@@ -56,20 +60,31 @@
 
 ## What Was Just Completed (March 19, 2026)
 
-### Primary Contact Field Order Fix
+### Prospect & Org Redesign — Implementation Fixes
 
-**Spec:** `SPEC_primary-contact-field-order.md` (moved to `docs/specs/implemented/`)
+**Spec:** `SPEC_prospect-org-redesign-fixes.md` (moved to `docs/specs/implemented/`)
 
 **What Was Done:**
-- ✅ Added `"Primary Contact"` to `PROSPECT_FIELD_ORDER` in `app/sources/crm_reader.py`
-- ✅ Field now appears after `"Assigned To"` and before `"Notes"` in serialization order
+- ✅ Fixed CSS specificity issue preventing color sidebar bars from rendering — added `!important` to `.card-native` and `.card-crossref` border rules in `app/static/crm.css`
+- ✅ Fixed org brief auto-synthesis on org detail page — replaced auto-synthesis with `renderOrgBriefEmpty()` that shows "Generate" button
+- ✅ Verified org brief on prospect detail is strictly read-only — loads from cache, shows "Generate from Org page" message if none exists, NEVER triggers synthesis
+- ✅ Verified prospect brief on prospect detail shows "Generate" button when empty — no auto-synthesis on page load
+- ✅ Verified GET endpoints (`/crm/api/prospect/.../prospect-brief` and `/crm/api/org/...`) return cached data ONLY — no server-side synthesis
+- ✅ Verified meeting summaries section is called on page load via `loadMeetings()` on line 478
 - ✅ All tests passing (67/67)
 - ✅ Spec moved to `docs/specs/implemented/`
 
 **Impact:**
-- **Primary Contact now persists**: `update_prospect_field('Primary Contact', ...)` values now survive `write_prospect()` serialization
-- **Enables batch enrichment**: The batch script `scripts/batch_primary_contact.py` can now be re-run to populate primary contacts across all prospects
-- **Supports dual-model architecture**: Orgs have org-level primary contact (star toggle), prospects can optionally override with prospect-level primary contact (e.g., UTIMCO has two prospects with different primary contacts)
+- **Visual color coding now works**: Green left-borders visible on native cards, blue right-borders visible on cross-reference cards (both pages)
+- **No unwanted API calls on page load**: Briefs only synthesize when user explicitly clicks Generate/Refresh buttons
+- **Better UX**: Empty state messages clearly communicate where to generate briefs
+- **Read-only integrity**: Org brief on prospect page never attempts to modify org data
+
+**Files Modified:**
+- `app/static/crm.css` — Added `!important` to border rules (3 lines)
+- `app/templates/crm_org_edit.html` — Fixed `loadOrgBrief()`, added `renderOrgBriefEmpty()` function (13 lines changed)
+- `app/templates/crm_prospect_detail.html` — Verified correct (no changes needed)
+- `app/delivery/crm_blueprint.py` — Verified correct (no changes needed)
 
 ---
 
@@ -81,8 +96,8 @@
 
 ## In Progress / Next Up
 
-### 1. SPEC_prospect-org-redesign-fixes
-Ready to implement in `docs/specs/`. Addresses minor issues from the redesign spec.
+### 1. No Pending Specs
+All specs in `docs/specs/` have been implemented.
 
 ### 2. Tony Sync Setup Required
 - **EGNYTE_API_TOKEN needed** — Must be obtained from Egnyte developer console and added to `app/.env`
@@ -100,6 +115,7 @@ After adding `Mail.ReadWrite.Shared` scope, the cached MSAL token needs to be re
 - **No test coverage for org merge** — Feature manually tested but no automated tests yet
 - **MetLife contact ambiguity**: "Chris Aiken" and "Christopher Aiken" both exist; migration chose Chris Aiken (Stage 5). Worth auditing manually.
 - **33 orgs without primary contact** — Migration skipped contacts where the prospect's Primary Contact string didn't match a contact file (e.g., "TBD", informal descriptions, email-appended names). These orgs show "—" for primary contact.
+- **meeting_history.md still exists** — Old format file retained for backward compatibility with org detail pages that use `load_meeting_history()`. The two systems (meeting_history.md + meetings.json) are not yet unified.
 
 ---
 
