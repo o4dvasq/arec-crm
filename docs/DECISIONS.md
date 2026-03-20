@@ -664,3 +664,19 @@
 - No code changes — existing `load_meetings()` and API routes already support the schema
 
 ---
+
+## 2026-03-19 — Primary Contact: Read from Prospect Record, Not Contact Files
+
+**Decision:** Pipeline API (`api_prospects()`) and Prospect Detail route (`prospect_detail()`) now read Primary Contact directly from the prospect dict instead of calling `get_primary_contact(org)`.
+
+**Rationale:** `get_primary_contact(org)` reads the `Primary: true` flag from contact files — the old system. After `SPEC_primary-contact-field-order`, Primary Contact became a prospect-level field stored in `PROSPECT_FIELD_ORDER`. But the pipeline and prospect detail routes were still calling the old contact-file lookup, which returned empty for any org that hadn't been migrated. The fix is to stop overwriting the prospect's `Primary Contact` field with the stale lookup result.
+
+**Key implementation choices:**
+1. `prospect_detail()`: replaced two-line `get_primary_contact(org)` + conditional with `prospect.get('Primary Contact', '')` — one line, reads from the already-loaded prospect dict.
+2. `api_prospects()`: removed the entire `primary = get_primary_contact(org_name)` / `p['Primary Contact'] = ...` override. `load_prospects()` already returns the field; overwriting it was the bug.
+3. `get_primary_contact()` left in place — still used by the Excel export route (line 1706), and it already has a fallback to `p.get('Primary Contact', '')` there.
+
+**Impact:**
+- `app/delivery/crm_blueprint.py` — Two code paths fixed
+
+---

@@ -6,7 +6,7 @@
 ---
 
 ## Last Updated
-2026-03-19 — SPEC_prospect-org-redesign-fixes implementation
+2026-03-19 — SPEC_primary-contact-display-fix implementation
 
 ---
 
@@ -51,8 +51,7 @@
 - **Person Name Linking**: App-wide clickable person names linking to `/crm/people/<slug>` using client-side `linkifyPersonNames()` function
 - **Task Grouping APIs**: `/crm/api/tasks/by-prospect` and `/crm/api/tasks/by-owner` fully functional with filtering, sorting, and enrichment
 - **Drain Inbox Hardening**: `drain_inbox.py` runs safely as unattended launchd process — dedup via `drain_seen_ids.json`, last-run metadata in `drain_last_run.json`, `Mail.ReadWrite.Shared` scope added to fix 403 on mark-as-read
-- **Primary Contact on Org**: Primary contact is now an org-level attribute. `contacts/{slug}.md` files carry `Primary: true`. Star toggle on org detail page. Prospect detail + pipeline resolve primary through org, not the prospect record.
-- **Primary Contact Field Persistence**: `Primary Contact` added to `PROSPECT_FIELD_ORDER` in `crm_reader.py`. Prospect-level Primary Contact values now survive write/read round trips. Different prospects for the same org can have different primary contacts.
+- **Primary Contact — Prospect-Level (FULLY WORKING)**: Primary Contact is a prospect-level field. `Primary Contact` field in `PROSPECT_FIELD_ORDER` survives write/read round trips. Pipeline API and Prospect Detail route both read from the prospect record — no more contact-file lookups for these two paths. Multi-prospect orgs (e.g., UTIMCO) can show different primary contacts per prospect.
 - **Pipeline Type Column**: Type column now correctly displays org Type for each prospect. Type filter works on pipeline view.
 - **Email Scan**: Header "Scan Email" button on prospect detail uses the `/crm/api/prospect/.../email-scan` route (via `runScanEmail()`). The per-prospect "Deep Scan (90d)" button has been removed — email scanning is now handled exclusively by the `/email-scan` Cowork skill.
 
@@ -60,31 +59,22 @@
 
 ## What Was Just Completed (March 19, 2026)
 
-### Prospect & Org Redesign — Implementation Fixes
+### Primary Contact Display Fix
 
-**Spec:** `SPEC_prospect-org-redesign-fixes.md` (moved to `docs/specs/implemented/`)
+**Spec:** `SPEC_primary-contact-display-fix.md` (moved to `docs/specs/implemented/`)
 
 **What Was Done:**
-- ✅ Fixed CSS specificity issue preventing color sidebar bars from rendering — added `!important` to `.card-native` and `.card-crossref` border rules in `app/static/crm.css`
-- ✅ Fixed org brief auto-synthesis on org detail page — replaced auto-synthesis with `renderOrgBriefEmpty()` that shows "Generate" button
-- ✅ Verified org brief on prospect detail is strictly read-only — loads from cache, shows "Generate from Org page" message if none exists, NEVER triggers synthesis
-- ✅ Verified prospect brief on prospect detail shows "Generate" button when empty — no auto-synthesis on page load
-- ✅ Verified GET endpoints (`/crm/api/prospect/.../prospect-brief` and `/crm/api/org/...`) return cached data ONLY — no server-side synthesis
-- ✅ Verified meeting summaries section is called on page load via `loadMeetings()` on line 478
-- ✅ All tests passing (67/67)
+- ✅ `prospect_detail()` route: removed `get_primary_contact(org)` call — now reads `prospect.get('Primary Contact', '')` directly from the loaded prospect dict
+- ✅ `api_prospects()` route: removed override that clobbered the prospect's `Primary Contact` field with a contact-file lookup — `load_prospects()` already carries the field
+- ✅ Pipeline page now shows correct Primary Contact as gray text under org name
+- ✅ Prospect Detail page now shows correct Primary Contact in header
+- ✅ Multi-prospect orgs show different primary contacts per prospect (data model is prospect-level, display matches)
+- ✅ Org Detail page unaffected (already worked correctly)
+- ✅ All 67 tests passing
 - ✅ Spec moved to `docs/specs/implemented/`
 
-**Impact:**
-- **Visual color coding now works**: Green left-borders visible on native cards, blue right-borders visible on cross-reference cards (both pages)
-- **No unwanted API calls on page load**: Briefs only synthesize when user explicitly clicks Generate/Refresh buttons
-- **Better UX**: Empty state messages clearly communicate where to generate briefs
-- **Read-only integrity**: Org brief on prospect page never attempts to modify org data
-
 **Files Modified:**
-- `app/static/crm.css` — Added `!important` to border rules (3 lines)
-- `app/templates/crm_org_edit.html` — Fixed `loadOrgBrief()`, added `renderOrgBriefEmpty()` function (13 lines changed)
-- `app/templates/crm_prospect_detail.html` — Verified correct (no changes needed)
-- `app/delivery/crm_blueprint.py` — Verified correct (no changes needed)
+- `app/delivery/crm_blueprint.py` — Two code paths fixed (lines 355-356 and ~985-986)
 
 ---
 
