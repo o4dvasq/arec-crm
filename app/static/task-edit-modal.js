@@ -2,7 +2,6 @@
  *
  * Requires:
  *   - TASK_MODAL_TEAM: array of team member names (set by page before loading this script)
- *   - TASK_MODAL_SECTIONS: array of TASKS.md sections (set by page)
  *   - taskModalOnSave(result): callback after successful save (set by page)
  *   - taskModalOnDelete(result): callback after successful delete (set by page)
  */
@@ -11,7 +10,6 @@
 
 (function () {
   // --- State ---
-  let _section = '';
   let _index = 0;
   let _org = '';
 
@@ -136,7 +134,6 @@
   window.openTaskEditModal = function (opts) {
     injectModal();
 
-    _section = opts.section || '';
     _index = typeof opts.index === 'number' ? opts.index : 0;
     _org = opts.org || '';
 
@@ -195,7 +192,6 @@
     const status = document.getElementById('taskModalStatus').value;
     const assignee = document.getElementById('taskModalAssigneeSearch').value.trim();
     const context = document.getElementById('taskModalContext').value.trim();
-    const newSection = _section;
     const newOrg = document.getElementById('taskModalOrgSearch').value.trim();
     if (!text) return;
 
@@ -209,7 +205,6 @@
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          section: newSection,
           text: text,
           priority: priority,
           status: status,
@@ -221,7 +216,7 @@
     } else {
       // EDIT mode
       res = await fetch(
-        `/tasks/api/task/${encodeURIComponent(_section)}/${_index}`,
+        `/tasks/api/task/${_index}`,
         {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
@@ -231,7 +226,6 @@
             status: status,
             context: context,
             assigned_to: assignee,
-            section: newSection,
             org: newOrg,
           }),
         }
@@ -306,7 +300,7 @@
     if (!confirm('Delete this task?')) return;
 
     const res = await fetch(
-      `/tasks/api/task/${encodeURIComponent(_section)}/${_index}`,
+      `/tasks/api/task/${_index}`,
       { method: 'DELETE' }
     );
 

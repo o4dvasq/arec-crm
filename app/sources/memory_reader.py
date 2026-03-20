@@ -14,7 +14,7 @@ PRODUCTIVITY_ROOT = os.path.dirname(_APP_ROOT)  # project root (works in any loc
 # Task line parsing — shared by tasks_blueprint.py and update_task_status()
 # ---------------------------------------------------------------------------
 
-def _parse_task_line(line: str, section: str = '') -> dict:
+def _parse_task_line(line: str) -> dict:
     """Parse a single task markdown line into a dict."""
     line = line.rstrip()
     done = line.startswith('- [x] ')
@@ -95,7 +95,7 @@ def _parse_task_line(line: str, section: str = '') -> dict:
 
 
 def _format_task_line(text: str, priority: str, context: str,
-                      assigned_to: str, section: str, done: bool = False,
+                      assigned_to: str, done: bool = False,
                       completion_date: str = None, status: str = 'New', org: str = '') -> str:
     """Serialize task fields back to a TASKS.md line."""
     checkbox = '- [x] ' if done else '- [ ] '
@@ -114,47 +114,40 @@ def _format_task_line(text: str, priority: str, context: str,
     return checkbox + line + '\n'
 
 
-def load_tasks(section: str = None) -> dict:
+def load_tasks() -> dict:
     """
-    Parse TASKS.md → {'fundraising': [...], 'personal': [...], 'waiting': [...], 'work': [...]}
-    Each item is a string like '[Hi] Follow up with Jared Brimberry (UTIMCO)'
-
-    Pass section= to filter to a single key (e.g. section='fundraising').
+    Parse TASKS.md → {'open': [...], 'personal': [...]}
+    'open' contains all org-linked tasks; 'personal' contains tasks without an org.
+    Each item is a string like '[Hi] Follow up with Jared Brimberry (UTIMCO)'.
     """
     path = os.path.join(PRODUCTIVITY_ROOT, "TASKS.md")
     if not os.path.exists(path):
-        return {"fundraising": [], "personal": [], "work": []}
+        return {"open": [], "personal": []}
+
+    tasks = {"open": [], "personal": []}
+    in_done = False
 
     with open(path, "r", encoding="utf-8") as f:
-        content = f.read()
+        for line in f:
+            h2 = re.match(r"^## (.+)", line)
+            if h2:
+                heading = h2.group(1).strip().lower()
+                in_done = (heading == "done")
+                continue
 
-    tasks = {"fundraising": [], "personal": [], "work": []}
-    section_map = {
-        "fundraising - me":     "fundraising",
-        "fundraising - others": "fundraising",
-        "other work":           "work",
-        "personal":             "personal",
-        "work":                 "work",
-    }
-    current_section = None
+            if in_done or not line.startswith("- [ ]"):
+                continue
 
-    for line in content.splitlines():
-        h2 = re.match(r"^## (.+)", line)
-        if h2:
-            heading_lower = h2.group(1).strip().lower()
-            current_section = section_map.get(heading_lower)
-            continue
+            parsed = _parse_task_line(line)
+            task_text = f'[{parsed["priority"]}] {parsed["text"]}'
+            if parsed.get('org'):
+                task_text += f' ({parsed["org"]})'
 
-        if current_section and line.startswith("- [ ]"):
-            # Strip checkbox syntax: '- [ ] **[Hi]** text' → '[Hi] text'
-            task_text = line[5:].strip()
-            # Remove bold markdown from priority tag
-            task_text = re.sub(r"\*\*(\[[^\]]+\])\*\*", r"\1", task_text)
-            tasks[current_section].append(task_text)
+            if parsed.get('org'):
+                tasks["open"].append(task_text)
+            else:
+                tasks["personal"].append(task_text)
 
-    if section:
-        key = section.lower().replace(" ", "_").replace("-", "_")
-        return {k: v for k, v in tasks.items() if k == key}
     return tasks
 
 
@@ -198,9 +191,9 @@ def load_inbox() -> list[str]:
     return items
 
 
-def update_task_status(section: str, task_text: str, new_status: str) -> bool:
+def update_task_status(task_text: str, new_status: str) -> bool:
     """
-    Find task by section + text, rewrite its line to reflect new_status.
+    Find open task by text, rewrite its line to reflect new_status.
     new_status: "New" | "In Progress" | "Complete"
     Returns True on success, False if task not found.
     """
@@ -211,22 +204,22 @@ def update_task_status(section: str, task_text: str, new_status: str) -> bool:
     with open(path, "r", encoding="utf-8") as f:
         lines = f.readlines()
 
-    current_section = None
+    in_done = False
     task_found = False
 
     for i, line in enumerate(lines):
         h2 = re.match(r"^## (.+)", line)
         if h2:
-            current_section = h2.group(1).strip()
+            in_done = h2.group(1).strip().lower() == "done"
             continue
 
-        if current_section != section:
+        if in_done:
             continue
 
         if not (line.startswith("- [ ] ") or line.startswith("- [x] ")):
             continue
 
-        parsed = _parse_task_line(line, section)
+        parsed = _parse_task_line(line)
 
         if parsed['text'] != task_text:
             continue
@@ -235,7 +228,7 @@ def update_task_status(section: str, task_text: str, new_status: str) -> bool:
         done = new_status == "Complete"
         lines[i] = _format_task_line(
             parsed['text'], parsed['priority'], parsed['context'],
-            parsed['assigned_to'], section, done=done,
+            parsed['assigned_to'], done=done,
             completion_date=parsed['completion_date'],
             status=new_status, org=parsed.get('org', ''),
         )
@@ -250,10 +243,10 @@ def update_task_status(section: str, task_text: str, new_status: str) -> bool:
     return True
 
 
-def append_task_to_section(section: str, task_line: str) -> bool:
+def append_task(task_line: str) -> bool:
     """
-    Append task line to section in TASKS.md. Returns True on success.
-    Example: append_task_to_section('Fundraising - Me', '- [ ] **[Hi]** Follow up with...')
+    Append task line to the open list in TASKS.md (before ## Done).
+    Returns True on success.
     """
     path = os.path.join(PRODUCTIVITY_ROOT, "TASKS.md")
     if not os.path.exists(path):
@@ -262,17 +255,16 @@ def append_task_to_section(section: str, task_line: str) -> bool:
     with open(path, "r", encoding="utf-8") as f:
         lines = f.readlines()
 
-    target = f"## {section}"
-    inserted = False
+    # Insert just before ## Done
+    insert_at = len(lines)
     for i, ln in enumerate(lines):
-        if ln.strip() == target:
-            # Insert after section header
-            lines.insert(i + 1, task_line + "\n")
-            inserted = True
+        if re.match(r'^## Done', ln.rstrip()):
+            insert_at = i
             break
 
-    if not inserted:
-        return False
+    if not task_line.endswith("\n"):
+        task_line = task_line + "\n"
+    lines.insert(insert_at, task_line)
 
     with open(path, "w", encoding="utf-8") as f:
         f.writelines(lines)

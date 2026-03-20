@@ -21,10 +21,8 @@
 
 <script>
 const CONFIG = {{ config | tojson }};
-const SECTIONS = ["Fundraising - Me", "Fundraising - Others", "Other Work"];
 window.TASK_MODAL_TEAM = CONFIG.team.map(m => m.name) || [];
 window.TASK_MODAL_TEAM_MAP = CONFIG.team_map || [];
-window.TASK_MODAL_SECTIONS = ["Fundraising - Me", "Fundraising - Others", "Other Work"];
 window.taskModalOnSave = function() { loadTasks(); };
 window.taskModalOnDelete = function() { loadTasks(); };
 fetch('/crm/api/orgs')

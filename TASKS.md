@@ -1,90 +1,108 @@
 # Tasks
 
-## Fundraising - Me
-- [ ] **[Med]** Oscar to call victor (Texas Permanent School Fund) — assigned:Oscar
-- [x] **[Med]** Get Viktor on the phone or to respond to email (Texas Permanent School Fund) — assigned:Oscar
+- [ ] **[Med]** Zach scheduling call for Mar 27 with Jessica Li; confirming with Tony/Oscar (Mass Mutual Life Insurance Co.) — assigned:Oscar
+- [ ] **[Hi]** Follow up with Reid Spears directly — separate call never rescheduled after he dropped off early from 3/5 intro call (Texas Permanent School Fund) — assigned:Tony
+- [ ] **[Med]** Confirm AGM dinner April 13 with Brian Carter — use as opportunity to advance Texas PSF relationship (Texas Permanent School Fund) — assigned:Tony
+- [ ] **[Hi]** Send data room access to Felipe Martins and Oikos team (Oikos Family Office) — assigned:Max Angeloni
+- [ ] **[Hi]** Research Brazilian offshore feeder tax/structuring considerations for Oikos (Oikos Family Office) — assigned:Oscar
+- [ ] **[Hi]** Schedule follow-up call with Oikos ~March 31 to discuss investment thesis in detail (Oikos Family Office) — assigned:Max Angeloni
+- [ ] **[Hi]** Follow up with James Del Gaudio — no reply since 3/6 benchmarks email; check if he/Melissa/Sean Sarraf have reviewed, propose follow-up meeting or Harrisburg visit (PSERS) — assigned:Tony
+- [ ] **[Hi]** Create agenda + presentation for Future Fund meeting Mar 17 — team speaking points (Glen/David Hardy/Kevin V/Tony, 3-4 bullets each), pipeline case studies (Mountain House, The Ridge, Lutheran, McKinley + vertical loans), performance vs. indices data, Swiss white paper; schedule practice call with full team before Mar 17 — assigned:Oscar
+- [ ] **[Med]** Mass Mutual call — Zach scheduling for Mar 27 with Jessica Li; confirming with Tony/Oscar (Mass Mutual Life Insurance Co.) — assigned:Zach
+- [ ] **[Med]** Call Joseph Lynn (Ontario Power Generation Pension Fund) — assigned:Tony
+- [ ] **[Hi]** Schedule call with Christy Fields from Meketa (San Joaquin County Employees' Retirement Association) — assigned:Anthony
+- [ ] **[Hi]** Send updated deck to Trent Kaeslin + request meeting with Scott Maynard at Meketa (RE specialist) — follow-up from 2/17 intro call (San Joaquin County Employees' Retirement Association) — assigned:Anthony
+- [ ] **[Med]** Talk to them about sharing in promote (Tishman Capital Partners) — assigned:Oscar
+- [ ] **[Med]** Talk to Mike about how to come into the Fund (Stonehill Capital) — assigned:Tony
+- [ ] **[Hi]** Send Mountain House (MetLife Insurance Company) — assigned:Zach
+- [ ] **[Med]** Set up call (Ontario Power Generation Pension Fund) — assigned:Zach
+- [ ] **[Med]** Close Paperwork (Belgravia Management) — assigned:Truman
+- [ ] **[Med]** Close paperwork (Open House Group) — assigned:Truman
+- [ ] **[Med]** Close paperwork (Cornerstone Capital) — assigned:Truman
+- [ ] **[Med]** Track down Viktor Makaroff's phone number — check prior emails/meeting notes; escalation: Brian Carter → Stu Bohart if unresponsive (Texas PSF) — assigned:Oscar
+- [ ] **[Med]** Tony to email Sam Givray (TRS) re Fund II — assigned:Tony
+- [ ] **[Hi]** Connect with CHERN Family Office via Canarelli — assigned:Tony
+- [ ] **[Med]** Add fund cash flow pages to Pitch Book - AA assembling — assigned:Truman
+- [ ] **[Med]** Prepare for DD Call on 3/25, 3/26 (Merseyside Pension Fund) — assigned:Oscar
+- [ ] **[Low]** **[→]** Create Cayman Term Sheet
+- [ ] **[Low]** Swiss estate tax / US-Swiss treaty structuring analysis + white paper [STATUS:in_progress] — key blocker for Rahn + Bodmer and other Swiss prospects — assigned:Oscar
+- [ ] **[Low]** Follow up with Tim Phillips — he may send investor referral names — assigned:Oscar
+- [ ] **[Med]** Ask Todd Platt on next call (Todd Platt) — assigned:Tony
+- [ ] **[Med]** Call Sekisui (Sekisui House) — assigned:Tony
+- [ ] **[Med]** Reschedule Samsung Fire & Marine meeting (Samsung Fire & Marine) — assigned:Tony
+- [ ] **[Med]** Process sub docs for 1900 Wealth — assigned:Truman
+- [ ] **[Med]** Set up Mountain House call with Jinho at Meritz — assigned:Zach
+- [ ] **[Med]** Set up meeting with NY Common — assigned:Zach
+- [ ] **[Hi]** Create standalone pre-AREC experience deck (Encore-era workouts forward) — separate from marketing book for compliance. Assigned by Tony after NPS decline. — assigned:Zach
+- [ ] **[Med]** Check in with Nigel Braidy week of March 23 — explore visiting during next Europe trip end of March (Emirates NBD) — assigned:Oscar
+- [ ] **[Med]** Follow up with Matt Sopp / Steyn Group toward Fund II close (Steyn Group) — assigned:Ian
+- [ ] **[Med]** Follow up with Martin Ash (Plurimi, martin.ash@plurimi.com) — no-show at 5H dinner, re-engage — assigned:Max Angeloni
+- [ ] **[Med]** Work with Majid (Synergy Management) to structure promote-sharing deal for investor breakfast intros — alternative to their standard $10K hosting fee — assigned:Max Angeloni
+- [ ] **[Hi]** Schedule follow-up call with Bikaner Advisors, Sunil Gupta + Avinash Sarwal, ~week of March 23 — Montreal, $5-10M ticket; Oscar attended intro call Mar 6, Tony had poor connection (Bikaner Advisors) — assigned:Max Angeloni
+- [ ] **[Hi]** Austin visit March 18 or 20 for in-person with Texas PSF (Viktor Makaroff) — Tony proposed, awaiting Viktor's confirmation — assigned:Tony
+- [ ] **[Hi]** Schedule follow-up call with Reid Spears — assigned:Zach
+- [ ] **[Med]** Schedule call/Zoom with Alon Idan — assigned:Tony
+- [ ] **[Med]** AGM Presentation Prep — meeting invite sent 3/5 — assigned:Truman
+- [ ] **[Med]** Continue working with Alexandra Ammann (Diamond Capital) on Fund II investment or co-invest opportunity — assigned:Max Angeloni
+- [ ] **[Med]** Explore compensation structure with Philippe Gougenheim (Alpha Curve) for investor introductions — assigned:Max Angeloni
+- [ ] **[Med]** Austin visit March 18 or 20 for in-person with Texas PSF (Viktor Makaroff) — Tony proposed, awaiting Viktor's confirmation — assigned:Tony
+- [ ] **[Hi]** Tony to email or call Jared Morris and/or Sam Givray and ask what's next ( — assigned:Tony
+- [ ] **[Hi]** Tony to call Drew and Rob — assigned:Tony
+- [ ] **[Med]** Follow up with all 5 Arts Club breakfast prospects (Agnes/IPGL, Akshay/KM FO, Robin/Grammig, + 2 TBD) — $5M each — assigned:Max Angeloni
+- [ ] **[Hi]** Follow up on Belgravia DAF $6k invoice — assigned:Oscar
+- [ ] **[Med]** FINMA Switzerland registration research for Swiss investor structure — assigned:Max Angeloni
+- [ ] **[Hi]** Set up call with David Kelly (RXR) re Evergreen term sheet — key open issues to resolve on investment period/termination mechanics — assigned:Zach
+- [ ] **[Med]** Follow up with Colombia home insurance — (Arboleda)
+- [ ] **[Med]** Check the leaks in the kitchen window
+- [ ] **[Low]** Research stair lights for house
+- [ ] **[Low]** Research coat hooks and drawer poles for house
+- [ ] **[Low]** Fix and paint the doorbell wire
+- [ ] **[Low]** Remodel Linen Closet
+- [ ] **[Low]** Paint the entryway
+- [ ] **[Med]** Connect Simon (Priya) with Matt Saverin — open intro from Feb 26 (UTIMCO - Real Estate) — assigned:Tony
+- [ ] **[High]** Prepare loan-to-own risk rebuttal talking points for Tony (UTIMCO - Hedge Fund) — assigned:Tony
+- [ ] **[High]** Send AGM invites to Jared Brimberry and Matt Saverin (April 14 Austin) (UTIMCO - Hedge Fund) — assigned:Oscar
+- [ ] **[High]** Prep carve-out lunch materials for Executive Forum 3/24 (Jared + Saverin + Danny Ellis) (UTIMCO - Hedge Fund) — assigned:Zach
+- [ ] **[High]** Get Anthony's funnel analysis (loan-to-own probability ~5%) for Jared's boss objection (UTIMCO - Hedge Fund) — assigned:Oscar
+- [ ] **[Med]** Send Builder Forum survey to Future Fund contacts (Future Fund) — assigned:Oscar
+- [ ] **[Med]** Prepare Japanese builder angle materials (for new director APAC background) (Future Fund) — assigned:Zach Legge
+- [ ] **[High]** Develop global credit assessment framework (US housing in broader context) (Future Fund) — assigned:Oscar
+- [ ] **[High]** Prepare asymmetric return profile with risk-adjusted benchmarks (Future Fund) — assigned:Oscar
+- [ ] **[High]** Build competitive landscape overview for credit managers (Future Fund) — assigned:Oscar
+- [ ] **[High]** Create Blackstone comparison deck (complementary not competitive) (Future Fund) — assigned:Oscar
+
+## Done
 - [x] **[Med]** oscar create agenda (Future Fund) — assigned:Oscar
-- [x] **[Med]** Schedule meeting on 18th or 20th - waiting on Viktor response (Texas Permanent School Fund) — assigned:Tony
 - [x] **[Med]** CALL CHUCK CHANG (Berkshire Hathaway) — assigned:Tony
 - [x] **[Hi]** OSCAR TO CALL AND OFFER MEETING (Travelers Insurance) — completed 2026-03-10
-- [ ] **[Hi]** Create agenda + presentation for Future Fund meeting Mar 17 — team speaking points (Glen/David Hardy/Kevin V/Tony, 3-4 bullets each), pipeline case studies (Mountain House, The Ridge, Lutheran, McKinley + vertical loans), performance vs. indices data, Swiss white paper; schedule practice call with full team before Mar 17 — assigned:Oscar
-- [x] **[Hi]** Meet on 3/10 (UTIMCO - Hedge Fund) — assigned:Tony Avila — completed 2026-03-10
-- [ ] **[Med]** Mass Mutual call — Zach scheduling for Mar 27 with Jessica Li; confirming with Tony/Oscar (Mass Mutual Life Insurance Co.) — assigned:Zach
-- [ ] **[Med]** Call Joseph Lynn (Ontario Power Generation Pension Fund) — assigned:Tony Avila
+- [x] **[Hi]** Meet on 3/10 (UTIMCO - Hedge Fund) — assigned:Tony — completed 2026-03-10
 - [x] **[Hi]** Schedule call with Bob - offer talk to Brim or Glen (Travelers Insurance) — assigned:Oscar — completed 2026-03-11
-- [x] **[Hi]** Schedule call with Partha [STATUS:complete] — assigned:Oscar Vasquez — completed 2026-03-06
-- [x] **[Hi]** Check in with DD team (StepStone) — assigned:Oscar Vasquez — completed 2026-03-06
-- [ ] **[Hi]** Schedule call with Christy Fields from Meketa (San Joaquin County Employees' Retirement Association) — assigned:Anthony Albuquerque
-- [ ] **[Hi]** Send updated deck to Trent Kaeslin + request meeting with Scott Maynard at Meketa (RE specialist) — follow-up from 2/17 intro call (SJCERA) — assigned:Anthony Albuquerque
-- [x] **[Med]** Send email requesting a call for week of 3/16 (Heritage Holdings) — assigned:Oscar Vasquez — completed 2026-03-06
-- [ ] **[Med]** Talk to them about sharing in promote (Tishman Capital Partners) — assigned:Oscar Vasquez
-- [ ] **[Med]** Talk to Mike about how to come into the Fund (Stonehill Capital) — assigned:Tony Avila
-- [x] **[Med]** Tony meet Amit (Blackstone Multi-Asset Investing) — assigned:Tony Avila
-- [ ] **[Hi]** Send Mountain House (MetLife Insurance Company) — assigned:Zach Reisner
-- [ ] **[Med]** Set up call (Ontario Power Generation Pension Fund) — assigned:Zach Reisner
-- [ ] **[Med]** Close Paperwork (Belgravia Management) — assigned:Truman Flynn
-- [ ] **[Med]** Close paperwork (Open House Group) — assigned:Truman Flynn
-- [ ] **[Med]** Close paperwork (Cornerstone Capital) — assigned:Truman Flynn
+- [x] **[Hi]** Schedule call with Partha [STATUS:complete] — assigned:Oscar — completed 2026-03-06
+- [x] **[Hi]** Check in with DD team (StepStone) — assigned:Oscar — completed 2026-03-06
+- [x] **[Med]** Send email requesting a call for week of 3/16 (Heritage Holdings) — assigned:Oscar — completed 2026-03-06
+- [x] **[Med]** Tony meet Amit (Blackstone Multi-Asset Investing) — assigned:Tony
 - [x] **[Hi]** Find Anthony's UTIMCO funnel/loan-to-own analysis (~5% likelihood) + polish for Mar 10 Hillwood/Jared Brimberry reference call (4:30pm CT) — assigned:Oscar — completed 2026-03-10
-- [ ] **[Med]** Track down Viktor Makaroff's phone number — check prior emails/meeting notes; escalation: Brian Carter → Stu Bohart if unresponsive (Texas PSF) — assigned:Oscar
 - [x] **[Med]** Check collective AREC email for Ontario Power last communication + determine next step (Ontario Power Generation Pension Fund) — assigned:Oscar — completed 2026-03-11
-- [ ] **[Med]** Tony to email Sam Givray (TRS) re Fund II — assigned:Tony
 - [x] **[Med]** Follow up with Aayaan Mehta (StepStone) (post mid-March) — schedule track record discussion call when his calendar clears — assigned:Oscar — completed 2026-03-11
 - [x] **[Hi]** Follow up after STWD/Avila catch-up call (Mar 9) — Vernice Briggs, Michael Nelson, Anthony Murphy (Starwood Property Trust) — new LP prospect — assigned:Oscar — completed 2026-03-09
 - [x] **[Hi]** [STATUS:complete] Talk to Tim Avila about RXR — assigned:Oscar
 - [x] **[Med]** Send message to Marianne Barrotti in Spanish (World Bank) — assigned:Oscar — completed 2026-03-11
-- [ ] **[Hi]** Connect with CHERN Family Office via Canarelli — assigned:Tony
 - [x] **[Med]** Call Chuck from Berkshire Hathaway — ON HOLD until end of April (new CIO arriving) — assigned:Tony
 - [x] **[Hi]** [STATUS:complete] Add fees and floor rate to page 7 of the presentation — assigned:Oscar
-- [ ] **[Med]** Add fund cash flow pages to Pitch Book - AA assembling — assigned:Truman
-- [ ] **[Med]** Prepare for DD Call on 3/25, 3/26 (Merseyside Pension Fund) — assigned:Oscar Vasquez
-- [ ] **[Low]** **[→]** Create Cayman Term Sheet
-- [ ] **[Low]** Swiss estate tax / US-Swiss treaty structuring analysis + white paper [STATUS:in_progress] — key blocker for Rahn + Bodmer and other Swiss prospects — assigned:Oscar
 - [x] **[Med]** Add Experience in closing out & construction in the white papers — assigned:Oscar — completed 2026-03-06
-- [ ] **[Low]** Follow up with Tim Phillips — he may send investor referral names — assigned:Oscar
 - [x] **[Med]** Schedule call with Michael Wigrizer to strategize on Ira referrals — assigned:Oscar — completed 2026-03-10
 - [x] **[Med]** [STATUS:complete] ~~Reply to Amy Baldwin — Geneva + London dinner attendee details for allocation receipts — all travel meals, non-reimbursable~~ (3/5)
 - [x] **[Med]** Review Greshler Finance proposed terms (Greshler) — assigned:Oscar — completed 2026-03-11
 - [x] **[Med]** Follow up with Agnes — new potential investor met in Europe — assigned:Tony — completed 2026-03-11
-- [ ] **[Med]** Ask Todd Platt on next call (Todd Platt) — assigned:Tony
-- [ ] **[Med]** Call Sekisui (Sekisui House) — assigned:Tony
-- [ ] **[Med]** Reschedule Samsung Fire & Marine meeting (Samsung Fire & Marine) — assigned:Tony
 - [x] **[Med]** [STATUS:complete] ~~Tony email Jim Steinbugl at Penn State — Jim replied 3/5: reducing real assets allocation, no new managers this year. Pass for now.~~ (3/5)
-- [ ] **[Med]** Process sub docs for 1900 Wealth — assigned:Truman
-- [ ] **[Med]** Set up Mountain House call with Jinho at Meritz — assigned:Zach
-- [ ] **[Med]** Set up meeting with NY Common — assigned:Zach
 - [x] **[Med]** UTIMCO / Hillwood / AREC reference call — 10:30 CT confirmed with Fred Balda (Hillwood President) for Jared Brimberry (UTIMCO) — assigned:Zach — completed 2026-03-10
 - [x] **[Hi]** [STATUS:complete] ~~Prep for Texas PSF call Mar 5 — Viktor Makaroff, Kevin Godin, Reid Spears; Zach organized; Tony, Paige attending~~ (3/5)
 - [x] **[Low]** Update Terrell once NEPC underwriting is complete — assigned:Oscar — completed 2026-03-06
-- [ ] **[Hi]** Create standalone pre-AREC experience deck (Encore-era workouts forward) — separate from marketing book for compliance. Assigned by Tony after NPS decline. — assigned:Zach
 - [x] **[Hi]** Call Stephen O'Kane week of March 9 (Heritage Holdings) — multi-family office, very interested in Fund II — assigned:Oscar — completed 2026-03-11
 - [x] **[Med]** Reschedule GetBuilt intro call with Sam Vannette (sam.vannette@getbuilt.com) — missed Mar 2 — assigned:Oscar — completed 2026-03-06
-- [ ] **[Med]** Check in with Nigel Braidy week of March 23 — explore visiting during next Europe trip end of March (Emirates NBD) — assigned:Oscar
-- [ ] **[Med]** Follow up with Matt Sopp / Steyn Group toward Fund II close (Steyn Group) — assigned:Ian
-- [ ] **[Med]** Follow up with Martin Ash (Plurimi, martin.ash@plurimi.com) — no-show at 5H dinner, re-engage — assigned:Max Angeloni
 - [x] **[Med]** Send Cayman structuring + Swiss tax write-up to Marcuard (Wilhelm von Stotzingen) once complete (Marcaud) — assigned:Oscar
-- [ ] **[Med]** Work with Majid (Synergy Management) to structure promote-sharing deal for investor breakfast intros — alternative to their standard $10K hosting fee — assigned:Max Angeloni
-- [ ] **[Hi]** Schedule follow-up call with Bikaner Advisors (Sunil Gupta + Avinash Sarwal) ~week of March 23 — Montreal, $5-10M ticket; Oscar attended intro call Mar 6 (Tony had poor connection) — assigned:Max Angeloni
-- [ ] **[Hi]** Austin visit March 18 or 20 for in-person with Texas PSF (Viktor Makaroff) — Tony proposed, awaiting Viktor's confirmation — assigned:Tony
-- [ ] **[Hi]** Schedule follow-up call with Reid Spears — assigned:Zach
-- [ ] **[Med]** Schedule call/Zoom with Alon Idan — assigned:Tony
 - [x] **[Hi]** [STATUS:complete] Prep for Hanwha meeting March 17 in Irvine — Su Man Ahn; same day as Future Fund — assigned:Oscar — completed 2026-03-06
-- [ ] **[Med]** AGM Presentation Prep — meeting invite sent 3/5 — assigned:Truman
 - [x] **[Hi]** Meet Diamond Capital's US head in NYC/NJ — proposed Fri Mar 13 (Alexandra Ammann, alexandra@diamondcapital.ch) — assigned:Tony
-- [ ] **[Med]** Continue working with Alexandra Ammann (Diamond Capital) on Fund II investment or co-invest opportunity — assigned:Max Angeloni
-- [ ] **[Med]** Explore compensation structure with Philippe Gougenheim (Alpha Curve) for investor introductions — assigned:Max Angeloni
-
-## Fundraising - Others
-- [ ] **[Med]** Austin visit March 18 or 20 for in-person with Texas PSF (Viktor Makaroff) — Tony proposed, awaiting Viktor's confirmation — assigned:Tony Avila
-- [ ] **[Hi]** Tony to email or call Jared Morris and/or Sam Givray and ask what's next ( — assigned:Tony Avila
-- [ ] **[Hi]** Tony to call Drew and Rob — assigned:Tony Avila
-- [ ] **[Med]** Follow up with all 5 Arts Club breakfast prospects (Agnes/IPGL, Akshay/KM FO, Robin/Grammig, + 2 TBD) — $5M each — assigned:Max Angeloni
-
-- [ ] **[Hi]** Follow up on Belgravia DAF $6k invoice — assigned:Oscar
-- [ ] **[Med]** FINMA Switzerland registration research for Swiss investor structure — assigned:Max Angeloni
-
-## Other Work
-- [ ] **[Hi]** Set up call with David Kelly (RXR) re Evergreen term sheet — key open issues to resolve on investment period/termination mechanics — assigned:Zach
 - [x] **[Med]** **[→]** Wrap up lending intelligence platform and hand over to Adrian and Jake — completed 2026-03-06
 - [x] **[Med]** Add email ingestion into ARM assistant knowledge base — completed 2026-03-06
 - [x] **[Low]** Check out Bill.com training demos — completed 2026-03-06
@@ -101,18 +119,7 @@
 - [x] **[Med]** Investigate Preqin + Juniper Square integration — assigned:Truman — completed 2026-03-06
 - [x] **[Med]** [STATUS:complete] ~~Share email contacts for the 2 unidentified attendees from Mar 3 Arts Club breakfast — assigned:Max Angeloni~~ (3/6) Francesco Galdiero (Vobis Members) + Christopher Henry (Manning Family SFO) added to CRM
 - [x] **[Med]** AGM A-list personalized outreach — only 4 RSVPs so far (awaiting Tony's approval on list) — assigned:Paige
-
-## Personal
-- [ ] **[Med]** Follow up with Colombia home insurance — (Arboleda)
-- [ ] **[Med]** Check the leaks in the kitchen window
-- [ ] **[Low]** Research stair lights for house
-- [ ] **[Low]** Research coat hooks and drawer poles for house
-- [ ] **[Low]** Fix and paint the doorbell wire
-- [ ] **[Low]** Remodel Linen Closet
-- [ ] **[Low]** Paint the entryway
 - [x] **[Low]** Install the sconces — completed 2026-03-09
-
-## Done
 - [x] **[Hi]** [STATUS:complete] ~~Refresh Top Prospects in Juniper Square (JS)~~ (3/1)
 - [x] **[Hi]** [STATUS:complete] ~~Prep for Europe trip (Mar 2-4)~~ (3/2)
 - [x] **[Hi]** [STATUS:complete] ~~Write short summary paragraph for Susannah Friar (Merseyside) re: Encore Fund III 17.25% 3-yr return~~ (3/2)
@@ -160,4 +167,5 @@
 - [x] **[Low]** [STATUS:complete] ~~Fix cleanup design for reminders and thoughts in Notion~~
 - [x] **[Med]** [STATUS:complete] ~~Loan Business Plan~~
 - [x] **[Med]** [STATUS:complete] Debary Town Park plat — facilitating Oscar's signature; needs CA notary — assigned:Amy Baldwin — completed 2026-03-05
+
 

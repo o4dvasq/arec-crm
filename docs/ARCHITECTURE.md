@@ -5,7 +5,7 @@
 
 **Location:** `~/Dropbox/projects/arec-crm/`
 
-**Last audited:** 2026-03-19 (updated: primary contact is prospect-level; contact job title field is `title` not `role`)
+**Last audited:** 2026-03-20 (updated: tasks are section-free flat list; tasks_blueprint.py added; TASKS.md is at project root)
 
 ---
 
@@ -35,6 +35,7 @@ arec-crm is a single-user fundraising CRM platform backed entirely by markdown f
 ```
 arec-crm/                        (~/Dropbox/projects/arec-crm/)
 ├── CLAUDE.md                  ← Project config (run commands, key files, conventions)
+├── TASKS.md                   ← Task list (flat: open tasks + ## Done; no section headers)
 ├── config.yaml                ← App configuration (stages, team, offerings)
 ├── crm-inbox.md               ← CRM inbox queue
 │
@@ -49,7 +50,8 @@ arec-crm/                        (~/Dropbox/projects/arec-crm/)
 │   ├── main.py                ← Morning briefing orchestrator (now includes Tony sync)
 │   ├── delivery/
 │   │   ├── dashboard.py       ← Flask main app (sets g.user from DEV_USER)
-│   │   └── crm_blueprint.py   ← CRM routes + brief synthesis endpoints
+│   │   ├── crm_blueprint.py   ← CRM routes + brief synthesis endpoints
+│   │   └── tasks_blueprint.py ← Tasks CRUD API + /tasks page (flat, section-free)
 │   ├── sources/
 │   │   ├── crm_reader.py      ← Markdown backend (all read/write functions)
 │   │   ├── relationship_brief.py  ← Context aggregation for briefs
@@ -74,7 +76,6 @@ arec-crm/                        (~/Dropbox/projects/arec-crm/)
 │   ├── organizations.md       ← Organization records (markdown table)
 │   ├── contacts_index.md      ← Contact→org mapping
 │   ├── interactions_log.md    ← Interaction history
-│   ├── TASKS.md               ← Prospect tasks
 │   ├── email_log.json         ← Email history
 │   ├── briefs.json            ← Cached relationship briefs
 │   ├── unmatched.json         ← Unmatched emails
@@ -168,6 +169,8 @@ app/main.py (morning briefing)
 ---
 
 ## Key Design Patterns
+
+**TASKS.md is flat (no sections)** — `TASKS.md` at project root has one implicit open-task list (no `##` headers) followed by `## Done`. All tasks use `(OrgName) — assigned:Name` format. The Tasks API uses flat 0-based index: `/tasks/api/task/<index>`. Complete/restore physically move lines to/from `## Done`. `memory_reader.append_task_to_section()` is gone — use `append_task()`.
 
 **Markdown-only backend** — All CRM data in markdown files and JSON files. `crm_reader.py` is the single source of truth. `crm_db.py` exists in the codebase (PostgreSQL layer) but is NOT active — do not import from it in new code.
 

@@ -794,3 +794,13 @@
 **Rationale:** Briefs were producing stale, backwards-looking summaries — referencing prep tasks for meetings that had already occurred, and treating completed action items as pending. Prompts lacked any instruction to reason about time or to prioritize by meeting recency. The new rules instruct Claude to use today's date (already injected at context top) to determine past vs. future meetings and to lead the brief with the most temporally relevant meeting.
 
 **Impact:** `app/sources/relationship_brief.py` — both system prompts updated. No schema or API changes.
+
+## 2026-03-20 — Eliminated Task Sections (SPEC_eliminate-task-sections)
+
+**Decision:** Removed the "section" concept from the task system entirely. TASKS.md is now a flat list with no section headers (except `## Done`). API routes use `/<index>` instead of `/<section>/<index>`. The `section` parameter was removed from `_parse_task_line`, `_format_task_line`, `update_task_status`, and `add_prospect_task`. Bracket-format tasks (`[org:] [owner:]`) converted to standard `(OrgName) — assigned:Name` format.
+
+**Rationale:** Sections ("Fundraising - Me", "Fundraising - Others", "Other Work", "Personal", "IR / Fundraising") added complexity without user-facing value. The UI already groups by owner. The bracket format was a legacy holdover from an earlier tagging scheme — the suffix format is simpler and already supported by all parsers.
+
+**Impact:** `TASKS.md`, `tasks_blueprint.py`, `memory_reader.py`, `crm_reader.py`, `tasks.js`, `task-edit-modal.js`, `tasks.html`. The `/crm/tasks` page (crm_blueprint.py) was left unchanged per spec scope — it still calls `get_tasks_for_prospect()` which now returns flat-indexed tasks.
+
+---

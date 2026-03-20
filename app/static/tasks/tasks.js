@@ -41,19 +41,8 @@ function renderBoard() {
   const board = document.getElementById('board');
   board.innerHTML = '';
 
-  // Gather all tasks tagged with their section
-  const openTasks = [];
-  const doneTasks = [];
-  for (const [section, tasks] of Object.entries(allTasks)) {
-    for (const task of tasks) {
-      const tagged = { ...task, _section: section };
-      if (task.complete) {
-        doneTasks.push(tagged);
-      } else {
-        openTasks.push(tagged);
-      }
-    }
-  }
+  const openTasks = allTasks.open || [];
+  const doneTasks = allTasks.done || [];
 
   // Group open tasks by owner key
   const byOwner = {};
@@ -86,7 +75,7 @@ function renderBoard() {
     board.appendChild(empty);
   }
 
-  // Done footer at bottom (all done tasks)
+  // Done footer at bottom
   if (doneTasks.length > 0) {
     board.appendChild(renderDoneFooter(doneTasks));
   }
@@ -128,14 +117,14 @@ function renderOwnerGroup(key, tasks) {
   header.querySelector('.owner-add-btn').addEventListener('click', (e) => {
     e.stopPropagation();
     const ownerName = key === '__oscar__' ? 'Oscar Vasquez' : displayName;
-    showAddFormForOwner(group, null, ownerName);
+    showAddFormForOwner(group, ownerName);
   });
 
   const taskContainer = document.createElement('div');
   taskContainer.className = 'owner-tasks';
 
   for (const task of tasks) {
-    taskContainer.appendChild(renderCard(task, task._section));
+    taskContainer.appendChild(renderCard(task));
   }
 
   group.appendChild(taskContainer);
@@ -146,22 +135,19 @@ function renderOwnerGroup(key, tasks) {
 // Task card
 // ---------------------------------------------------------------------------
 
-function renderCard(task, section) {
+function renderCard(task) {
   const card = document.createElement('div');
   const pri = task.priority || 'Med';
   const priorityCls = 'pri-' + pri.toLowerCase();
   card.className = 'task-card ' + priorityCls + (task.complete ? ' done' : '');
   card.dataset.index = task.index;
-  card.dataset.section = section;
 
   const orgHtml = task.org
     ? `<a href="/crm/org/${encodeURIComponent(task.org)}" class="org-link" onclick="event.stopPropagation()">${escHtml(task.org)}</a>`
     : '';
 
-  const sectionLabel = section ? escHtml(section) : '';
-  const metaParts = [orgHtml, sectionLabel].filter(Boolean);
-  const metaHtml = metaParts.length
-    ? `<div class="task-meta-line">${metaParts.join(' · ')}</div>`
+  const metaHtml = orgHtml
+    ? `<div class="task-meta-line">${orgHtml}</div>`
     : '';
 
   const showNudge = task.assigned_to && task.assigned_to.trim() !== '';
@@ -186,27 +172,35 @@ function renderCard(task, section) {
   lucide.createIcons();
 
   card.addEventListener('click', (e) => {
-    if (window.innerWidth <= 768 && !e.target.closest('.task-actions')) {
-      document.querySelectorAll('.task-card').forEach(c => c.classList.remove('active'));
-      card.classList.add('active');
-    }
+    if (e.target.closest('.task-actions') || e.target.closest('a')) return;
+    openTaskEditModal({
+      title: 'Edit Task',
+      text: task.text,
+      priority: task.priority || 'Med',
+      status: task.status || 'New',
+      context: task.context || '',
+      assigned_to: task.assigned_to || 'Oscar',
+      index: task.index,
+      org: task.org || '',
+      showDelete: true,
+    });
   });
 
   card.querySelector('[data-action="complete"]')?.addEventListener('click', (e) => {
     e.stopPropagation();
-    completeTask(section, task.index, task);
+    completeTask(task.index, task);
   });
   card.querySelector('[data-action="restore"]')?.addEventListener('click', (e) => {
     e.stopPropagation();
-    restoreTask(section, task.index);
+    restoreTask(task.index);
   });
   card.querySelector('[data-action="priority"]')?.addEventListener('click', (e) => {
     e.stopPropagation();
-    cyclePriority(section, task.index, task.priority);
+    cyclePriority(task.index, task.priority);
   });
   card.querySelector('[data-action="nudge"]')?.addEventListener('click', (e) => {
     e.stopPropagation();
-    showTaskNudgeOptions(task.assigned_to, task.org || '', task.text, section);
+    showTaskNudgeOptions(task.assigned_to, task.org || '', task.text);
   });
   card.querySelector('[data-action="edit"]')?.addEventListener('click', (e) => {
     e.stopPropagation();
@@ -217,7 +211,6 @@ function renderCard(task, section) {
       status: task.status || 'New',
       context: task.context || '',
       assigned_to: task.assigned_to || 'Oscar',
-      section: section,
       index: task.index,
       org: task.org || '',
       showDelete: true,
@@ -225,7 +218,7 @@ function renderCard(task, section) {
   });
   card.querySelector('[data-action="delete"]')?.addEventListener('click', (e) => {
     e.stopPropagation();
-    if (confirm(`Delete "${task.text}"?`)) deleteTask(section, task.index);
+    if (confirm(`Delete "${task.text}"?`)) deleteTask(task.index);
   });
 
   return card;
@@ -244,7 +237,7 @@ function renderDoneFooter(doneTasks) {
   list.className = 'done-list';
 
   for (const task of doneTasks) {
-    list.appendChild(renderCard(task, task._section));
+    list.appendChild(renderCard(task));
   }
 
   toggle.addEventListener('click', () => {
@@ -263,10 +256,9 @@ function renderDoneFooter(doneTasks) {
 // Add form
 // ---------------------------------------------------------------------------
 
-function showAddFormForOwner(groupEl, defaultSection, ownerName) {
+function showAddFormForOwner(groupEl, ownerName) {
   groupEl.querySelectorAll('.inline-form').forEach(f => f.remove());
 
-  const sections = window.TASK_MODAL_SECTIONS || ['Fundraising - Me', 'Fundraising - Others', 'Other Work'];
   const slugId = slugify(ownerName);
 
   const form = document.createElement('div');
@@ -277,9 +269,6 @@ function showAddFormForOwner(groupEl, defaultSection, ownerName) {
     <div class="form-row">
       <select id="form-pri-${slugId}">
         ${PRIORITY_LABELS.map(p => `<option value="${p}"${p === 'Med' ? ' selected' : ''}>${p}</option>`).join('')}
-      </select>
-      <select id="form-section-${slugId}">
-        ${sections.map(s => `<option value="${s}"${s === defaultSection ? ' selected' : ''}>${s}</option>`).join('')}
       </select>
     </div>
     <div class="form-actions">
@@ -292,9 +281,8 @@ function showAddFormForOwner(groupEl, defaultSection, ownerName) {
   form.querySelector(`#form-submit-${slugId}`).addEventListener('click', async () => {
     const text = form.querySelector('textarea').value.trim();
     const priority = form.querySelector(`#form-pri-${slugId}`).value;
-    const section = form.querySelector(`#form-section-${slugId}`).value;
     if (!text) return;
-    await submitAdd(section, { text, priority, context: '', assigned_to: ownerName });
+    await submitAdd({ text, priority, context: '', assigned_to: ownerName });
   });
 
   const header = groupEl.querySelector('.owner-group-header');
@@ -306,49 +294,49 @@ function showAddFormForOwner(groupEl, defaultSection, ownerName) {
 // API calls
 // ---------------------------------------------------------------------------
 
-async function submitAdd(section, data) {
+async function submitAdd(data) {
   const res = await fetch('/tasks/api/task', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ section, ...data }),
+    body: JSON.stringify(data),
   });
   if (res.ok) await loadTasks();
   else showError('Failed to add task');
 }
 
-async function completeTask(section, index, task) {
-  const res = await fetch(`/tasks/api/task/${encodeURIComponent(section)}/${index}/complete`, {
+async function completeTask(index, task) {
+  const res = await fetch(`/tasks/api/task/${index}/complete`, {
     method: 'POST',
   });
   if (res.ok) {
     await loadTasks();
-    showUndoToast(task.text, section, index);
+    showUndoToast(task.text);
   } else {
     showError('Failed to complete task');
   }
 }
 
-async function restoreTask(section, index) {
-  const res = await fetch(`/tasks/api/task/${encodeURIComponent(section)}/${index}/restore`, {
+async function restoreTask(index) {
+  const res = await fetch(`/tasks/api/task/${index}/restore`, {
     method: 'POST',
   });
   if (res.ok) await loadTasks();
   else showError('Failed to restore task');
 }
 
-async function deleteTask(section, index) {
-  const res = await fetch(`/tasks/api/task/${encodeURIComponent(section)}/${index}`, {
+async function deleteTask(index) {
+  const res = await fetch(`/tasks/api/task/${index}`, {
     method: 'DELETE',
   });
   if (res.ok) await loadTasks();
   else showError('Failed to delete task');
 }
 
-async function cyclePriority(section, index, currentPriority) {
+async function cyclePriority(index, currentPriority) {
   const cycle = { 'Hi': 'Med', 'Med': 'Low', 'Low': 'Hi' };
   const newPriority = cycle[currentPriority] || 'Med';
 
-  const res = await fetch(`/tasks/api/task/${encodeURIComponent(section)}/${index}/priority`, {
+  const res = await fetch(`/tasks/api/task/${index}/priority`, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ priority: newPriority }),
@@ -361,7 +349,7 @@ async function cyclePriority(section, index, currentPriority) {
 // Toast
 // ---------------------------------------------------------------------------
 
-function showUndoToast(taskText, section, index) {
+function showUndoToast(taskText) {
   const toast = document.getElementById('toast');
   toast.className = 'toast';
   toast.innerHTML = `
@@ -375,10 +363,9 @@ function showUndoToast(taskText, section, index) {
     clearTimeout(toastTimer);
     toast.className = 'toast hidden';
     await loadTasks();
-    const sectionTasks = allTasks[section] || [];
-    const done = sectionTasks.filter(t => t.complete);
+    const done = allTasks.done || [];
     if (done.length > 0) {
-      await restoreTask(section, done[done.length - 1].index);
+      await restoreTask(done[done.length - 1].index);
     }
   });
 
@@ -399,7 +386,7 @@ function showError(msg) {
 // Email Nudge
 // ---------------------------------------------------------------------------
 
-function showTaskNudgeOptions(assignedTo, org, taskText, section) {
+function showTaskNudgeOptions(assignedTo, org, taskText) {
   document.querySelectorAll('.task-nudge-dropdown').forEach(d => d.remove());
 
   if (!assignedTo || assignedTo.trim() === '') {
@@ -427,7 +414,7 @@ function showTaskNudgeOptions(assignedTo, org, taskText, section) {
       e.stopPropagation();
       const template = opt.dataset.template;
       dropdown.remove();
-      buildTaskNudgeEmail(template, assignedTo, org, taskText, section);
+      buildTaskNudgeEmail(template, assignedTo, org, taskText);
     });
   });
 
@@ -443,7 +430,7 @@ function showTaskNudgeOptions(assignedTo, org, taskText, section) {
   }
 }
 
-function buildTaskNudgeEmail(template, assignedTo, org, taskText, section) {
+function buildTaskNudgeEmail(template, assignedTo, org, taskText) {
   const teamMember = CONFIG.team.find(m =>
     m.name.toLowerCase() === assignedTo.toLowerCase() ||
     assignedTo.toLowerCase().includes(m.name.toLowerCase()) ||

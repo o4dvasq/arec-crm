@@ -16,12 +16,15 @@ if _APP_DIR not in sys.path:
 PROJECT_ROOT = os.path.dirname(_APP_DIR)
 TASKS_PATH = os.path.join(PROJECT_ROOT, "TASKS.md")
 
-from sources.crm_reader import load_crm_config, get_tasks_for_prospect, add_prospect_task
+from sources.crm_reader import load_crm_config, get_tasks_for_prospect, add_prospect_task, normalize_team_name
 from sources.memory_reader import _parse_task_line, _format_task_line
 
 tasks_bp = Blueprint('tasks', __name__, url_prefix='/tasks')
 
-TASK_SECTIONS = ['Fundraising - Me', 'Fundraising - Others', 'Other Work', 'Personal']
+
+def _normalize_assigned_to(raw: str) -> str:
+    """Delegate to shared normalize_team_name in crm_reader."""
+    return normalize_team_name(raw)
 
 
 # ---------------------------------------------------------------------------
@@ -29,36 +32,34 @@ TASK_SECTIONS = ['Fundraising - Me', 'Fundraising - Others', 'Other Work', 'Pers
 # ---------------------------------------------------------------------------
 
 def _load_tasks_full() -> dict:
+    """Parse TASKS.md → {'open': [...], 'done': [...]}. Each task includes 'index'."""
     if not os.path.exists(TASKS_PATH):
-        return {s: [] for s in TASK_SECTIONS + ['Done']}
+        return {'open': [], 'done': []}
 
-    result = {}
-    current_name = None
-    current_tasks = []
-
-    def flush():
-        if current_name is not None:
-            result[current_name] = current_tasks[:]
+    open_tasks = []
+    done_tasks = []
+    in_done = False
 
     with open(TASKS_PATH, encoding='utf-8') as f:
         for line in f:
-            m = re.match(r'^## (.+)$', line.rstrip())
-            if m:
-                flush()
-                current_name = m.group(1).strip()
-                current_tasks = []
+            stripped = line.rstrip()
+            if re.match(r'^## Done', stripped):
+                in_done = True
                 continue
-            if current_name and (line.startswith('- [ ] ') or line.startswith('- [x] ')):
-                task = _parse_task_line(line, current_name)
-                task['index'] = len(current_tasks)
-                task['section'] = current_name
-                current_tasks.append(task)
-    flush()
+            if re.match(r'^## ', stripped):
+                # Any other section header — skip
+                continue
+            if line.startswith('- [ ] ') or line.startswith('- [x] '):
+                if in_done:
+                    task = _parse_task_line(line)
+                    task['index'] = len(done_tasks)
+                    done_tasks.append(task)
+                else:
+                    task = _parse_task_line(line)
+                    task['index'] = len(open_tasks)
+                    open_tasks.append(task)
 
-    for s in TASK_SECTIONS + ['Done']:
-        if s not in result:
-            result[s] = []
-    return result
+    return {'open': open_tasks, 'done': done_tasks}
 
 
 def _read_task_lines() -> list:
@@ -73,20 +74,43 @@ def _write_task_file(lines: list) -> None:
         f.writelines(lines)
 
 
-def _find_task_line(lines: list, section: str, index: int):
-    in_section = False
+def _find_task_line(lines: list, index: int, done: bool = False) -> int:
+    """Find the file line number for the nth task (0-based).
+
+    If done=False: counts open tasks before ## Done.
+    If done=True: counts tasks after ## Done.
+    """
+    in_done_section = False
     count = 0
     for i, ln in enumerate(lines):
-        m = re.match(r'^## (.+)$', ln.rstrip())
-        if m:
-            in_section = m.group(1).strip() == section
+        if re.match(r'^## Done', ln.rstrip()):
+            in_done_section = True
             continue
-        if in_section and (ln.startswith('- [ ] ') or ln.startswith('- [x] ')):
+        if re.match(r'^## ', ln.rstrip()):
+            in_done_section = False
+            continue
+        if in_done_section == done and (ln.startswith('- [ ] ') or ln.startswith('- [x] ')):
             if count == index:
                 return i
             count += 1
     return -1
 
+
+def _find_done_insertion_point(lines: list) -> int:
+    """Return the line index immediately after '## Done' header."""
+    for i, ln in enumerate(lines):
+        if re.match(r'^## Done', ln.rstrip()):
+            return i + 1
+    return len(lines)
+
+
+def _find_open_insertion_point(lines: list) -> int:
+    """Return the line index just before '## Done' (to append open tasks)."""
+    for i, ln in enumerate(lines):
+        if re.match(r'^## Done', ln.rstrip()):
+            # Insert before blank line + ## Done — find first non-blank before it
+            return i
+    return len(lines)
 
 
 # ---------------------------------------------------------------------------
@@ -108,42 +132,32 @@ def api_tasks():
 @tasks_bp.route('/api/task', methods=['POST'])
 def api_task_create():
     data = request.get_json(force=True)
-    section = data.get('section', '').strip()
     text = data.get('text', '').strip()
     priority = data.get('priority', 'Med').strip()
     context = data.get('context', '').strip()
-    assigned_to = data.get('assigned_to', '').strip()
+    assigned_to = _normalize_assigned_to(data.get('assigned_to', ''))
     status = data.get('status', 'new').strip()
     org = data.get('org', '').strip()
 
-    if not text or section not in TASK_SECTIONS:
-        return jsonify({'ok': False, 'error': 'text and valid section required'}), 400
+    if not text:
+        return jsonify({'ok': False, 'error': 'text required'}), 400
 
-    new_line = _format_task_line(text, priority, context, assigned_to, section, status=status, org=org)
+    new_line = _format_task_line(text, priority, context, assigned_to, status=status, org=org)
 
     lines = _read_task_lines()
-    target = f'## {section}'
-    inserted = False
-    for i, ln in enumerate(lines):
-        if ln.strip() == target:
-            lines.insert(i + 1, new_line)
-            inserted = True
-            break
-    if not inserted:
-        lines.append(f'\n## {section}\n')
-        lines.append(new_line)
+    insert_at = _find_open_insertion_point(lines)
+    lines.insert(insert_at, new_line)
     _write_task_file(lines)
     return jsonify({'ok': True})
 
 
-@tasks_bp.route('/api/task/<section>/<int:index>', methods=['PUT'])
-def api_task_update(section, index):
+@tasks_bp.route('/api/task/<int:index>', methods=['PUT'])
+def api_task_update(index):
     data = request.get_json(force=True)
-    new_section = data.get('section', section).strip()
     text = data.get('text', '').strip()
     priority = data.get('priority', 'Med').strip()
     context = data.get('context', '').strip()
-    assigned_to = data.get('assigned_to', '').strip()
+    assigned_to = _normalize_assigned_to(data.get('assigned_to', ''))
     status = data.get('status', 'open').strip()
     org = data.get('org', '').strip()
 
@@ -151,7 +165,7 @@ def api_task_update(section, index):
         return jsonify({'ok': False, 'error': 'text required'}), 400
 
     lines = _read_task_lines()
-    li = _find_task_line(lines, section, index)
+    li = _find_task_line(lines, index)
     if li == -1:
         return jsonify({'ok': False, 'error': 'task not found'}), 404
 
@@ -161,33 +175,17 @@ def api_task_update(section, index):
     completion_date = cdm.group(1) if cdm else None
 
     new_line = _format_task_line(text, priority, context, assigned_to,
-                                  new_section, done=was_done,
-                                  completion_date=completion_date, status=status, org=org)
-
-    if new_section == section:
-        lines[li] = new_line
-        _write_task_file(lines)
-    else:
-        lines.pop(li)
-        target = f'## {new_section}'
-        inserted = False
-        for i, ln in enumerate(lines):
-            if ln.strip() == target:
-                lines.insert(i + 1, new_line)
-                inserted = True
-                break
-        if not inserted:
-            lines.append(f'\n## {new_section}\n')
-            lines.append(new_line)
-        _write_task_file(lines)
-
+                                  done=was_done, completion_date=completion_date,
+                                  status=status, org=org)
+    lines[li] = new_line
+    _write_task_file(lines)
     return jsonify({'ok': True})
 
 
-@tasks_bp.route('/api/task/<section>/<int:index>', methods=['DELETE'])
-def api_task_delete(section, index):
+@tasks_bp.route('/api/task/<int:index>', methods=['DELETE'])
+def api_task_delete(index):
     lines = _read_task_lines()
-    li = _find_task_line(lines, section, index)
+    li = _find_task_line(lines, index)
     if li == -1:
         return jsonify({'ok': False, 'error': 'task not found'}), 404
     lines.pop(li)
@@ -195,43 +193,54 @@ def api_task_delete(section, index):
     return jsonify({'ok': True})
 
 
-@tasks_bp.route('/api/task/<section>/<int:index>/complete', methods=['POST'])
-def api_task_complete_new(section, index):
+@tasks_bp.route('/api/task/<int:index>/complete', methods=['POST'])
+def api_task_complete_new(index):
     today = date.today().isoformat()
     lines = _read_task_lines()
-    li = _find_task_line(lines, section, index)
+    li = _find_task_line(lines, index)
     if li == -1:
         return jsonify({'ok': False, 'error': 'task not found'}), 404
     ln = lines[li]
     if not ln.startswith('- [ ] '):
         return jsonify({'ok': False, 'error': 'task already complete'}), 400
-    ln = '- [x] ' + ln[6:]
-    ln = ln.rstrip()
+
+    ln = '- [x] ' + ln[6:].rstrip()
     if 'completed' not in ln:
         ln += f' — completed {today}'
-    lines[li] = ln + '\n'
+    ln += '\n'
+
+    # Move: remove from open list, append to Done section
+    lines.pop(li)
+    insert_at = _find_done_insertion_point(lines)
+    lines.insert(insert_at, ln)
     _write_task_file(lines)
     return jsonify({'ok': True})
 
 
-@tasks_bp.route('/api/task/<section>/<int:index>/restore', methods=['POST'])
-def api_task_restore(section, index):
+@tasks_bp.route('/api/task/<int:index>/restore', methods=['POST'])
+def api_task_restore(index):
     lines = _read_task_lines()
-    li = _find_task_line(lines, section, index)
+    li = _find_task_line(lines, index, done=True)
     if li == -1:
         return jsonify({'ok': False, 'error': 'task not found'}), 404
     ln = lines[li]
     if not ln.startswith('- [x] '):
         return jsonify({'ok': False, 'error': 'task not complete'}), 400
+
     ln = '- [ ] ' + ln[6:]
     ln = re.sub(r'\s*—\s*completed\s+\d{4}-\d{2}-\d{2}', '', ln.rstrip())
-    lines[li] = ln + '\n'
+    ln += '\n'
+
+    # Move: remove from Done, insert before ## Done
+    lines.pop(li)
+    insert_at = _find_open_insertion_point(lines)
+    lines.insert(insert_at, ln)
     _write_task_file(lines)
     return jsonify({'ok': True})
 
 
-@tasks_bp.route('/api/task/<section>/<int:index>/status', methods=['PATCH'])
-def api_task_status_update(section, index):
+@tasks_bp.route('/api/task/<int:index>/status', methods=['PATCH'])
+def api_task_status_update(index):
     data = request.get_json(force=True)
     new_status = data.get('status', '').strip()
 
@@ -240,17 +249,17 @@ def api_task_status_update(section, index):
         return jsonify({'ok': False, 'error': f'status must be one of: {", ".join(valid_statuses)}'}), 400
 
     lines = _read_task_lines()
-    li = _find_task_line(lines, section, index)
+    li = _find_task_line(lines, index)
     if li == -1:
         return jsonify({'ok': False, 'error': 'task not found'}), 404
 
-    task = _parse_task_line(lines[li], section)
+    task = _parse_task_line(lines[li])
     done = new_status == 'Complete'
     completion_date = date.today().isoformat() if done and not task['complete'] else task.get('completion_date')
 
     new_line = _format_task_line(
         task['text'], task['priority'], task['context'], task['assigned_to'],
-        section, done=done, completion_date=completion_date,
+        done=done, completion_date=completion_date,
         status=new_status, org=task.get('org', '')
     )
 
@@ -259,8 +268,8 @@ def api_task_status_update(section, index):
     return jsonify({'ok': True, 'status': new_status})
 
 
-@tasks_bp.route('/api/task/<section>/<int:index>/priority', methods=['PATCH'])
-def api_task_priority_update(section, index):
+@tasks_bp.route('/api/task/<int:index>/priority', methods=['PATCH'])
+def api_task_priority_update(index):
     data = request.get_json(force=True)
     new_priority = data.get('priority', '').strip()
 
@@ -269,18 +278,17 @@ def api_task_priority_update(section, index):
         return jsonify({'ok': False, 'error': f'priority must be one of: {", ".join(valid_priorities)}'}), 400
 
     lines = _read_task_lines()
-    li = _find_task_line(lines, section, index)
+    li = _find_task_line(lines, index)
     if li == -1:
         return jsonify({'ok': False, 'error': 'task not found'}), 404
 
-    task = _parse_task_line(lines[li], section)
+    task = _parse_task_line(lines[li])
 
     new_line = _format_task_line(
         task['text'],
         new_priority,
         task['context'],
         task['assigned_to'],
-        section,
         done=task['complete'],
         completion_date=task.get('completion_date'),
         status=task.get('status', 'New'),
@@ -294,7 +302,7 @@ def api_task_priority_update(section, index):
 
 @tasks_bp.route('/api/tasks/for-org', methods=['GET'])
 def api_tasks_for_org():
-    """Return all open prospect tasks for a given org from the DB."""
+    """Return all open prospect tasks for a given org."""
     org = request.args.get('org', '').strip()
     if not org:
         return jsonify({'error': 'org parameter required'}), 400
@@ -309,7 +317,6 @@ def api_tasks_for_org():
             'status': t.get('status', 'open'),
             'assigned_to': t.get('owner', ''),
             'context': '',
-            'section': t.get('section', 'Fundraising - Me'),
             'index': i,
         })
     return jsonify(results)
@@ -317,7 +324,7 @@ def api_tasks_for_org():
 
 @tasks_bp.route('/api/tasks/prospect', methods=['POST'])
 def api_prospect_task_create():
-    """Create a new prospect task in the DB."""
+    """Create a new prospect task."""
     data = request.get_json(force=True)
     org = data.get('org', '').strip()
     text = data.get('text', '').strip()

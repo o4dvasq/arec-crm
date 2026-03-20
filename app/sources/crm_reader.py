@@ -178,6 +178,27 @@ def load_crm_config() -> dict:
     }
 
 
+def normalize_team_name(raw: str) -> str:
+    """Map full or partial team member names to canonical short (first-name) form.
+
+    Prevents inconsistencies like 'Tony' vs 'Tony Avila' by always storing
+    the short form from the team_map config. Non-team names pass through unchanged.
+    """
+    if not raw or not raw.strip():
+        return raw
+    raw = raw.strip()
+    config = load_crm_config()
+    team_map = config.get('team_map', [])
+    raw_lower = raw.lower()
+    for member in team_map:
+        if (raw_lower == member['full'].lower()
+                or raw_lower == member['short'].lower()
+                or member['full'].lower().startswith(raw_lower)
+                or raw_lower.startswith(member['short'].lower())):
+            return member['short']
+    return raw
+
+
 def get_team_member_email(name: str) -> str:
     """Look up email for an AREC team member by name. Returns empty string if not found.
 
@@ -1286,11 +1307,11 @@ def purge_old_unmatched(days: int = 14) -> None:
 def load_tasks_by_org() -> dict[str, list[dict]]:
     """Parse TASKS.md and return open tasks grouped by org name.
 
-    Returns: { 'UTIMCO': [{'task': '...', 'owner': 'Oscar', 'section': 'Fundraising - Me', 'index': 3, 'priority': 'Hi'}, ...], ... }
+    Returns: { 'UTIMCO': [{'task': '...', 'owner': 'Oscar', 'index': 3, 'priority': 'Hi'}, ...], ... }
 
     Tasks are matched to orgs via the (OrgName) suffix convention.
-    Only open tasks (unchecked) from all sections are included.
-    Each task includes its section name and 0-based index within that section,
+    Only open tasks (unchecked) are included.
+    Each task includes its 0-based index in the flat open-task list,
     matching the Tasks API indexing for edit/delete operations.
     """
     tasks_path = os.path.join(PROJECT_ROOT, "TASKS.md")
@@ -1299,66 +1320,63 @@ def load_tasks_by_org() -> dict[str, list[dict]]:
 
     text = _read_file(tasks_path)
     result: dict[str, list[dict]] = {}
-    current_section = None
-    task_index = 0  # 0-based index within current section
+    task_index = 0
+    in_done = False
 
     for line in text.splitlines():
         stripped = line.strip()
 
-        # Track which section we're in
         if stripped.startswith('## '):
-            current_section = stripped[3:].strip()
-            task_index = 0  # Reset index for each section
+            heading = stripped[3:].strip().lower()
+            in_done = (heading == 'done')
             continue
 
-        # Skip Personal and Done sections
-        if current_section in ('Personal', 'Done', None):
+        if in_done:
             continue
 
-        # Count ALL tasks (open and done) for correct indexing
-        if stripped.startswith('- [ ]') or stripped.startswith('- [x]'):
-            if stripped.startswith('- [x]'):
-                task_index += 1
-                continue  # Skip done tasks but count them
+        if not stripped.startswith('- [ ]') and not stripped.startswith('- [x]'):
+            continue
 
-            # Only process open (unchecked) tasks
-            # Extract priority: **[Hi]** etc
-            pri_match = re.search(r'\*\*\[(\w+)\]\*\*', stripped)
-            priority = pri_match.group(1) if pri_match else 'Med'
-
-            # Extract owner: prefer **@Name**, fall back to — assigned:Name
-            owner_match = re.search(r'\*\*@([^*]+)\*\*', stripped)
-            if owner_match:
-                owner = owner_match.group(1).strip()
-            else:
-                assigned_match = re.search(r'—\s*assigned:(.+)$', stripped)
-                owner = assigned_match.group(1).strip() if assigned_match else 'Oscar'
-
-            # Extract org: (OrgName) at end of line, optionally followed by — assigned:...
-            org_match = re.search(r'\(([^)]+)\)\s*(?:—\s*assigned:[^)]*)?$', stripped)
-            if not org_match:
-                task_index += 1
-                continue  # Not a CRM task
-
-            org_name = org_match.group(1).strip()
-
-            # Extract task description: strip checkbox, priority, owner tag, and trailing (OrgName)
-            desc = stripped
-            desc = re.sub(r'^- \[ \]\s*\*\*\[\w+\]\*\*\s*', '', desc)  # Remove checkbox + priority
-            desc = re.sub(r'\*\*@[^*]+\*\*\s*', '', desc)               # Remove owner tag (supports multi-word names)
-            desc = re.sub(r'\s*—\s*assigned:.*$', '', desc)              # Remove — assigned:Person suffix
-            desc = re.sub(r'\s*\([^)]+\)\s*$', '', desc)                # Remove trailing (OrgName)
-            desc = desc.strip(' —-')                                     # Clean up leftover separators
-
-            result.setdefault(org_name, []).append({
-                'task': desc,
-                'owner': owner,
-                'section': current_section,
-                'index': task_index,
-                'priority': priority,
-            })
-
+        if stripped.startswith('- [x]'):
             task_index += 1
+            continue  # Skip done tasks but count for index
+
+        # Extract priority
+        pri_match = re.search(r'\*\*\[(\w+)\]\*\*', stripped)
+        priority = pri_match.group(1) if pri_match else 'Med'
+
+        # Extract owner
+        owner_match = re.search(r'\*\*@([^*]+)\*\*', stripped)
+        if owner_match:
+            owner = owner_match.group(1).strip()
+        else:
+            assigned_match = re.search(r'—\s*assigned:(.+)$', stripped)
+            owner = assigned_match.group(1).strip() if assigned_match else 'Oscar'
+
+        # Extract org: (OrgName) at end, optionally followed by — assigned:...
+        org_match = re.search(r'\(([^)]+)\)\s*(?:—\s*assigned:[^)]*)?$', stripped)
+        if not org_match:
+            task_index += 1
+            continue  # Not a CRM task
+
+        org_name = org_match.group(1).strip()
+
+        # Build clean description
+        desc = stripped
+        desc = re.sub(r'^- \[ \]\s*\*\*\[\w+\]\*\*\s*', '', desc)
+        desc = re.sub(r'\*\*@[^*]+\*\*\s*', '', desc)
+        desc = re.sub(r'\s*—\s*assigned:.*$', '', desc)
+        desc = re.sub(r'\s*\([^)]+\)\s*$', '', desc)
+        desc = desc.strip(' —-')
+
+        result.setdefault(org_name, []).append({
+            'task': desc,
+            'owner': owner,
+            'index': task_index,
+            'priority': priority,
+        })
+
+        task_index += 1
 
     return result
 
@@ -1443,74 +1461,71 @@ def _parse_org_tagged_task(line: str, section: str) -> dict | None:
 
 
 def get_tasks_for_prospect(org_name: str) -> list[dict]:
-    """Scan TASKS.md for tasks tagged [org: org_name]. Case-insensitive.
+    """Scan TASKS.md for tasks tagged with (org_name). Case-insensitive.
 
-    Each returned task includes 'section_index' — its 0-based position among
-    all tasks (matching or not) within its section. This index is what the
-    /tasks/api/task/<section>/<index> endpoints expect.
+    Each returned task includes 'section_index' — its 0-based position in the
+    flat open-task list. This index matches the /tasks/api/task/<index> endpoints.
     """
     if not os.path.exists(TASKS_MD_PATH):
         return []
     results = []
-    current_section = None
-    section_counter = 0
+    flat_index = 0
+    in_done = False
     org_lower = org_name.lower()
     for line in _read_file(TASKS_MD_PATH).splitlines():
         stripped = line.strip()
         if stripped.startswith('## '):
-            current_section = stripped[3:].strip()
-            section_counter = 0
+            heading = stripped[3:].strip().lower()
+            in_done = (heading == 'done')
             continue
-        if current_section and (stripped.startswith('- [ ] ') or stripped.startswith('- [x] ')):
-            task = _parse_org_tagged_task(line, current_section)
-            if task and task['org'].lower() == org_lower:
-                task['section_index'] = section_counter
+        if stripped.startswith('- [ ] ') or stripped.startswith('- [x] '):
+            task = _parse_org_tagged_task(line, '')
+            if not in_done and task and task['org'].lower() == org_lower:
+                task['section_index'] = flat_index
                 results.append({k: v for k, v in task.items() if k != 'org'})
-            section_counter += 1
+            flat_index += 1
     return results
 
 
 def get_all_prospect_tasks() -> list[dict]:
-    """Scan TASKS.md for all tasks tagged with any [org: ...] tag."""
+    """Scan TASKS.md for all tasks tagged with any org."""
     if not os.path.exists(TASKS_MD_PATH):
         return []
     results = []
-    current_section = None
+    in_done = False
     for line in _read_file(TASKS_MD_PATH).splitlines():
         stripped = line.strip()
         if stripped.startswith('## '):
-            current_section = stripped[3:].strip()
+            heading = stripped[3:].strip().lower()
+            in_done = (heading == 'done')
             continue
-        if current_section:
-            task = _parse_org_tagged_task(line, current_section)
-            if task:
-                results.append(task)
+        task = _parse_org_tagged_task(line, '')
+        if task:
+            results.append(task)
     return results
 
 
 def add_prospect_task(org_name: str, text: str, owner: str,
-                      priority: str = "Med", section: str = "IR / Fundraising") -> bool:
-    """Append a new prospect task to TASKS.md under the specified section.
-    Format: - [ ] **[{priority}]** {text} — [org: {org_name}] [owner: {owner}]
+                      priority: str = "Med") -> bool:
+    """Append a new prospect task to TASKS.md before ## Done.
+    Format: - [ ] **[{priority}]** {text} ({org_name}) — assigned:{owner}
     Returns True on success.
     """
     if not org_name or not text or not owner:
         return False
     if not os.path.exists(TASKS_MD_PATH):
         return False
-    new_line = f'- [ ] **[{priority}]** {text} — [org: {org_name}] [owner: {owner}]\n'
+    owner = normalize_team_name(owner)
+    new_line = f'- [ ] **[{priority}]** {text} ({org_name}) — assigned:{owner}\n'
     with open(TASKS_MD_PATH, 'r', encoding='utf-8') as f:
         lines = f.readlines()
-    target = f'## {section}'
-    inserted = False
+    # Insert before ## Done
+    insert_at = len(lines)
     for i, ln in enumerate(lines):
-        if ln.strip() == target:
-            lines.insert(i + 1, new_line)
-            inserted = True
+        if re.match(r'^## Done', ln.rstrip()):
+            insert_at = i
             break
-    if not inserted:
-        lines.append(f'\n## {section}\n')
-        lines.append(new_line)
+    lines.insert(insert_at, new_line)
     with open(TASKS_MD_PATH, 'w', encoding='utf-8') as f:
         f.writelines(lines)
     return True
