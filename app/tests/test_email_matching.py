@@ -146,3 +146,96 @@ def test_resolve_uses_person_name_not_display_name():
     with patch('sources.email_matching.find_person_by_email', return_value=mock_person):
         result = _resolve_participant('jared@utimco.org', 'J. Brimberry', ORG_LIST)
     assert result['contact'] == 'Jared C. Brimberry'
+
+
+# ---------------------------------------------------------------------------
+# _fuzzy_match_org with aliases
+# ---------------------------------------------------------------------------
+
+def test_fuzzy_match_with_alias():
+    """Display name containing an alias should resolve to canonical org name."""
+    mock_alias_map = {
+        'massmutual': 'Mass Mutual Life Insurance Co.',
+        'mmlic': 'Mass Mutual Life Insurance Co.',
+    }
+    orgs_with_aliases = ['Mass Mutual Life Insurance Co.', 'Blackstone']
+
+    with patch('sources.crm_reader.get_org_aliases_map', return_value=mock_alias_map):
+        with patch('sources.crm_reader.load_organizations'):
+            result = _fuzzy_match_org('MassMutual Investment Group', orgs_with_aliases)
+
+    assert result == 'Mass Mutual Life Insurance Co.'
+
+
+def test_fuzzy_match_alias_case_insensitive():
+    """Alias matching is case-insensitive in fuzzy match."""
+    mock_alias_map = {
+        'massmutual': 'Mass Mutual Life Insurance Co.',  # 10 chars - above threshold
+    }
+    orgs_with_aliases = ['Mass Mutual Life Insurance Co.']
+
+    with patch('sources.crm_reader.get_org_aliases_map', return_value=mock_alias_map):
+        with patch('sources.crm_reader.load_organizations'):
+            result = _fuzzy_match_org('MASSMUTUAL Investments', orgs_with_aliases)
+
+    assert result == 'Mass Mutual Life Insurance Co.'
+
+
+def test_fuzzy_match_alias_respects_6_char_threshold():
+    """Aliases below 6 chars should not match (same threshold as org names)."""
+    mock_alias_map = {
+        'abc': 'ABC Corp',  # Only 3 chars
+    }
+    orgs_with_aliases = ['ABC Corp']
+
+    with patch('sources.crm_reader.get_org_aliases_map', return_value=mock_alias_map):
+        with patch('sources.crm_reader.load_organizations'):
+            result = _fuzzy_match_org('ABC Capital Partners', orgs_with_aliases)
+
+    # Should not match because 'abc' is below the 6-char threshold
+    assert result is None
+
+
+def test_fuzzy_match_prefers_canonical_name_over_alias():
+    """When both canonical name and alias could match, should still return single result."""
+    mock_alias_map = {
+        'stepstone group': 'StepStone',
+    }
+    orgs_with_aliases = ['StepStone']
+
+    with patch('sources.crm_reader.get_org_aliases_map', return_value=mock_alias_map):
+        with patch('sources.crm_reader.load_organizations'):
+            # This display name contains the alias
+            result = _fuzzy_match_org('StepStone Group Holdings', orgs_with_aliases)
+
+    assert result == 'StepStone'
+
+
+def test_fuzzy_match_multiple_aliases_same_org():
+    """Multiple aliases for the same org should still resolve to single canonical name."""
+    mock_alias_map = {
+        'massmutual': 'Mass Mutual Life Insurance Co.',
+        'mass mutual': 'Mass Mutual Life Insurance Co.',
+    }
+    orgs_with_aliases = ['Mass Mutual Life Insurance Co.']
+
+    with patch('sources.crm_reader.get_org_aliases_map', return_value=mock_alias_map):
+        with patch('sources.crm_reader.load_organizations'):
+            # Match via second alias (case-insensitive)
+            result = _fuzzy_match_org('MASS MUTUAL Portfolio', orgs_with_aliases)
+
+    assert result == 'Mass Mutual Life Insurance Co.'
+
+
+def test_fuzzy_match_no_alias_match_returns_none():
+    """When no alias or org name matches, return None."""
+    mock_alias_map = {
+        'massmutual': 'Mass Mutual Life Insurance Co.',
+    }
+    orgs_with_aliases = ['Mass Mutual Life Insurance Co.']
+
+    with patch('sources.crm_reader.get_org_aliases_map', return_value=mock_alias_map):
+        with patch('sources.crm_reader.load_organizations'):
+            result = _fuzzy_match_org('Goldman Sachs', orgs_with_aliases)
+
+    assert result is None

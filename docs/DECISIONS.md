@@ -724,3 +724,49 @@
 - `app/sources/crm_reader.py` — `save_meeting()` signature, fuzzy dedup guard
 - `app/delivery/crm_blueprint.py` — New `/api/offerings` endpoint, validation logic changes
 - `app/templates/crm_meetings.html` — Form reorder, dropdowns, table rendering, prospect status indicator
+
+---
+
+## 2026-03-19 — Brief Cards: Server-Render Initial State, Guard AJAX Load
+
+**Decision:** Brief cards on Prospect Detail and Org Edit pages now server-render their saved content directly in Jinja `{% if %}` blocks. JS `loadProspectBrief()` / `loadOrgBrief()` skip the AJAX fetch if `.brief-narrative` is already present in the DOM.
+
+**Rationale:** Saved brief data was already being loaded by the route and passed to the template, but templates rendered empty containers and JS re-fetched the same data via AJAX on every page load. Any silent failure in that chain (network glitch, JS error, timing issue) caused the brief to display as a placeholder even though the brief existed in `briefs.json`. The fix eliminates the AJAX dependency for displaying already-saved briefs — AJAX is now only needed for the Refresh/Generate action.
+
+**Impact:**
+- `app/delivery/crm_blueprint.py` — `org_edit()` now passes `org_brief_saved`; duplicate block removed from `prospect_detail()`
+- `app/templates/crm_prospect_detail.html` — Jinja server-render for both brief cards; JS guards; `narrativeToHtml()` hardened
+- `app/templates/crm_org_edit.html` — Jinja server-render for org brief card; JS guard; `narrativeToHtml()` hardened
+
+---
+
+## 2026-03-19 — Alias Normalization: Write-Path Only, Read-Path Unchanged
+
+**Decision:** Added `resolve_org_name()` function in `crm_reader.py` that converts org names through alias lookup before storage. Called at 5 write-path endpoints (meeting create/update, prospect create, org contacts add, org notes add). Read-path functions like `get_organization()` are unchanged — they already handle alias fallback via `get_org_by_alias()`.
+
+**Rationale:** The alias system was fully functional for reads (lookup, search, brief synthesis, tony sync matching), but write paths didn't normalize org names before storing data. This caused name drift — meetings, prospects, and notes got saved with variant names (e.g., "MassMutual" instead of "Mass Mutual Life Insurance Co."), creating broken links and orphaned records. Write-path normalization fixes the root cause by storing canonical names consistently.
+
+**Key implementation choices:**
+
+1. **Unknown names pass through** — If no org or alias matches, the original name is stored as-is. This preserves the ability to create meetings for orgs not yet in the CRM without requiring pre-creation.
+
+2. **Case-insensitive matching** — "massmutual" resolves to "Mass Mutual Life Insurance Co." just like "MassMutual" does.
+
+3. **Normalization is silent** — The API doesn't error or warn when it normalizes. The response includes the resolved name so the UI can reflect it.
+
+4. **Idempotent** — `resolve_org_name(resolve_org_name(x)) == resolve_org_name(x)`
+
+5. **Email matching enhanced** — `_fuzzy_match_org()` in `email_matching.py` now builds a combined candidate list of org names + aliases, each mapping to its canonical org name. This allows fuzzy matching on aliases while still returning canonical names. The 6-char overlap threshold and single-match-only rule are preserved.
+
+6. **Aliases field visible on Org Detail** — Added Aliases row to org summary card (between Domain and Notes) with inline editing (same pattern as Type/Domain). Saves via existing PATCH `/api/org/<name>` endpoint which already accepts `aliases`.
+
+7. **No retroactive cleanup** — Existing data is not migrated by this spec. `resolve_org_name()` only affects new writes. Old meetings/prospects with variant names remain as-is (alias-based reads handle them correctly).
+
+**Impact:**
+- `app/sources/crm_reader.py` — New `resolve_org_name()` function
+- `app/delivery/crm_blueprint.py` — 5 write-path endpoints updated
+- `app/sources/email_matching.py` — `_fuzzy_match_org()` enhanced to check aliases
+- `app/templates/crm_org_edit.html` — Aliases field added to summary card
+- `app/tests/test_resolve_org_name.py` — New test file (11 tests)
+- `app/tests/test_email_matching.py` — 6 new alias-based fuzzy matching tests
+

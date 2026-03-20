@@ -302,6 +302,33 @@ def get_org_aliases_map() -> dict:
     return alias_map
 
 
+def resolve_org_name(name: str) -> str:
+    """Return the canonical org name if the input matches an org or alias.
+
+    Returns the original name unchanged if no match is found (allows
+    meetings/prospects for orgs not yet in the CRM).
+
+    Case-insensitive matching on both org names and aliases.
+    """
+    if not name or not name.strip():
+        return name
+    name = name.strip()
+
+    # 1. Exact match against org names (case-insensitive)
+    orgs = load_organizations()
+    for org in orgs:
+        if org['name'].lower() == name.lower():
+            return org['name']  # Return with canonical casing
+
+    # 2. Alias lookup
+    canonical = get_org_by_alias(name)
+    if canonical:
+        return canonical
+
+    # 3. No match — pass through
+    return name
+
+
 def write_organization(name: str, data: dict) -> None:
     """Update fields for an existing org. Preserves all fields."""
     # Canonical field order — any fields present in data are written in this

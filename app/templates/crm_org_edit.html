@@ -60,7 +60,7 @@
 
     /* Brief */
     .brief-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
-    .brief-title { font-size: 11px; font-weight: 600; letter-spacing: 0.07em; text-transform: uppercase; color: #94a3b8; border-left: 3px solid #2563eb; padding-left: 8px; }
+    .brief-title { font-size: 11px; font-weight: 600; letter-spacing: 0.07em; text-transform: uppercase; color: #94a3b8; }
     .brief-ts { font-size: 11px; color: #94a3b8; font-weight: 400; margin-left: 6px; opacity: 0.7; }
     .brief-narrative { color: #cbd5e1; line-height: 1.7; font-size: 14px; }
     .brief-narrative p { margin-bottom: 0.85rem; }
@@ -70,6 +70,22 @@
     .loading-pulse { width: 8px; height: 8px; border-radius: 50%; background: #2563eb; animation: pulse 1.2s ease infinite; flex-shrink: 0; }
     .btn-sm { background: none; border: 1px solid #475569; color: #94a3b8; font-size: 12px; padding: 3px 10px; border-radius: 4px; cursor: pointer; transition: border-color 0.15s, color 0.15s; }
     .btn-sm:hover { border-color: #2563eb; color: #60a5fa; }
+    .btn-primary { background: #2563eb; border: 1px solid #2563eb; color: #fff; font-size: 12px; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-weight: 500; transition: background 0.15s; }
+    .btn-primary:hover { background: #1d4ed8; }
+    .btn-ghost { background: none; border: 1px solid #475569; color: #94a3b8; font-size: 12px; padding: 6px 14px; border-radius: 6px; cursor: pointer; transition: border-color 0.15s, color 0.15s; }
+    .btn-ghost:hover { border-color: #94a3b8; color: #e2e8f0; }
+
+    /* Add Prospect form */
+    .form-group { display: flex; flex-direction: column; gap: 4px; }
+    .form-group label { font-size: 0.75rem; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 500; }
+    .form-group select,
+    .form-group input {
+      width: 100%; padding: 6px 10px; border: 1px solid #334155; border-radius: 6px;
+      background: #0f172a; color: #e2e8f0; font-size: 0.875rem; font-family: inherit;
+      transition: border-color 0.15s;
+    }
+    .form-group select:focus,
+    .form-group input:focus { border-color: #3b82f6; outline: none; }
 
     .saved-flash { animation: saved-pulse 0.6s ease; }
     @keyframes saved-pulse { 0%,100% { border-color: #334155; } 50% { border-color: #22c55e; } }
@@ -207,7 +223,12 @@
           {{ org_data.Domain or '<span class="muted">—</span>' | safe }}
         </div>
       </div>
-      <div><!-- spacer --></div>
+      <div>
+        <div class="field-label">Aliases</div>
+        <div class="field-value editable" id="aliases-display" onclick="startEdit('aliases', this)">
+          {{ org_data.Aliases or '<span class="muted">—</span>' | safe }}
+        </div>
+      </div>
     </div>
     <div style="margin-top:1.5rem;padding-top:1.5rem;border-top:1px solid #334155;">
       <h2 class="section-title">Contacts</h2>
@@ -253,13 +274,67 @@
     </div>
   {% endif %}
 
+  <!-- Add Prospect Form -->
+  <div id="add-prospect-panel" style="display:none; margin-bottom: 20px;">
+    <div class="card" style="border: 1px dashed #475569;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+        <span style="font-size:0.8rem; font-weight:600; color:#cbd5e1; text-transform:uppercase; letter-spacing:0.05em;">Add Prospect</span>
+        <button onclick="closeAddProspectPanel()" style="background:none; border:none; color:#94a3b8; cursor:pointer; font-size:16px;" title="Close">✕</button>
+      </div>
+      <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:16px; margin-bottom:16px;">
+        <div class="form-group">
+          <label>Offering</label>
+          <select id="new-prospect-offering">
+            {% for o in offerings %}
+            <option value="{{ o.name }}">{{ o.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Stage</label>
+          <select id="new-prospect-stage">
+            {% for s in config.get('stages', []) %}
+            <option value="{{ s }}"{{ ' selected' if s == '1. Prospect' else '' }}>{{ s }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Target</label>
+          <input type="text" id="new-prospect-target" placeholder="$0" />
+        </div>
+      </div>
+      <div style="display:flex; gap:8px; align-items:center;">
+        <button class="btn-primary" onclick="submitNewProspect()">Create Prospect</button>
+        <button class="btn-ghost" onclick="closeAddProspectPanel()">Cancel</button>
+      </div>
+      <div id="add-prospect-error" style="color:#f87171; font-size:12px; margin-top:8px; display:none;"></div>
+    </div>
+  </div>
+
+  <div style="margin-bottom: 20px;">
+    <button class="btn btn-primary btn-sm" id="btn-add-prospect" onclick="openAddProspectPanel()">+ Add Prospect</button>
+  </div>
+
   <!-- Org Brief (GREEN left-border — native, refreshable) -->
   <div class="card card-native" id="brief-card">
     <div id="org-brief">
-      <div class="brief-loading">
-        <div class="loading-pulse"></div>
-        <span>Loading brief...</span>
+      {% if org_brief_saved and org_brief_saved.narrative %}
+      <div class="brief-header">
+        <span class="brief-title">Org Brief{% if org_brief_saved.generated_at %} <span class="brief-ts" title="Generated {{ org_brief_saved.generated_at }}">{{ org_brief_saved.generated_at[:10] }}</span>{% endif %}</span>
+        <button class="btn-sm" onclick="refreshOrgBrief()">⟳ Refresh</button>
       </div>
+      <div class="brief-narrative">
+        {% for para in org_brief_saved.narrative.split('\n\n') %}
+        {% if para.strip() %}<p>{{ para.strip() | e }}</p>{% endif %}
+        {% endfor %}
+      </div>
+      {% else %}
+      <div class="brief-header">
+        <span class="brief-title">ORG BRIEF</span>
+        <button class="btn-sm" onclick="refreshOrgBrief()">⟳ Generate</button>
+      </div>
+      <p style="color:#94a3b8;font-size:14px;">No org brief yet. Click Generate to create one.</p>
+      {% endif %}
     </div>
   </div>
 
@@ -315,9 +390,10 @@ const ORG_TYPES = {{ config.org_types | tojson }};
 
 // Current data (mirrors what's on the server)
 const orgData = {
-  type:   {{ (org_data.Type or '') | tojson }},
-  domain: {{ (org_data.Domain or '') | tojson }},
-  notes:  {{ (org_data.Notes or '') | tojson }},
+  type:    {{ (org_data.Type or '') | tojson }},
+  domain:  {{ (org_data.Domain or '') | tojson }},
+  aliases: {{ (org_data.Aliases or '') | tojson }},
+  notes:   {{ (org_data.Notes or '') | tojson }},
 };
 
 function escHtml(str) {
@@ -351,6 +427,12 @@ function startEdit(field, el) {
     input = document.createElement('input');
     input.type = 'text'; input.value = current;
     input.placeholder = 'e.g. example.com';
+    input.addEventListener('blur',    () => save(field, input.value.trim(), el));
+    input.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); input.blur(); } if (e.key === 'Escape') renderField(el, field); });
+  } else if (field === 'aliases') {
+    input = document.createElement('input');
+    input.type = 'text'; input.value = current;
+    input.placeholder = 'e.g. MassMutual, MMLIC';
     input.addEventListener('blur',    () => save(field, input.value.trim(), el));
     input.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); input.blur(); } if (e.key === 'Escape') renderField(el, field); });
   } else {
@@ -398,11 +480,18 @@ function narrativeToHtml(text) {
   return text.trim()
     .split(/\n\n+/)
     .filter(p => p.trim())
-    .map(p => `<p>${escHtml(p.trim().replace(/\n/g, ' '))}</p>`)
+    .map(p => {
+      let safe = escHtml(p.trim().replace(/\n/g, ' '));
+      safe = safe.replace(/`/g, '&#96;').replace(/\$\{/g, '&#36;{');
+      return `<p>${safe}</p>`;
+    })
     .join('');
 }
 
 async function loadOrgBrief() {
+  // Skip AJAX if server already rendered the brief
+  const existing = document.querySelector('#org-brief .brief-narrative');
+  if (existing && existing.textContent.trim()) return;
   try {
     const resp = await fetch(`/crm/api/org/${encodeURIComponent(ORG_NAME)}`);
     const data = await resp.json();
@@ -413,6 +502,7 @@ async function loadOrgBrief() {
       renderOrgBriefEmpty();
     }
   } catch (err) {
+    console.warn('[brief] loadOrgBrief failed:', err);
     renderOrgBriefError();
   }
 }
@@ -676,6 +766,40 @@ function toggleSection(name) {
         toggle.textContent = '▼';
       });
     });
+  }
+}
+
+// ── Add Prospect ──
+function openAddProspectPanel() {
+  document.getElementById('add-prospect-panel').style.display = '';
+  document.getElementById('btn-add-prospect').style.display = 'none';
+  document.getElementById('add-prospect-error').style.display = 'none';
+}
+
+function closeAddProspectPanel() {
+  document.getElementById('add-prospect-panel').style.display = 'none';
+  document.getElementById('btn-add-prospect').style.display = '';
+}
+
+async function submitNewProspect() {
+  const offering = document.getElementById('new-prospect-offering').value;
+  const stage = document.getElementById('new-prospect-stage').value;
+  const target = document.getElementById('new-prospect-target').value.trim() || '$0';
+  const errEl = document.getElementById('add-prospect-error');
+  errEl.style.display = 'none';
+
+  try {
+    const resp = await fetch('/crm/api/prospect', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ org: ORG_NAME, offering, stage, target })
+    });
+    const data = await resp.json();
+    if (!resp.ok) throw new Error(data.error || 'Failed to create prospect');
+    window.location.reload();
+  } catch (err) {
+    errEl.textContent = err.message;
+    errEl.style.display = '';
   }
 }
 </script>

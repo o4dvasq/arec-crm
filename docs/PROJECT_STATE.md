@@ -6,7 +6,7 @@
 ---
 
 ## Last Updated
-2026-03-19 — SPEC_briefing-persistence implementation
+2026-03-19 — SPEC_alias-normalization implementation
 
 ---
 
@@ -31,6 +31,13 @@
   - Column header and label renamed "Organization" → "Prospect"
   - **Three-tier deduplication**: graph_event_id exact match + org+date±1 day fuzzy match (any status) + read-time dedup safety net
 - **Organization Aliases**: Single source of truth is the `Aliases` field on each org in `organizations.md`. Used by search, briefs, merge, and Tony sync. `crm/org_aliases.json` retired and deleted.
+- **Alias Normalization (NEW — FULLY WORKING)**: Write-path normalization prevents org name drift
+  - `resolve_org_name()` function in `crm_reader.py` converts aliases to canonical names before storage
+  - All 5 write endpoints normalized: meeting create/update, prospect create, org contacts add, org notes add
+  - Aliases field visible and editable on Org Detail page (inline edit, same pattern as Type/Domain)
+  - Email fuzzy matching enhanced to check aliases (6-char threshold preserved)
+  - Unknown org names pass through unchanged (allows meetings for orgs not yet in CRM)
+  - Case-insensitive matching on both org names and aliases
 - **Organization Merge**: Full merge workflow on org edit page — select target, preview data migration, execute atomic merge, redirect to target org with success flash
 - **Prospect Detail Page**: Context-dependent color coding with clear ownership boundaries (FULLY WORKING):
   - **Native sections (GREEN left-border)**: Prospect Card, Prospect Brief, Notes Log
@@ -41,13 +48,14 @@
   - Org Brief is strictly read-only — shows "Generate one from the Org page" when empty
   - **Both brief cards server-rendered** — saved briefs appear instantly on page load without AJAX
 - **Org Edit Page**: Context-dependent color coding with clear ownership boundaries (FULLY WORKING):
-  - **Native sections (GREEN left-border)**: Org Card (Type, Domain, Contacts), Org Brief, Org Notes Log, Meeting Summaries, Email History
+  - **Native sections (GREEN left-border)**: Org Card (Type, Domain, Aliases, Contacts), Org Brief, Org Notes Log, Meeting Summaries, Email History
   - **Cross-reference sections (BLUE right-border)**: Prospect summary cards (one per offering, read-only)
   - Notes field removed from org top card — now a standalone Notes Log card
   - Add Note button styled consistently (blue, not white)
   - Brief renamed "Org Brief" (was "Relationship Brief")
   - No auto-synthesis on page load — shows "Generate" button when no cached brief exists
   - **Org brief server-rendered** — saved brief appears instantly on page load without AJAX
+  - **Aliases field editable** — click to edit, comma-separated list, saves via PATCH endpoint
 - **Tony Excel Sync**: Daily Egnyte polling for Tony's Excel tracker, fuzzy org matching with alias support (`crm_reader.get_org_aliases_map()`), auto-syncs high-confidence changes to CRM with prospect notes integration
 - **Pipeline Polish**: At a Glance text with 2-line wrap, Tasks column 350px width, assignee initials in parentheses, markdown stripping throughout
 - **Person Name Linking**: App-wide clickable person names linking to `/crm/people/<slug>` using client-side `linkifyPersonNames()` function
@@ -62,26 +70,38 @@
 
 ## What Was Just Completed (March 19, 2026)
 
-### Briefing Persistence & Cross-Page Display Fix
+### Alias Normalization & Org Detail Display
 
-**Spec:** `SPEC_briefing-persistence.md` (moved to `docs/specs/implemented/`)
+**Spec:** `SPEC_alias-normalization.md` (moved to `docs/specs/implemented/`)
 
 **What Was Done:**
-- ✅ Removed duplicate code block in `prospect_detail()` route (lines 388-399 were duplicated)
-- ✅ `org_edit()` route now loads and passes `org_brief_saved` to template (was missing — root cause of org brief not appearing on Prospect Detail)
-- ✅ `crm_prospect_detail.html`: Prospect Brief card server-renders saved content via Jinja `{% if %}` blocks
-- ✅ `crm_prospect_detail.html`: Org Brief card server-renders saved content via Jinja `{% if %}` blocks
-- ✅ `crm_org_edit.html`: Org Brief card server-renders saved content via Jinja `{% if %}` blocks
-- ✅ `loadProspectBrief()` and `loadOrgBrief()` in prospect detail skip AJAX fetch if `.brief-narrative` already present
-- ✅ `loadOrgBrief()` in org edit skips AJAX fetch if `.brief-narrative` already present
-- ✅ `narrativeToHtml()` hardened in both templates (backtick → `&#96;`, `${` → `&#36;{`)
-- ✅ `console.warn` added to all brief AJAX catch blocks
-- ✅ All 67 tests passing
+- ✅ Added `resolve_org_name()` function in `crm_reader.py` — converts variant/alias names to canonical names
+- ✅ Updated 5 write-path endpoints in `crm_blueprint.py` to call `resolve_org_name()`:
+  - POST `/api/meetings` — normalizes org before creation
+  - PATCH `/api/meetings/<id>` — normalizes org if updated
+  - POST `/api/prospect` — normalizes org before creation
+  - POST `/api/org/<name>/contacts` — normalizes org_name from URL
+  - POST `/api/org/<name>/notes` — normalizes name from URL
+- ✅ Enhanced `_fuzzy_match_org()` in `email_matching.py` to check aliases in addition to org names (preserves 6-char threshold)
+- ✅ Added Aliases field to Org Detail page (`crm_org_edit.html`) with inline editing (same pattern as Type/Domain)
+- ✅ Created comprehensive test suite: `test_resolve_org_name.py` (11 tests)
+- ✅ Added alias-based fuzzy matching tests to `test_email_matching.py` (6 new tests)
+- ✅ All 84 tests passing
 
 **Files Modified:**
+- `app/sources/crm_reader.py`
 - `app/delivery/crm_blueprint.py`
-- `app/templates/crm_prospect_detail.html`
+- `app/sources/email_matching.py`
 - `app/templates/crm_org_edit.html`
+
+**Files Created:**
+- `app/tests/test_resolve_org_name.py`
+
+**Business Impact:**
+- Prevents org name drift — new meetings/prospects/notes will always use canonical org names
+- Aliases visible and manageable on Org Detail page
+- Email matching now finds orgs by their aliases (e.g., "MassMutual" resolves to "Mass Mutual Life Insurance Co.")
+- Unknown org names still pass through (meetings for orgs not in CRM still work)
 
 ---
 
@@ -93,8 +113,8 @@
 
 ## In Progress / Next Up
 
-### 1. One Pending Spec
-- `docs/specs/SPEC_meeting-org-primary.md` — ready for implementation
+### 1. No Pending Specs
+All specs in `docs/specs/` have been implemented.
 
 ### 2. Tony Sync Setup Required
 - **EGNYTE_API_TOKEN needed** — Must be obtained from Egnyte developer console and added to `app/.env`
@@ -113,6 +133,7 @@ After adding `Mail.ReadWrite.Shared` scope, the cached MSAL token needs to be re
 - **MetLife contact ambiguity**: "Chris Aiken" and "Christopher Aiken" both exist; migration chose Chris Aiken (Stage 5). Worth auditing manually.
 - **33 orgs without primary contact** — Migration skipped contacts where the prospect's Primary Contact string didn't match a contact file (e.g., "TBD", informal descriptions, email-appended names). These orgs show "—" for primary contact.
 - **meeting_history.md still exists** — Old format file retained for backward compatibility with org detail pages that use `load_meeting_history()`. The two systems (meeting_history.md + meetings.json) are not yet unified.
+- **Existing data not retroactively normalized** — `resolve_org_name()` only affects new writes. Old meetings/prospects with variant names remain as-is (alias-based reads handle them correctly).
 
 ---
 

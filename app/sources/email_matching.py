@@ -40,19 +40,36 @@ def _is_internal(email: str) -> bool:
 def _fuzzy_match_org(display_name: str, org_names: list[str]) -> str | None:
     """
     Substring fuzzy match: find a single org whose name appears in or contains
-    the display name (≥6 character overlap). Returns org name or None.
-    If multiple orgs match, return None (ambiguous).
+    the display name (≥6 character overlap). Also checks aliases.
+    Returns canonical org name or None. If multiple orgs match, return None (ambiguous).
     """
+    from sources.crm_reader import get_org_aliases_map, load_organizations
+
     display_lower = display_name.lower()
     matches = []
 
+    # Build a combined candidate list: org names + all aliases
+    # Each candidate maps to its canonical org name
+    candidates = {}  # {search_string_lower: canonical_org_name}
+
     for org_name in org_names:
-        org_lower = org_name.lower()
-        overlap = min(len(org_lower), len(display_lower))
+        candidates[org_name.lower()] = org_name
+
+    # Add aliases
+    alias_map = get_org_aliases_map()  # {alias_lower: canonical_org_name}
+    for alias_lower, canonical_name in alias_map.items():
+        # Only include if the canonical org is in org_names
+        if canonical_name in org_names:
+            candidates[alias_lower] = canonical_name
+
+    # Fuzzy match against all candidates
+    for candidate_lower, canonical_name in candidates.items():
+        overlap = min(len(candidate_lower), len(display_lower))
         if overlap < 6:
             continue
-        if org_lower in display_lower or display_lower in org_lower:
-            matches.append(org_name)
+        if candidate_lower in display_lower or display_lower in candidate_lower:
+            if canonical_name not in matches:
+                matches.append(canonical_name)
 
     if len(matches) == 1:
         return matches[0]

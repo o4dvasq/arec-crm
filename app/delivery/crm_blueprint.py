@@ -52,6 +52,7 @@ from sources.crm_reader import (
     find_person_by_email,
     get_merge_preview, merge_organizations,
     get_primary_contact, set_primary_contact, clear_primary_contact,
+    resolve_org_name,
 )
 from sources.relationship_brief import (
     find_people_files, find_glossary_entry, find_meeting_summaries, find_org_tasks,
@@ -961,11 +962,6 @@ def api_person_enrich_save(slug):
 # Offerings / Prospects API
 # ---------------------------------------------------------------------------
 
-@crm_bp.route('/api/offerings')
-@login_required
-def api_offerings():
-    return jsonify(load_offerings())
-
 
 @crm_bp.route('/api/prospects')
 @login_required
@@ -1354,6 +1350,7 @@ def api_org_notes_get(name):
 @login_required
 def api_org_notes_post(name):
     """Add a new org-level note."""
+    name = resolve_org_name(name)
     data = request.get_json(force=True)
     author = (g.user.get('display_name') or g.user.get('email') or 'Unknown').strip()
     text = (data.get('text') or '').strip()
@@ -1372,6 +1369,7 @@ def api_org_notes_post(name):
 @login_required
 def api_org_add_contact(org_name):
     """Add a contact to an organization."""
+    org_name = resolve_org_name(org_name)
     data = request.get_json(force=True)
     name = data.get('name', '').strip()
     title = data.get('title', '').strip()
@@ -1500,6 +1498,7 @@ def api_prospect_save():
 def api_prospect_create():
     data = request.get_json(force=True)
     org = data.get('org', '').strip()
+    org = resolve_org_name(org) if org else ''
     offering = data.get('offering', '').strip()
     if not org or not offering:
         return jsonify({'error': 'org and offering are required'}), 400
@@ -1928,6 +1927,7 @@ def api_meetings_create():
     """Create a new meeting."""
     data = request.get_json(force=True)
     org = data.get('org', '').strip()
+    org = resolve_org_name(org) if org else ''
     offering = data.get('offering', '').strip()
     meeting_date = data.get('meeting_date', '').strip()
 
@@ -1978,6 +1978,9 @@ def api_meetings_get(meeting_id):
 def api_meetings_update(meeting_id):
     """Update fields on a meeting."""
     data = request.get_json(force=True)
+    # Normalize org name if present
+    if 'org' in data and data['org']:
+        data['org'] = resolve_org_name(data['org'].strip())
     updated = update_meeting(meeting_id, **data)
     if not updated:
         abort(404)
