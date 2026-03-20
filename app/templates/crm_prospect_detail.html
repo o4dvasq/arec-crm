@@ -833,11 +833,22 @@
             <div id="prospect-brief">
                 <div class="brief-header">
                     <div class="section-title">Prospect Brief</div>
+                    {% if prospect_brief_saved and prospect_brief_saved.narrative %}
+                    <button class="btn-refresh" onclick="refreshProspectBrief()">⟳ Refresh</button>
+                    {% else %}
+                    <button class="btn-refresh" onclick="refreshProspectBrief()">⟳ Generate</button>
+                    {% endif %}
                 </div>
-                <div class="brief-loading">
-                    <div class="loading-pulse"></div>
-                    <span>Loading brief...</span>
+                {% if prospect_brief_saved and prospect_brief_saved.narrative %}
+                <div class="brief-narrative">{{ prospect_brief_saved.narrative | e }}</div>
+                {% if prospect_brief_saved.generated_at %}
+                <div class="brief-refreshed-ts">Last refreshed: {{ prospect_brief_saved.generated_at }}</div>
+                {% endif %}
+                {% else %}
+                <div style="color:var(--muted);font-size:13px;padding:0.75rem 0;font-style:italic;">
+                    No prospect brief yet. Click Generate to create one.
                 </div>
+                {% endif %}
             </div>
         </div>
 
@@ -848,10 +859,16 @@
                     <div class="section-title" style="margin-bottom:0;">Org Brief</div>
                     <a href="/crm/org/{{ org }}/edit" class="crossref-badge">From Org →</a>
                 </div>
-                <div class="brief-loading" style="margin-top:1rem;">
-                    <div class="loading-pulse"></div>
-                    <span>Loading org brief...</span>
+                {% if org_brief_saved and org_brief_saved.narrative %}
+                <div class="brief-narrative" style="margin-top:1rem;">{{ org_brief_saved.narrative | e }}</div>
+                {% if org_brief_saved.generated_at %}
+                <div class="brief-refreshed-ts">Last refreshed: {{ org_brief_saved.generated_at }}</div>
+                {% endif %}
+                {% else %}
+                <div style="color:var(--muted);font-size:13px;padding:0.75rem 0;font-style:italic;margin-top:1rem;">
+                    No org brief yet. <a href="/crm/org/{{ org }}/edit" style="color:var(--accent);">Generate one from the Org page.</a>
                 </div>
+                {% endif %}
             </div>
         </div>
 
@@ -1635,6 +1652,14 @@
         if (t == null) return '';
         const map = {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'};
         return String(t).replace(/[&<>"']/g, c => map[c]);
+    }
+
+    function stripMarkdown(text) {
+        if (!text) return '';
+        return text.replace(/\*\*(.+?)\*\*/g, '$1')
+                   .replace(/\*(.+?)\*/g, '$1')
+                   .replace(/__(.+?)__/g, '$1')
+                   .replace(/_(.+?)_/g, '$1');
     }
 
     // ============================================

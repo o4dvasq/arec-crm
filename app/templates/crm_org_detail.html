@@ -473,9 +473,18 @@ async function loadOrgBrief(savedBrief) {
     renderOrgBrief(savedBrief.narrative, savedBrief.generated_at);
     return;
   }
-  // No saved brief — auto-synthesize on first visit
-  showBriefLoading();
-  await _synthesizeOrgBrief();
+  // No saved brief — show empty state with Generate button (NEVER auto-synthesize)
+  renderOrgBriefEmpty();
+}
+
+function renderOrgBriefEmpty() {
+  document.getElementById('org-brief').innerHTML = `
+    <div class="brief-header">
+      <span class="brief-title">Relationship Brief</span>
+      <button class="btn-brief-refresh" onclick="refreshOrgBrief()">⟳ Generate</button>
+    </div>
+    <div class="muted" style="padding:0.5rem 0;font-style:italic;">No org brief yet. Click Generate to create one.</div>
+  `;
 }
 
 async function refreshOrgBrief() {
