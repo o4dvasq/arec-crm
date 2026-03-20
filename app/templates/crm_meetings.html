@@ -382,9 +382,10 @@ function renderTable() {
     const date = formatDate(m.meeting_date);
     row.innerHTML += `<td style="color:#cbd5e1">${date}</td>`;
 
-    // Organization — show org name with optional offering badge
+    // Organization — clickable link to org detail, with optional offering badge
     if (m.org) {
-      let orgCell = `<div>${m.org}`;
+      const orgUrl = `/crm/org/${encodeURIComponent(m.org)}`;
+      let orgCell = `<div><a href="${orgUrl}" class="org-link" onclick="event.stopPropagation()">${m.org}</a>`;
       if (m.offering) {
         orgCell += `<div style="font-size:11px;color:#94a3b8;margin-top:2px;">${m.offering}</div>`;
       }

@@ -135,6 +135,19 @@
             outline: none;
             border-color: var(--accent);
         }
+        .contact-field-row select {
+            background: var(--bg-primary);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            color: var(--text);
+            padding: 0.5rem 0.75rem;
+            font-size: 0.9rem;
+            font-family: inherit;
+        }
+        .contact-field-row select:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
         .contact-actions {
             display: flex;
             gap: 0.5rem;
@@ -461,14 +474,25 @@ async function loadPersonDetail() {
 // ============================================
 // PROFILE EDIT
 // ============================================
-function showProfileEdit() {
-    fetch(`/crm/api/person-data?name=${enc(PERSON_NAME)}`).then(r => r.json()).then(data => {
-        const profile = data.profile || {};
-        document.getElementById('person-fields').innerHTML = `
+async function showProfileEdit() {
+    const [personResp, orgsResp] = await Promise.all([
+        fetch(`/crm/api/person-data?name=${enc(PERSON_NAME)}`),
+        fetch('/crm/api/orgs')
+    ]);
+    const data = await personResp.json();
+    const orgs = await orgsResp.json();
+    const profile = data.profile || {};
+    const currentCompany = profile.company || '';
+    const orgOptions = ['', ...orgs.map(o => o.name)].map(name => {
+        const selected = name === currentCompany ? ' selected' : '';
+        const label = name || '-- Select --';
+        return `<option value="${esc(name)}"${selected}>${esc(label)}</option>`;
+    }).join('');
+    document.getElementById('person-fields').innerHTML = `
             <div class="contact-edit-form">
                 <div class="contact-field-row">
                     <label>Company</label>
-                    <input type="text" id="edit-company" value="${esc(profile.company || '')}">
+                    <select id="edit-company">${orgOptions}</select>
                 </div>
                 <div class="contact-field-row">
                     <label>Title</label>
@@ -488,7 +512,6 @@ function showProfileEdit() {
                 </div>
             </div>
         `;
-    });
 }
 
 async function saveProfileEdit() {

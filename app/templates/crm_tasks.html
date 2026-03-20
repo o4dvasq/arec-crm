@@ -240,6 +240,51 @@
 
         .view-panel { display: none; }
         .view-panel.active { display: block; }
+
+        /* By-owner inline layout: task + prospect + priority on one line */
+        .task-body--inline {
+            display: flex;
+            align-items: baseline;
+            gap: 10px;
+            min-width: 0;
+        }
+
+        .task-body--inline .task-text {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .task-right {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex-shrink: 0;
+            white-space: nowrap;
+        }
+
+        .task-org-link {
+            font-size: 13px;
+            font-weight: 600;
+            color: #94a3b8;
+            text-decoration: none;
+        }
+
+        .task-org-link:hover {
+            color: #cbd5e1;
+            text-decoration: underline;
+        }
+
+        .task-org-label {
+            font-size: 13px;
+            font-weight: 600;
+            color: #94a3b8;
+        }
+
+        .task-owner-label {
+            font-size: 13px;
+            font-weight: 600;
+            color: #94a3b8;
+        }
     </style>
 </head>
 <body>
@@ -293,12 +338,14 @@
                      data-org="{{ task.org | e }}"
                      data-text="{{ task.text | e }}">
                     <button class="btn-complete" onclick="completeTask(this)" title="Mark complete"></button>
-                    <div class="task-body">
-                        <div class="task-text">{{ task.text }}</div>
-                        <div class="task-meta">
-                            <span class="task-subtitle">{{ task.owner }}</span>
+                    <div class="task-body task-body--inline">
+                        <span class="task-text">{{ task.text }}</span>
+                        <span class="task-right">
+                            {% if task.owner %}
+                            <span class="task-owner-label">{{ task.owner }}</span>
+                            {% endif %}
                             <span class="pri-badge pri-{{ task.priority | lower }}">{{ task.priority }}</span>
-                        </div>
+                        </span>
                     </div>
                 </div>
                 {% endfor %}
@@ -345,12 +392,16 @@
                      data-org="{{ task.org | e }}"
                      data-text="{{ task.text | e }}">
                     <button class="btn-complete" onclick="completeTask(this)" title="Mark complete"></button>
-                    <div class="task-body">
-                        <div class="task-text">{{ task.text }}</div>
-                        <div class="task-meta">
-                            <span class="task-subtitle">{{ task.org }}</span>
+                    <div class="task-body task-body--inline">
+                        <span class="task-text">{{ task.text }}</span>
+                        <span class="task-right">
+                            {% if task.org and task.detail_url and task.detail_url != '#' %}
+                            <a href="{{ task.detail_url }}" class="task-org-link">{{ task.org }}</a>
+                            {% elif task.org %}
+                            <span class="task-org-label">{{ task.org }}</span>
+                            {% endif %}
                             <span class="pri-badge pri-{{ task.priority | lower }}">{{ task.priority }}</span>
-                        </div>
+                        </span>
                     </div>
                 </div>
                 {% endfor %}

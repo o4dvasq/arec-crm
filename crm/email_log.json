@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "lastScan": "2026-03-11T13:00:00Z",
+  "lastScan": "2026-03-19T22:30:00Z",
   "emails": [
     {
       "messageId": "AAMkAGViNGIxMDQ5LWZjY2QtNDZkMi05ZTg5LWU5YmRlYWJkOTJiNgBGAAAAAAAr8VtFm5eYT6h6dPbDsL3mBwBcpXk_cxTOQo3-YBj8yLqWAAAHuf0TAABcpXk_cxTOQo3-YBj8yLqWAATu5aWkAAA=",
@@ -915,6 +915,50 @@
       "confidence": 0.95,
       "summary": "Oscar asked StepStone (Tom Hester, Aayaan Mehta, Andrew Bradley) for a DD catch-up call next week, highlighting significant recent fundraising progress.",
       "outlookUrl": "https://outlook.office365.com/owa/?ItemID=AAMkAGViNGIxMDQ5LWZjY2QtNDZkMi05ZTg5LWU5YmRlYWJkOTJiNgBGAAAAAAAr8VtFm5eYT6h6dPbDsL3mBwBcpXk%2BcxTOQo3%2FYBj8yLqWAAAAAAEJAABcpXk%2BcxTOQo3%2FYBj8yLqWAATvE2ySAAA%3D&exvsurl=1"
+    },
+    {
+      "messageId": "AAMkAGViNGIxMDQ5LWZjY2QtNDZkMi05ZTg5LWU5YmRlYWJkOTJiNgBGAAAAAAAr8VtFm5eYT6h6dPbDsL3mBwBcpXk_cxTOQo3-YBj8yLqWAAAAAAEJAABcpXk_cxTOQo3-YBj8yLqWAAUpczP1AAA=",
+      "date": "2026-03-17",
+      "timestamp": "2026-03-17T22:17:29.000Z",
+      "subject": "Future Fund <> Avila Real Estate Capital meeting recap",
+      "from": "oscar@avilacapllc.com",
+      "fromName": "Oscar Vasquez",
+      "to": [
+        "julia.mcardle@futurefund.gov.au",
+        "James.Mckenzie@futurefund.gov.au"
+      ],
+      "cc": [
+        "zachary.reisner@avilacapllc.com",
+        "truman@avilacapllc.com",
+        "mishal@avilacapllc.com",
+        "kevin@avilacapllc.com",
+        "glen@avilacapllc.com",
+        "david.hardy@avilacapllc.com",
+        "tony@avilacapllc.com"
+      ],
+      "orgMatch": "Future Fund",
+      "matchType": "domain",
+      "confidence": 0.99,
+      "summary": "Oscar's detailed meeting recap to Julia McArdle and James McKenzie at Future Fund after March 17 in-person meeting at Fairmont (Irvine). Key takeaways: new Exec Director of Property with APAC focus raises bar for USD strategies; USD hedge cost is headwind; existing Blackstone relationship is central comparison point; structure open (fund/co-invest/SMA); Fund II timeline unlikely but directional guidance in months. AREC committed to deliver: Blackstone comparison, competitive landscape, asymmetric return profile, risk-adjusted benchmarks, Japanese builder angle. Also offered to extend Japan trip to Sydney/Melbourne for follow-up. Builder Forum survey to follow.",
+      "outlookUrl": "https://outlook.office365.com/owa/?ItemID=AAMkAGViNGIxMDQ5LWZjY2QtNDZkMi05ZTg5LWU5YmRlYWJkOTJiNgBGAAAAAAAr8VtFm5eYT6h6dPbDsL3mBwBcpXk%2BcxTOQo3%2FYBj8yLqWAAAAAAEJAABcpXk%2BcxTOQo3%2FYBj8yLqWAAUpczP1AAA%3D&exvsurl=1&viewmodel=ReadMessageItem",
+      "internetMessageId": "<mmv5x7e6.a3fff88e-926a-44d5-a482-c70fdace6552@we.are.superhuman.com>"
+    },
+    {
+      "messageId": "AAMkAGViNGIxMDQ5LWZjY2QtNDZkMi05ZTg5LWU5YmRlYWJkOTJiNgBGAAAAAAAr8VtFm5eYT6h6dPbDsL3mBwBcpXk_cxTOQo3-YBj8yLqWAAAAAAEJAABcpXk_cxTOQo3-YBj8yLqWAAUpczPoAAA=",
+      "date": "2026-03-17",
+      "timestamp": "2026-03-17T14:37:54.000Z",
+      "subject": "Fwd: Future Fund Meeting - Final Materials",
+      "from": "oscar@avilacapllc.com",
+      "fromName": "Oscar Vasquez",
+      "to": [
+        "julia.mcardle@futurefund.gov.au"
+      ],
+      "orgMatch": "Future Fund",
+      "matchType": "domain",
+      "confidence": 0.99,
+      "summary": "Oscar sending final meeting materials to Julia ahead of in-person meeting. Pacific Palisades room, downstairs at Fairmont. Included PowerPoint presentations and 'Lending to the U.S. Housing' materials.",
+      "outlookUrl": "https://outlook.office365.com/owa/?ItemID=AAMkAGViNGIxMDQ5LWZjY2QtNDZkMi05ZTg5LWU5YmRlYWJkOTJiNgBGAAAAAAAr8VtFm5eYT6h6dPbDsL3mBwBcpXk%2BcxTOQo3%2FYBj8yLqWAAAAAAEJAABcpXk%2BcxTOQo3%2FYBj8yLqWAAUpczPoAAA%3D&exvsurl=1&viewmodel=ReadMessageItem",
+      "internetMessageId": "<mmuptrej.cd45cf32-f23f-4135-ac4f-b7d087341dbc@we.are.superhuman.com>"
     }
   ],
   "entries": [
@@ -973,7 +1017,7 @@
       "to": [
         "eitan@greshlerfinance.com"
       ],
-      "orgMatch": "Greshler",
+      "orgMatch": "Greshler Finance",
       "matchType": "person",
       "confidence": 0.9,
       "summary": "Tony replied to Eitan at Greshler Finance apologizing for delay; was at a wedding in Italy. Team reviewing proposed terms."

@@ -23,7 +23,7 @@ if APP_DIR not in sys.path:
 
 # Load .env from app/ directory
 from dotenv import load_dotenv
-load_dotenv(os.path.join(APP_DIR, ".env"))
+load_dotenv(os.path.join(APP_DIR, ".env"), override=True)
 
 from datetime import date, datetime, timezone
 from flask import Flask, g, jsonify, request, render_template, abort, redirect, session, url_for

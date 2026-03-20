@@ -41,6 +41,7 @@
 
 ## Barbnet (Bass Brothers)
 - **Type:** HNWI / FO
+- **Aliases:** Barbnet
 - **Notes:**
 
 
@@ -52,6 +53,7 @@
 
 ## BC Partners
 - **Type:** Asset Manager
+- **Aliases:** BC Partners / Sam Hillier Family Office
 - **Domain:** @bcpartnersllc.com
 - **Notes:** Intro via Wigrizer. Sam Hillier (shillier@bcpartnersllc.com). Global PE firm. Engaged prospect.
 
@@ -138,6 +140,7 @@
 
 ## Don Klein (Chesmar)
 - **Type:** HNWI / FO
+- **Aliases:** Don Klein
 - **Notes:**
 
 
@@ -171,7 +174,7 @@
 
 ## Employees' Retirement System of Texas (Texas ERS)
 - **Type:** Public Pension
-- **Aliases:** Texas ERS, ERS Texas, TX ERS
+- **Aliases:** Texas ERS, ERS Texas, TX ERS, Employees' Retirement System of Texas
 - **Domain:** @ers.texas.gov
 - **Notes:**
 
@@ -205,6 +208,7 @@
 
 ## Fred Balda (Hillwood Communities)
 - **Type:** HNWI / FO
+- **Aliases:** Fred Balda
 - **Notes:**
 
 
@@ -325,6 +329,7 @@ Cheers,
 
 ## John Ryan (Metro Development)
 - **Type:** HNWI / FO
+- **Aliases:** John Ryan
 - **Notes:**
 
 
@@ -436,6 +441,7 @@ Cheers,
 
 ## Meritz Securities (Korea)
 - **Type:** Broker/Advisor
+- **Aliases:** Meritz Securities
 - **Domain:** @meritz.co.kr
 - **Notes:**
 
@@ -473,6 +479,7 @@ Cheers,
 
 ## Nomura
 - **Type:** Broker/Advisor
+- **Aliases:** Nomura Japan
 - **Domain:** @nomura.com
 - **Notes:**
 
@@ -490,6 +497,7 @@ Cheers,
 
 ## NPS (Korea SWF)
 - **Type:** Sovereign Wealth Fund
+- **Aliases:** NPS
 - **Domain:** @nps.or.kr
 - **Notes:**
 
@@ -531,7 +539,7 @@ Cheers,
 
 ## Pennsylvania Public School Employees' Retirement System (PSERS)
 - **Type:** Public Pension
-- **Aliases:** PSERS, Penn PSERS, PA Public Schools
+- **Aliases:** PSERS, Penn PSERS, PA Public Schools, Pennsylvania Public School Employees' Retirement System
 - **Domain:** @pa.gov
 - **Notes:**
 
@@ -607,12 +615,14 @@ Cheers,
 
 ## Steel Family Investments
 - **Type:** BUILDER
+- **Aliases:** Steel Family Investments — Investment 1, Steel Family Investments — Investment 2
 - **Domain:** @steelfamilyinv.com
 - **Notes:**
 
 
 ## StepStone
 - **Type:** Fund of Funds / Advisor
+- **Aliases:** StepStone Group
 - **Domain:** @stepstoneglobal.com
 - **Notes:**
 
@@ -637,21 +647,21 @@ Cheers,
 
 ## Sumitomo Mitsui Banking Corporation (SMBC)
 - **Type:** Bank
-- **Aliases:** SMBC, Sumitomo Mitsui Banking
+- **Aliases:** SMBC, Sumitomo Mitsui Banking, Sumitomo Mitsui Banking Corporation
 - **Domain:** @smbc.co.jp
 - **Notes:**
 
 
 ## Sumitomo Mitsui Trust Bank (SMTB)
 - **Type:** Bank
-- **Aliases:** SMTB, Sumitomo Trust
+- **Aliases:** SMTB, Sumitomo Trust, Sumitomo Mitsui Trust Bank
 - **Domain:** @smtb.jp
 - **Notes:**
 
 
 ## Teachers Retirement System of Texas (Texas Teachers)
 - **Type:** Public Pension
-- **Aliases:** Teachers Retirement System (TRS), TRS, Texas Teachers, TRS Texas
+- **Aliases:** Teachers Retirement System (TRS), TRS, Texas Teachers, TRS Texas, Teachers Retirement System of Texas
 - **Domain:** @trs.texas.gov
 - **Notes:**
 
@@ -721,6 +731,7 @@ Cheers,
 
 ## University of Minnesota Foundation Investment Advisors (UMFIA)
 - **Type:** Endowment
+- **Aliases:** University of Minnesota Foundation Investment Advisors
 - **Domain:** @umfia.org
 - **Notes:**
 
@@ -776,10 +787,6 @@ Cheers,
 - **Notes:** Met in Zurich
 
 
-## Greshler
-- **Type:** INTRODUCER
-- **Notes:** 
-
 ## Blackstone Multi-Asset Investing
 - **Type:** Asset Manager
 - **Aliases:** Blackstone MAI, BXMA
@@ -800,6 +807,7 @@ Cheers,
 
 ## CIGP (Compagnie d'Investissements et de Gestion Privé)
 - **Type:** Multi-Family Office / RIA
+- **Aliases:** CIGP
 - **Notes:** Multi-family office. Max meeting head of London office on Tuesday 3/17. May invest small tickets ($2M+) into family and friends vehicle.
 
 ## Real Consulting (Benjamin Ruhl)
@@ -824,6 +832,7 @@ Cheers,
 
 ## IPGL (Michael Spencer Family Office)
 - **Type:** HNWI / FO
+- **Aliases:** IPGL
 - **Notes:** Contact: Agnes. Max had lunch with her 3/12. She likes the strategy but unsure if principal will approve. Wants data room access. Call scheduled 3/13.
 
 ## Philippe Guggenheim
@@ -832,10 +841,12 @@ Cheers,
 
 ## Josh Rhodes (Renaissance Technologies FO)
 - **Type:** HNWI / FO
+- **Aliases:** Josh Rhodes
 - **Notes:** Head of investments at Renaissance Technologies family office. Max met at London family office conference. Meeting next week.
 
 ## Tomlinson Family Office (Justin Roberts)
 - **Type:** HNWI / FO
+- **Aliases:** Justin Roberts
 - **Notes:** See Justin Roberts prospect entry. Justin Roberts is primary contact (justin@tomlinson.ch).
 
 ## BlueArc Capital
@@ -973,7 +984,7 @@ Cheers,
 
 ## Pennsylvania State Employees' Retirement System (SERS)
 - **Type:** Public Pension
-- **Aliases:** PA SERS, SERS
+- **Aliases:** PA SERS, SERS, Pennsylvania State Employees' Retirement System
 - **Domain:** @sers.pa.gov
 - **Notes:** Created 2026-03-19 during org scrub. Separate institution from PSERS. Richard Vague is board-level champion via Ira Lubert. Prospect at Stage 4 with $200M target.
 
@@ -981,3 +992,141 @@ Cheers,
 - **Type:** Asset Manager
 - **Domain:**
 - **Notes:** Created 2026-03-19 during org scrub. Fort Worth firm. Referred by Mike Amoia of MetLife. Kevin McGrail contact. Prospect at Stage 4.
+
+## Aflac
+- **Type:** Insurance
+- **Domain:** @aflac.com
+- **Notes:** 
+
+
+## Amin J Khoury
+- **Type:** HNWI / FO
+- **Notes:** 
+
+
+## Arizona State University Endowment
+- **Type:** Endowment
+- **Domain:** @asu.edu
+- **Notes:** Aliases: ASU Endowment
+
+
+## CHERN Family Office
+- **Type:** HNWI / FO
+- **Notes:** Aliases: CHERN
+
+
+## Doc Buffington and Team
+- **Type:** HNWI / FO
+- **Notes:** 
+
+
+## Franklin Park
+- **Type:** Fund of Funds / Advisor
+- **Domain:** @franklinpark.com
+- **Notes:** Fund-of-funds advisory. Known institutional placement agent.
+
+
+## Jon Wolf
+- **Type:** HNWI / FO
+- **Notes:** 
+
+
+## Kroger
+- **Type:** Corporate Pension
+- **Domain:** @kroger.com
+- **Notes:** Aliases: Kroger Pension
+
+
+## Makarora
+- **Type:** HNWI / FO
+- **Notes:** Head is ex-Blackstone Real Estate. Interested in co-invest. Introduced via Benjamin Ruhl (Real Consulting).
+
+
+## Marty Connor
+- **Type:** HNWI / FO
+- **Notes:** 
+
+
+## McGuyer/Tesch
+- **Type:** BUILDER
+- **Notes:** Homebuilder.
+
+
+## MUFG
+- **Type:** Bank
+- **Domain:** @mufg.jp
+- **Notes:** Aliases: Mitsubishi UFJ Financial Group. Parent of Mitsubishi UFJ Trust and Mitsubishi UFJ Alternative Investments.
+
+
+## Mubadala
+- **Type:** Sovereign Wealth Fund
+- **Domain:** @mubadala.ae
+- **Notes:** Abu Dhabi sovereign wealth fund.
+
+
+## Oikos Family Office
+- **Type:** Family Office
+- **Notes:** Aliases: Oikos
+
+
+## Penn State
+- **Type:** Endowment
+- **Domain:** @psu.edu
+- **Notes:** Aliases: Penn State Endowment, Pennsylvania State University Endowment
+
+
+## Phillips & Co, Portland
+- **Type:** Broker/Advisor
+- **Notes:** 
+
+
+## RXR Contacts
+- **Type:** Developer / Investor
+- **Domain:** @rxr.com
+- **Notes:** Aliases: RXR
+
+
+## Repole Family
+- **Type:** HNWI / FO
+- **Notes:** 
+
+
+## Sutton Capital Group
+- **Type:** Asset Manager
+- **Notes:** 
+
+
+## Tim Phillips
+- **Type:** HNWI / FO
+- **Notes:** 
+
+
+## Tricon / Blackstone
+- **Type:** Asset Manager
+- **Notes:** 
+
+
+## U Penn Endowment
+- **Type:** Endowment
+- **Domain:** @upenn.edu
+- **Notes:** Aliases: University of Pennsylvania Endowment
+
+
+## Wade McGuinn
+- **Type:** HNWI / FO
+- **Notes:** 
+
+
+## Wayne Moravitz
+- **Type:** HNWI / FO
+- **Notes:** 
+
+
+## Greshler Finance
+- **Type:** INTRODUCER
+- **Domain:** ggfinance.co.il
+- **Notes:** Placement Agent in Israel
+
+## Dock Street
+- **Type:** 
+- **Notes:** 

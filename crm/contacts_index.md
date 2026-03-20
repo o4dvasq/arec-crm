@@ -11,7 +11,7 @@
 - Merseyside Pension Fund: susannah-friar, dragos-serbanica, zyan-nuafal, saneeza-asrar
 - StepStone: tom-hester, aayaan-mehta, andrew-mitro
 - BC Partners: sam-hillier
-- Future Fund: julia-mcardle, tbd
+- Future Fund: julia-mcardle, james-mckenzie
 - Manning Family SFO: christopher-henry
 - Merseyside Pension Fund: susannah-friar, dragos-serbanica, zyan-nuafal, saneeza-asrar
 - Steyn Group: matthew-sopp, ivan-karsten, matt-sopp
@@ -21,14 +21,12 @@
 - UTIMCO - Hedge Fund: jared-brimberry
 - UTIMCO - Real Estate: matt-saverin
 - Vobis Members: francesco-galdiero
-- Ontario Power Generation Pension Fund: joseph-lyn, terrence-chin, vlad-agache, atif-ali, wentao-shi, atif-ali-wentao-shi
 - San Joaquin County Employees' Retirement Association: trent-kaeslin
 - Hamilton Lane Advisors: elizabeth-bell, jackie-dash, wanli, scott-davies
 - Jordan Park: alex-etzkowitz, alek-yoder
 - MetLife Insurance Company: chris-aiken, yuko-hara, christopher-aiken
 - NPS (Korea SWF): john-s-kim, david-kim
 - Aflac: tomoko-yano
-- Bikaner Advisors: sunil-gupta (see bikaner-advisors.md), sunil-gupta, avinash-sarwal
 - Makarora: makarora, tbd
 - MUFG: shinya-obata
 - Mubadala Investment Company: fabrizio-bocciardi
@@ -130,3 +128,30 @@
 - BC Partners / Sam Hillier Family Office: sam-hillier
 - Starwood Property Trust: vernice-briggs, michael-nelson, anthony-murphy
 - Meritz Securities: jinho-lee
+
+## Penn State
+- jim-steinbugl-2
+- Hillwood: greg-kostka, todd-platt, justin-glass
+- BlueArc Capital: scott-crenshaw, ron-zazworsky, bryant-young
+- Starwood Property Trust (STWD): michael-nelson
+- Willis Towers Watson: so-lim, msc-douglas-crawshaw, zoe-fujiwara
+- Sumitomo Mitsui Trust Bank (SMTB): yu-sekino, rui-inoguchi, masaya-yamashiro
+- Northern Trust Wealth Management: morris-noble, steve-todd, jeff-kaufman
+- Meritage Homes: steve-harding, phillippe-lord, rick-harvey
+- Leonardo Partners: kevin-mcgrail
+- Pennsylvania State Employees' Retirement System (SERS): james-nolan, ryan-morse, stephen-shank
+- Villanova University Endowment: shane-mcandrew, kimling-fink, kevin-urban
+- Dwight Sandlin: scott-sandlin
+- Wayne Moravitz: george-murphy
+- Tim Phillips: tim-phillips, james-smith, kristin-anderson
+- NY Common: manuel-casanga, craig-lehner, brian-mccarthy
+- General Mills: justin-horner
+- Phillips & Co, Portland: tim-phillips, james-smith, kristin-anderson
+- Farallon Capital Management: avner-husen, jawad-ahmed, stephen-heath
+- Siguler Guff: jose-mayoral, michael-apfel, john-scheurer
+- Hanwha: thomas-yoo, jae-jay-yoo, su-ahn-hanwha-qcells
+- IPGL (Michael Spencer Family Office): agnes-de-royere
+- Philippe Guggenheim: eric-gould, david-cacciapaglia
+
+## Hillwood Communities
+- fred-balda

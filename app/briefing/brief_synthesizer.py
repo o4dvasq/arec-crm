@@ -16,16 +16,14 @@ AT_A_GLANCE_JSON_SUFFIX = (
     "\n\nIMPORTANT: Respond with ONLY a valid JSON object — no preamble, "
     "no markdown fences — in this exact format:\n"
     '{"narrative": "<2-4 paragraph prose brief>", '
-    '"at_a_glance": "<10 words or fewer: current status>"}\n\n'
+    '"at_a_glance": "<2 sentences max, ~150 chars: condensed version of the narrative brief — where the relationship stands and what\'s next>"}\n\n'
     "at_a_glance examples:\n"
-    '- "Follow-up meeting scheduled for March 24"\n'
-    '- "Waiting on response to our March 3 email"\n'
-    '- "No response to last 3 outreach attempts"\n'
-    '- "Paige scheduling intro call with their portfolio team"\n'
-    '- "Gone unresponsive since February IC meeting"\n'
-    '- "Verbal commit; sub docs outstanding"\n'
-    '- "In legal; targeting Q2 close"\n'
-    "Use specific dates and names. 10 words MAX."
+    '- "Met March 15 to review terms; Viktor sending revised LOI by March 24. $25M target, strong alignment on fund thesis."\n'
+    '- "Waiting on response to our March 3 email; Paige to follow up by end of week. Relationship warm but no commitment yet."\n'
+    '- "Gone unresponsive since February IC meeting; Oscar to call directly before March 31. $10M soft circle at risk."\n'
+    '- "Verbal $15M commit after March 10 IC approval. Legal reviewing sub docs, targeting April close."\n'
+    '- "Intro call with portfolio team scheduled March 28 via Paige. No prior relationship — first real touchpoint."\n'
+    "Use specific dates and names. 150 characters MAX, 2 sentences MAX."
 )
 
 TASK_EXTRACTION_SYSTEM_PROMPT = """You extract actionable tasks from CRM prospect notes for a real estate private equity fundraising team.

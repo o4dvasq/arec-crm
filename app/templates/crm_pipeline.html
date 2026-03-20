@@ -601,7 +601,7 @@
     <select id="filter-assigned" onchange="applyFilters()">
       <option value="">All Assigned</option>
       {% for member in config.team %}
-      <option value="{{ member }}">{{ member }}</option>
+      <option value="{{ member.name }}">{{ member.name }}</option>
       {% endfor %}
     </select>
     <select id="filter-type" onchange="applyFilters()">
@@ -1729,8 +1729,7 @@ function buildCellContent(col, p, idx) {
 
     case 'at_a_glance': {
       if (!val) return '<span style="color:#94a3b8">—</span>';
-      const display = val.length > 60 ? val.slice(0, 60) + '…' : val;
-      return `<span title="${escHtml(val)}" style="color:#94a3b8;font-style:italic">${escHtml(display)}</span>`;
+      return `<span title="${escHtml(val)}" style="color:#94a3b8;font-style:italic;white-space:normal;max-width:300px;line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">${escHtml(val)}</span>`;
     }
 
     case 'last_touch': {
