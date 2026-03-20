@@ -6,7 +6,7 @@
 ---
 
 ## Last Updated
-2026-03-19 — SPEC_enhanced-at-a-glance full implementation (Part 2)
+2026-03-20 — SPEC_fix-prospect-detail-briefs implementation
 
 ---
 
@@ -42,61 +42,42 @@
 - **Prospect Detail Page**: Context-dependent color coding with clear ownership boundaries (FULLY WORKING):
   - **Native sections (GREEN left-border)**: Prospect Card, Prospect Brief, Notes Log
   - **Cross-reference sections (BLUE right-border)**: Org Info Card, Org Brief, Meeting Summaries, Email History
-  - Edit Prospect, Edit Org, and Scan Email buttons removed from header
-  - All cross-reference cards have blue dot + navigation badge linking to owning page
-  - No auto-synthesis on page load — all briefs show "Generate" button when empty
-  - Org Brief is strictly read-only — shows "Generate one from the Org page" when empty
-  - **Both brief cards server-rendered** — saved briefs appear instantly on page load without AJAX
-- **Org Edit Page**: Context-dependent color coding with clear ownership boundaries (FULLY WORKING):
-  - **Native sections (GREEN left-border)**: Org Card (Type, Domain, Aliases, Contacts), Org Brief, Org Notes Log, Meeting Summaries, Email History
-  - **Cross-reference sections (BLUE right-border)**: Prospect summary cards (one per offering, read-only)
-  - Notes field removed from org top card — now a standalone Notes Log card
-  - Add Note button styled consistently (blue, not white)
-  - Brief renamed "Org Brief" (was "Relationship Brief")
-  - No auto-synthesis on page load — shows "Generate" button when no cached brief exists
-  - **Org brief server-rendered** — saved brief appears instantly on page load without AJAX
-  - **Aliases field editable** — click to edit, comma-separated list, saves via PATCH endpoint
-- **Tony Excel Sync**: Daily Egnyte polling for Tony's Excel tracker, fuzzy org matching with alias support (`crm_reader.get_org_aliases_map()`), auto-syncs high-confidence changes to CRM with prospect notes integration
-- **Pipeline Polish**: At a Glance 2-line clamp display, Tasks column 350px width, assignee initials in parentheses, markdown stripping throughout
-- **Enhanced At a Glance (FULLY COMPLETE)**: Brief system fully upgraded:
-  - `AT_A_GLANCE_JSON_SUFFIX` requests 2-sentence max, ~150-char condensed narrative with specific names, dates, next steps
-  - `BRIEF_SYSTEM_PROMPT` and `PROSPECT_BRIEF_SYSTEM_PROMPT` both include meeting-centric priority framework and temporal awareness rules
-  - Today's date injected at top of every context block — briefs are always temporally aware
-  - Focused prospect brief route (`/prospect-brief`) now uses `want_json=True`, stores `at_a_glance`, and uses unified key format
-  - All brief routes use unified `{org}::{offering}` key format — no more split between `/brief` and `/prospect-brief` routes
-  - Pipeline column wraps to 2 lines with `-webkit-line-clamp:2`; tooltip preserves full text
-  - 3 orphaned `prospect_brief:` keys removed from `briefs.json`
-- **Person Name Linking**: App-wide clickable person names linking to `/crm/people/<slug>` using client-side `linkifyPersonNames()` function
-- **Task Grouping APIs**: `/crm/api/tasks/by-prospect` and `/crm/api/tasks/by-owner` fully functional with filtering, sorting, and enrichment
-- **Drain Inbox Hardening**: `drain_inbox.py` runs safely as unattended launchd process — dedup via `drain_seen_ids.json`, last-run metadata in `drain_last_run.json`, `Mail.ReadWrite.Shared` scope added to fix 403 on mark-as-read
-- **Primary Contact — Prospect-Level (FULLY WORKING)**: Primary Contact is a prospect-level field. `Primary Contact` field in `PROSPECT_FIELD_ORDER` survives write/read round trips. Pipeline API and Prospect Detail route both read from the prospect record — no more contact-file lookups for these two paths. Multi-prospect orgs (e.g., UTIMCO) can show different primary contacts per prospect.
-- **Pipeline Type Column**: Type column now correctly displays org Type for each prospect. Type filter works on pipeline view.
-- **Email Scan**: Header "Scan Email" button on prospect detail uses the `/crm/api/prospect/.../email-scan` route (via `runScanEmail()`). The per-prospect "Deep Scan (90d)" button has been removed — email scanning is now handled exclusively by the `/email-scan` Cowork skill.
-- **Contact Title Field (FULLY WORKING)**: "Role" field renamed to "Title" throughout. `load_person()` returns `title` key. All 287 contact files migrated (`**Role:**` → `**Title:**`). Backward-compatible: files with `**Role:**` still parse correctly (mapped to `title`, but `**Title:**` always wins if both present).
+  - Both brief cards server-rendered — saved briefs appear instantly on page load without AJAX
+  - `loadProspectBrief()` and `loadOrgBrief()` always execute on page load, independent of main data fetch
+  - Brief generation failure shows red error message with Retry button (not misleading placeholder)
+  - GET `/brief` route has full exception handling — serialization errors return 500 with traceback logged
+- **Org Edit Page**: Context-dependent color coding with clear ownership boundaries (FULLY WORKING)
+- **Tony Excel Sync**: Daily Egnyte polling for Tony's Excel tracker, fuzzy org matching with alias support
+- **Enhanced At a Glance (FULLY COMPLETE)**:
+  - `BRIEF_SYSTEM_PROMPT` and `PROSPECT_BRIEF_SYSTEM_PROMPT` include meeting-centric priority framework and temporal awareness rules
+  - Today's date injected at top of every context block
+  - All brief routes use unified `{org}::{offering}` key format
+  - Focused prospect brief route uses `want_json=True`, stores `at_a_glance`
+  - Pipeline column wraps to 2 lines with `-webkit-line-clamp:2`
+- **Person Name Linking**: App-wide clickable person names linking to `/crm/people/<slug>`
+- **Task Grouping APIs**: `/crm/api/tasks/by-prospect` and `/crm/api/tasks/by-owner` fully functional
+- **Drain Inbox Hardening**: Runs as unattended launchd process with dedup and last-run metadata
+- **Primary Contact — Prospect-Level (FULLY WORKING)**: Primary Contact is a prospect-level field
+- **Pipeline Type Column**: Type column correctly displays org Type; Type filter works
+- **Contact Title Field (FULLY WORKING)**: "Role" renamed to "Title" throughout; backward-compatible
 
 ---
 
-## What Was Just Completed (March 19, 2026)
+## What Was Just Completed (March 20, 2026)
 
-### SPEC_enhanced-at-a-glance — Part 2 (Full Completion)
+### SPEC_fix-prospect-detail-briefs
 
-**Part 1** (previous session) covered: `AT_A_GLANCE_JSON_SUFFIX` upgrade + pipeline CSS.
-
-**Part 2** (this session) completed the remaining items:
-
-- ✅ Added meeting-centric priority framework + temporal awareness rules to `BRIEF_SYSTEM_PROMPT`
-- ✅ Added meeting-centric priority framework + temporal awareness rules to `PROSPECT_BRIEF_SYSTEM_PROMPT`
-- ✅ `_run_focused_prospect_brief()`: key format `prospect_brief:{offering}:{org}` → `{org}::{offering}`, `want_json=False` → `want_json=True`, `max_tokens=600` → `max_tokens=800`, now returns `(narrative, at_a_glance, content_hash)`
-- ✅ `api_prospect_brief_focused()` GET: key format unified to `{org}::{offering}`
-- ✅ `prospect_detail()` route: `prospect_brief_key` unified to `{org}::{offering}`
-- ✅ POST handler updated to unpack 3-tuple and return `at_a_glance` in response
-- ✅ 3 orphaned `prospect_brief:` entries removed from `crm/briefs.json`
+**What Was Done:**
+- ✅ Fix 1: `loadProspectBrief()` and `loadOrgBrief()` moved outside the try/catch in `loadPageData()` — they now always execute even if the main `/brief` GET fails
+- ✅ Fix 2: GET brief route's response construction wrapped in second try/except — unhandled serialization errors now produce a logged 500 instead of a silent crash
+- ✅ Fix 4: `refreshProspectBrief()` catch now renders a red error state with Retry button instead of the misleading "No prospect brief yet" placeholder
 - ✅ All 84 tests passing
 
 **Files Modified:**
-- `app/sources/relationship_brief.py` — Both prompts updated
-- `app/delivery/crm_blueprint.py` — 4 locations updated (key format + focused brief upgrade)
-- `crm/briefs.json` — 3 orphaned keys removed
+- `app/templates/crm_prospect_detail.html` — Fix 1 (loadPageData resilience), Fix 4 (error state)
+- `app/delivery/crm_blueprint.py` — Fix 2 (exception handling on GET brief)
+
+**Note on Fix 3:** The actual 500 error described in the spec (root cause) appears to have been resolved by the prior session's key format unification. Both GET and POST endpoints returned 200 on manual testing today — no additional server-side fix was needed.
 
 ---
 
@@ -108,8 +89,8 @@
 
 ## In Progress / Next Up
 
-### 1. No Pending Specs
-All specs in `docs/specs/` have been implemented.
+### 1. One Pending Spec
+`docs/specs/SPEC_intelligent-task-extraction.md` — ready for implementation.
 
 ### 2. Tony Sync Setup Required
 - **EGNYTE_API_TOKEN needed** — Must be obtained from Egnyte developer console and added to `app/.env`
@@ -117,19 +98,19 @@ All specs in `docs/specs/` have been implemented.
 - **Manual review workflow not implemented** — Desktop/CoWork workflow for resolving low-confidence matches from `crm/tony_sync_pending.json`
 
 ### 3. Drain Inbox Re-auth
-After adding `Mail.ReadWrite.Shared` scope, the cached MSAL token needs to be refreshed. Delete `~/.arec_briefing_token_cache.json` and re-run `drain_inbox.py` to trigger a new device code flow that includes the new scope.
+After adding `Mail.ReadWrite.Shared` scope, delete `~/.arec_briefing_token_cache.json` and re-run `drain_inbox.py` to trigger re-auth with the new scope.
 
 ---
 
 ## Known Issues
 
-- **No test coverage for meetings subsystem** — `test_meetings.py` mentioned in recent spec does not exist; meeting dedup tested manually
-- **No test coverage for org merge** — Feature manually tested but no automated tests yet
+- **No test coverage for meetings subsystem** — meeting dedup tested manually only
+- **No test coverage for org merge** — feature manually tested but no automated tests
 - **MetLife contact ambiguity**: "Chris Aiken" and "Christopher Aiken" both exist; migration chose Chris Aiken (Stage 5). Worth auditing manually.
-- **33 orgs without primary contact** — Migration skipped contacts where the prospect's Primary Contact string didn't match a contact file (e.g., "TBD", informal descriptions, email-appended names). These orgs show "—" for primary contact.
-- **meeting_history.md still exists** — Old format file retained for backward compatibility with org detail pages that use `load_meeting_history()`. The two systems (meeting_history.md + meetings.json) are not yet unified.
-- **Existing data not retroactively normalized** — `resolve_org_name()` only affects new writes. Old meetings/prospects with variant names remain as-is (alias-based reads handle them correctly).
-- **Existing at_a_glance values are short tags** — Old 10-word status tags remain in `briefs.json` until each prospect's brief is regenerated. No backfill needed.
+- **33 orgs without primary contact** — Migration skipped contacts where Primary Contact string didn't match a contact file (e.g., "TBD"). These orgs show "—" for primary contact.
+- **meeting_history.md still exists** — Old format file retained for backward compatibility. The two systems (meeting_history.md + meetings.json) are not yet unified.
+- **Existing data not retroactively normalized** — `resolve_org_name()` only affects new writes.
+- **Existing at_a_glance values are short tags** — Old 10-word tags remain in `briefs.json` until each brief is regenerated. No backfill needed.
 
 ---
 

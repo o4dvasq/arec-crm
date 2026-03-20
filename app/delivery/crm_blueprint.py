@@ -440,17 +440,22 @@ def api_prospect_brief(offering, org):
         except Exception as e:
             print(f"[brief] GET collect_relationship_data failed for {org}: {e}")
             raw_data = {}
-        content_hash = compute_content_hash(raw_data)
-        brief_key = f"{org}::{offering}"
-        saved = load_saved_brief('prospect', brief_key)
-        prospect = raw_data.get('prospect', {})
-        return jsonify({
-            **raw_data,
-            'content_hash': content_hash,
-            'saved_brief': saved,
-            'relationship_brief': prospect.get('Relationship Brief', ''),
-            'brief_refreshed': prospect.get('Brief Refreshed', ''),
-        })
+        try:
+            content_hash = compute_content_hash(raw_data)
+            brief_key = f"{org}::{offering}"
+            saved = load_saved_brief('prospect', brief_key)
+            prospect = raw_data.get('prospect', {})
+            return jsonify({
+                **raw_data,
+                'content_hash': content_hash,
+                'saved_brief': saved,
+                'relationship_brief': prospect.get('Relationship Brief', ''),
+                'brief_refreshed': prospect.get('Brief Refreshed', ''),
+            })
+        except Exception as e:
+            print(f"[brief] GET response build failed for {org}: {e}")
+            import traceback; traceback.print_exc()
+            return jsonify({'error': str(e)}), 500
 
     # POST — synthesize and persist
     try:
