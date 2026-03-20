@@ -164,12 +164,20 @@ def api_kb_people():
     config = load_crm_config()
     team = config.get('team', [])
     arec_team = {(m['name'] if isinstance(m, dict) else m).lower() for m in team}
-    people_dir = os.path.join(PROJECT_ROOT, 'memory', 'people')
+    contacts_dir = os.path.join(PROJECT_ROOT, 'contacts')
+    kb_dir = os.path.join(PROJECT_ROOT, 'memory', 'people')
     results = []
-    if os.path.isdir(people_dir):
+    seen_slugs = set()
+    for people_dir in [contacts_dir, kb_dir]:
+        if not os.path.isdir(people_dir):
+            continue
         for fname in sorted(os.listdir(people_dir)):
             if not fname.endswith('.md'):
                 continue
+            slug = fname[:-3]
+            if slug in seen_slugs:
+                continue
+            seen_slugs.add(slug)
             path = os.path.join(people_dir, fname)
             person = parse_kb_person_file(path)
             if person['name'].lower() in arec_team:
@@ -194,8 +202,11 @@ def api_people_search():
 @crm_bp.route('/person/<slug>')
 @login_required
 def person_detail(slug):
-    people_dir = os.path.join(PROJECT_ROOT, 'memory', 'people')
-    path = os.path.join(people_dir, f'{slug}.md')
+    contacts_dir = os.path.join(PROJECT_ROOT, 'contacts')
+    kb_dir = os.path.join(PROJECT_ROOT, 'memory', 'people')
+    path = os.path.join(contacts_dir, f'{slug}.md')
+    if not os.path.exists(path):
+        path = os.path.join(kb_dir, f'{slug}.md')
     if not os.path.exists(path):
         abort(404)
     person = parse_kb_person_file(path)
@@ -241,8 +252,11 @@ def people_person_detail(slug):
 
 
 def _render_person_detail(slug):
-    people_dir = os.path.join(PROJECT_ROOT, 'memory', 'people')
-    path = os.path.join(people_dir, f'{slug}.md')
+    contacts_dir = os.path.join(PROJECT_ROOT, 'contacts')
+    kb_dir = os.path.join(PROJECT_ROOT, 'memory', 'people')
+    path = os.path.join(contacts_dir, f'{slug}.md')
+    if not os.path.exists(path):
+        path = os.path.join(kb_dir, f'{slug}.md')
     if not os.path.exists(path):
         abort(404)
     person = parse_kb_person_file(path)
@@ -252,8 +266,11 @@ def _render_person_detail(slug):
 @crm_bp.route('/people/<slug>/delete', methods=['POST'])
 @login_required
 def delete_person(slug):
-    people_dir = os.path.join(PROJECT_ROOT, 'memory', 'people')
-    path = os.path.join(people_dir, f'{slug}.md')
+    contacts_dir = os.path.join(PROJECT_ROOT, 'contacts')
+    kb_dir = os.path.join(PROJECT_ROOT, 'memory', 'people')
+    path = os.path.join(contacts_dir, f'{slug}.md')
+    if not os.path.exists(path):
+        path = os.path.join(kb_dir, f'{slug}.md')
     if not os.path.exists(path):
         abort(404)
     os.remove(path)
@@ -273,7 +290,8 @@ def delete_person(slug):
 @crm_bp.route('/orgs')
 @login_required
 def orgs_list():
-    return render_template('crm_orgs.html')
+    config = load_crm_config()
+    return render_template('crm_orgs.html', config=config)
 
 
 @crm_bp.route('/org/<path:name>/edit')
@@ -294,6 +312,8 @@ def org_edit(name):
     # Load emails (org-owned)
     emails = get_emails_for_org(name)
 
+    org_brief_saved = load_saved_brief('org', name)
+
     return render_template('crm_org_edit.html',
                            org_name=name,
                            config=config,
@@ -303,7 +323,8 @@ def org_edit(name):
                            prospects=prospects,
                            org_notes=org_notes,
                            meetings=meetings,
-                           emails=emails)
+                           emails=emails,
+                           org_brief_saved=org_brief_saved)
 
 
 @crm_bp.route('/org/<path:name>')
@@ -352,8 +373,7 @@ def prospect_detail(offering, org):
     # Load org data for the org sub-section
     org_data = get_organization(org) or {'name': org, 'Type': ''}
     contacts = get_contacts_for_org(org)
-    primary = get_primary_contact(org)
-    primary_contact_name = primary['name'] if primary else ''
+    primary_contact_name = prospect.get('Primary Contact', '')
 
     # Load org brief for read-only display
     org_brief_saved = load_saved_brief('org', org)
@@ -399,17 +419,12 @@ def _run_prospect_brief(org: str, offering: str, max_tokens: int = 1600,
         raw_data = {}
     content_hash = compute_content_hash(raw_data)
     context_block = build_context_block(raw_data)
-    try:
-        narrative, at_a_glance = call_claude_brief(
-            BRIEF_SYSTEM_PROMPT,
-            f"Generate a relationship brief for {org} regarding {offering}.\n\n{context_block}",
-            max_tokens=max_tokens,
-            want_json=want_json,
-        )
-    except Exception as e:
-        print(f"[brief] call_claude_brief failed for {org}: {e}")
-        narrative = build_fallback_summary(raw_data)
-        at_a_glance = ''
+    narrative, at_a_glance = call_claude_brief(
+        BRIEF_SYSTEM_PROMPT,
+        f"Generate a relationship brief for {org} regarding {offering}.\n\n{context_block}",
+        max_tokens=max_tokens,
+        want_json=want_json,
+    )
     brief_key = f"{org}::{offering}"
     save_brief('prospect', brief_key, narrative, content_hash, at_a_glance=at_a_glance)
     return narrative, at_a_glance, content_hash
@@ -487,16 +502,12 @@ def _run_focused_prospect_brief(org: str, offering: str) -> tuple:
         raw_data = {}
     content_hash = compute_content_hash(raw_data)
     context_block = build_context_block(raw_data)
-    try:
-        narrative, _ = call_claude_brief(
-            PROSPECT_BRIEF_SYSTEM_PROMPT,
-            f"Generate a concise prospect brief for {offering} at {org}.\n\n{context_block}",
-            max_tokens=600,
-            want_json=False,
-        )
-    except Exception as e:
-        print(f"[prospect-brief] call_claude_brief failed for {org}: {e}")
-        narrative = build_fallback_summary(raw_data)
+    narrative, _ = call_claude_brief(
+        PROSPECT_BRIEF_SYSTEM_PROMPT,
+        f"Generate a concise prospect brief for {offering} at {org}.\n\n{context_block}",
+        max_tokens=600,
+        want_json=False,
+    )
     brief_key = f"prospect_brief:{offering}:{org}"
     save_brief('prospect', brief_key, narrative, content_hash)
     return narrative, content_hash
@@ -688,8 +699,11 @@ def api_person_update():
 @login_required
 def api_person_contact_update(slug):
     data = request.get_json(force=True)
-    people_dir = os.path.join(PROJECT_ROOT, 'memory', 'people')
-    path = os.path.join(people_dir, f'{slug}.md')
+    contacts_dir = os.path.join(PROJECT_ROOT, 'contacts')
+    kb_dir = os.path.join(PROJECT_ROOT, 'memory', 'people')
+    path = os.path.join(contacts_dir, f'{slug}.md')
+    if not os.path.exists(path):
+        path = os.path.join(kb_dir, f'{slug}.md')
     if not os.path.exists(path):
         return jsonify({'error': 'Person not found'}), 404
 
@@ -979,11 +993,9 @@ def api_prospects():
         p['_tasks'] = []  # Legacy field, empty
         p['prospect_tasks'] = prospect_tasks
         p['open_task_count'] = len(prospect_tasks)
-        # Inject Type and Primary Contact from org
+        # Inject Type from org; Primary Contact is already on the prospect record
         org_data = orgs.get(org_name, {})
         p['Type'] = org_data.get('Type', '')
-        primary = get_primary_contact(org_name)
-        p['Primary Contact'] = primary['name'] if primary else ''
 
     all_briefs = load_all_briefs()
     prospect_briefs = all_briefs.get('prospect', {})
@@ -1113,11 +1125,38 @@ def crm_tasks():
         key=sort_key
     ))
 
+    # Group by prospect (org)
+    from collections import OrderedDict
+    by_prospect = OrderedDict()
+    for t in sorted(enriched_tasks, key=sort_key):
+        org = t.get('org', '') or 'Untagged'
+        by_prospect.setdefault(org, []).append(t)
+    groups_by_prospect = [{'org': org, 'tasks': add_url(tasks)} for org, tasks in by_prospect.items()]
+
+    # Group by owner
+    by_owner = OrderedDict()
+    for t in sorted(enriched_tasks, key=sort_key):
+        owner = t.get('owner', '').strip() or 'Unassigned'
+        by_owner.setdefault(owner, []).append(t)
+    groups_by_owner = [{'owner': owner, 'tasks': add_url(tasks)} for owner, tasks in by_owner.items()]
+
+    # All prospect org names for the add-task dropdown
+    all_prospect_orgs = sorted({t.get('org', '') for t in enriched_tasks if t.get('org', '').strip()})
+
+    active_view = request.args.get('view', 'prospect')
+    config = load_crm_config()
+
     return render_template(
         'crm_tasks.html',
         active_tab='tasks',
         my_tasks=my_tasks,
         team_tasks=team_tasks,
+        groups_by_prospect=groups_by_prospect,
+        groups_by_owner=groups_by_owner,
+        total_tasks=len(enriched_tasks),
+        all_prospect_orgs=all_prospect_orgs,
+        config=config,
+        active_view=active_view,
     )
 
 
@@ -1131,7 +1170,23 @@ def api_crm_tasks_list():
     org = request.args.get('org', '').strip()
     if not org:
         return jsonify({'error': 'org parameter required'}), 400
-    return jsonify(get_tasks_for_prospect_db(org))
+    raw_tasks = get_tasks_for_prospect_db(org)
+    # Normalize field names to match the frontend contract
+    # (task-edit-modal.js and crm_prospect_detail.html expect these keys)
+    STATUS_MAP = {'open': 'New', 'done': 'Complete'}
+    results = []
+    for t in raw_tasks:
+        results.append({
+            'text': t.get('text', ''),
+            'assigned_to': t.get('owner', ''),
+            'priority': t.get('priority', 'Med'),
+            'status': STATUS_MAP.get(t.get('status', ''), t.get('status', 'New')),
+            'section': t.get('section', 'Fundraising - Me'),
+            'index': t.get('section_index', 0),
+            'context': '',
+            'org': org,
+        })
+    return jsonify(results)
 
 
 @crm_bp.route('/api/tasks', methods=['POST'])
@@ -1276,18 +1331,10 @@ def api_synthesize_org_brief():
             max_tokens=800,
             want_json=False,
         )
-    except Exception:
-        parts = [f"**{org_name}** is a {org.get('Type', 'organization')} in AREC's network."]
-        if prospects:
-            p = prospects[0]
-            parts.append(
-                f"They are a prospect for {p.get('offering', 'Fund II')} "
-                f"(Stage: {p.get('stage', 'Unknown')})."
-            )
-        if contacts:
-            names = ', '.join(c.get('name', '') for c in contacts[:3])
-            parts.append(f"Key contacts: {names}.")
-        narrative = ' '.join(parts)
+    except Exception as e:
+        print(f"[org-brief] synthesis failed for {org_name}: {e}")
+        import traceback; traceback.print_exc()
+        return jsonify({'error': str(e), 'narrative': ''}), 500
     save_brief('org', org_name, narrative, content_hash)
     return jsonify({
         'narrative': narrative,
@@ -1703,8 +1750,7 @@ def api_export_pipeline():
         cell_assigned.font = data_font
         cell_assigned.alignment = Alignment(horizontal='left', vertical='top')
 
-        primary = get_primary_contact(org_name)
-        primary_contact = primary['name'] if primary else p.get('Primary Contact', '')
+        primary_contact = p.get('Primary Contact', '')
         cell_contact = ws.cell(row=row_idx, column=9, value=primary_contact)
         cell_contact.font = data_font
         cell_contact.alignment = Alignment(horizontal='left', vertical='top')
@@ -1860,6 +1906,14 @@ def meetings_page():
     return render_template('crm_meetings.html', active_tab='meetings')
 
 
+@crm_bp.route('/api/offerings', methods=['GET'])
+@login_required
+def api_offerings_list():
+    """Return list of offering names as JSON array."""
+    offerings = load_offerings()
+    return jsonify([o['name'] for o in offerings])
+
+
 @crm_bp.route('/api/meetings', methods=['GET'])
 @login_required
 def api_meetings_list():
@@ -1877,8 +1931,18 @@ def api_meetings_create():
     offering = data.get('offering', '').strip()
     meeting_date = data.get('meeting_date', '').strip()
 
-    if not org or not offering or not meeting_date:
-        return jsonify({'error': 'org, offering, and meeting_date are required'}), 400
+    if not meeting_date:
+        return jsonify({'error': 'meeting_date is required'}), 400
+
+    # Business rule: offering requires org
+    if offering and not org:
+        return jsonify({'error': 'Cannot set offering without organization'}), 400
+
+    # Validate offering against known offerings if provided
+    if offering:
+        valid_offerings = [o['name'] for o in load_offerings()]
+        if offering not in valid_offerings:
+            return jsonify({'error': f'Invalid offering. Must be one of: {", ".join(valid_offerings)}'}), 400
 
     created_by = (g.user.get('email') or g.user.get('display_name', 'oscar')).strip()
 

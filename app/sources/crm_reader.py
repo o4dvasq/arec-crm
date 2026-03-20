@@ -420,7 +420,7 @@ def load_person(slug: str) -> dict | None:
         return None
     text = _read_file(path)
     lines = text.splitlines()
-    person = {'slug': slug, 'name': '', 'organization': '', 'role': '',
+    person = {'slug': slug, 'name': '', 'organization': '', 'title': '',
               'email': '', 'phone': '', 'type': '', 'is_primary': False}
     # First H1 = name
     for line in lines:
@@ -442,8 +442,11 @@ def load_person(slug: str) -> dict | None:
                 val = m.group(2).strip()
                 if key == 'organization':
                     person['organization'] = val
+                elif key == 'title':
+                    person['title'] = val  # title always wins
                 elif key == 'role':
-                    person['role'] = val
+                    if not person['title']:  # role only sets if title not yet found
+                        person['title'] = val
                 elif key == 'email':
                     person['email'] = val
                 elif key == 'phone':
@@ -461,8 +464,11 @@ def load_person(slug: str) -> dict | None:
                 val = m.group(2).strip()
                 if key == 'organization':
                     person['organization'] = val
-                elif key in ('role', 'title'):
-                    person['role'] = val
+                elif key == 'title':
+                    person['title'] = val
+                elif key == 'role':
+                    if not person['title']:
+                        person['title'] = val
                 elif key == 'email':
                     person['email'] = val
                 elif key == 'phone':
@@ -585,7 +591,7 @@ def create_person_file(name: str, org: str, email: str, role: str, person_type: 
     os.makedirs(PEOPLE_ROOT, exist_ok=True)
     content = f"# {name}\n\n## Overview\n"
     content += f"- **Organization:** {org}\n"
-    content += f"- **Role:** {role}\n"
+    content += f"- **Title:** {role}\n"
     content += f"- **Email:** {email}\n"
     content += f"- **Phone:** \n"
     content += f"- **Type:** {person_type}\n"
@@ -715,7 +721,7 @@ def ensure_contact_linked(name: str, org: str) -> None:
         os.makedirs(PEOPLE_ROOT, exist_ok=True)
         content = f"# {name}\n\n## Overview\n"
         content += f"- **Organization:** {org}\n"
-        content += f"- **Role:** \n"
+        content += f"- **Title:** \n"
         content += f"- **Email:** \n"
         content += f"- **Phone:** \n"
         content += f"- **Type:** investor\n"
@@ -747,7 +753,7 @@ def update_contact_fields(org: str, name: str, fields: dict) -> bool:
 
     text = _read_file(path)
     field_map = {
-        'role': 'Role', 'email': 'Email', 'phone': 'Phone', 'title': 'Role'
+        'role': 'Title', 'email': 'Email', 'phone': 'Phone', 'title': 'Title'
     }
     for field_key, field_label in field_map.items():
         if field_key in fields:
@@ -1410,21 +1416,30 @@ def _parse_org_tagged_task(line: str, section: str) -> dict | None:
 
 
 def get_tasks_for_prospect(org_name: str) -> list[dict]:
-    """Scan TASKS.md for tasks tagged [org: org_name]. Case-insensitive."""
+    """Scan TASKS.md for tasks tagged [org: org_name]. Case-insensitive.
+
+    Each returned task includes 'section_index' — its 0-based position among
+    all tasks (matching or not) within its section. This index is what the
+    /tasks/api/task/<section>/<index> endpoints expect.
+    """
     if not os.path.exists(TASKS_MD_PATH):
         return []
     results = []
     current_section = None
+    section_counter = 0
     org_lower = org_name.lower()
     for line in _read_file(TASKS_MD_PATH).splitlines():
         stripped = line.strip()
         if stripped.startswith('## '):
             current_section = stripped[3:].strip()
+            section_counter = 0
             continue
-        if current_section:
+        if current_section and (stripped.startswith('- [ ] ') or stripped.startswith('- [x] ')):
             task = _parse_org_tagged_task(line, current_section)
             if task and task['org'].lower() == org_lower:
+                task['section_index'] = section_counter
                 results.append({k: v for k, v in task.items() if k != 'org'})
+            section_counter += 1
     return results
 
 
@@ -2277,19 +2292,19 @@ def get_meeting(meeting_id: str) -> dict | None:
     return None
 
 
-def save_meeting(org: str, offering: str, meeting_date: str, title: str = '', 
+def save_meeting(org: str = '', offering: str = '', meeting_date: str = '', title: str = '',
                  attendees: str = '', source: str = 'manual', graph_event_id: str = None,
                  meeting_time: str = '', notes_raw: str = '', transcript_url: str = '',
                  created_by: str = 'oscar') -> dict:
     """Create a new meeting with two-tier deduplication.
-    
+
     Dedup logic:
         1. Exact graph_event_id match (if provided) → return existing
         2. Fuzzy match: same org AND meeting_date ±1 day (any status) → return existing
-    
+
     Args:
-        org: Organization name
-        offering: Offering name
+        org: Organization name (optional)
+        offering: Offering name (optional)
         meeting_date: ISO date string (YYYY-MM-DD)
         title: Meeting title
         attendees: Comma-separated attendees
@@ -2299,7 +2314,7 @@ def save_meeting(org: str, offering: str, meeting_date: str, title: str = '',
         notes_raw: Raw meeting notes
         transcript_url: URL to meeting transcript
         created_by: Username who created the meeting
-    
+
     Returns:
         The created or existing meeting dict
     """
@@ -2318,42 +2333,44 @@ def save_meeting(org: str, offering: str, meeting_date: str, title: str = '',
                 return meeting
     
     # Dedup tier 2: fuzzy org+date±1 day match (any status)
-    try:
-        target_date = datetime.strptime(meeting_date, '%Y-%m-%d').date()
-        org_lower = org.lower().strip()
+    # Only perform dedup if org is provided
+    if org and meeting_date:
+        try:
+            target_date = datetime.strptime(meeting_date, '%Y-%m-%d').date()
+            org_lower = org.lower().strip()
 
-        for meeting in meetings:
-            if meeting.get('org', '').lower().strip() != org_lower:
-                continue
+            for meeting in meetings:
+                if meeting.get('org', '').lower().strip() != org_lower:
+                    continue
 
-            meeting_date_str = meeting.get('meeting_date', '')
-            if not meeting_date_str:
-                continue
+                meeting_date_str = meeting.get('meeting_date', '')
+                if not meeting_date_str:
+                    continue
 
-            try:
-                existing_date = datetime.strptime(meeting_date_str, '%Y-%m-%d').date()
-                delta = abs((existing_date - target_date).days)
-                if delta <= 1:
-                    # Found fuzzy match — merge new data into existing
-                    if notes_raw and not meeting.get('notes_raw'):
-                        meeting['notes_raw'] = notes_raw
-                    if meeting.get('status') == 'scheduled' and notes_raw:
-                        meeting['status'] = 'completed'
-                    if title and not meeting.get('title'):
-                        meeting['title'] = title
-                    if attendees and not meeting.get('attendees'):
-                        meeting['attendees'] = attendees
-                    if transcript_url and not meeting.get('transcript_url'):
-                        meeting['transcript_url'] = transcript_url
-                    if graph_event_id and not meeting.get('graph_event_id'):
-                        meeting['graph_event_id'] = graph_event_id
-                    meeting['updated_at'] = datetime.utcnow().isoformat() + 'Z'
-                    _save_meetings_raw(meetings)
-                    return meeting
-            except ValueError:
-                continue
-    except ValueError:
-        pass
+                try:
+                    existing_date = datetime.strptime(meeting_date_str, '%Y-%m-%d').date()
+                    delta = abs((existing_date - target_date).days)
+                    if delta <= 1:
+                        # Found fuzzy match — merge new data into existing
+                        if notes_raw and not meeting.get('notes_raw'):
+                            meeting['notes_raw'] = notes_raw
+                        if meeting.get('status') == 'scheduled' and notes_raw:
+                            meeting['status'] = 'completed'
+                        if title and not meeting.get('title'):
+                            meeting['title'] = title
+                        if attendees and not meeting.get('attendees'):
+                            meeting['attendees'] = attendees
+                        if transcript_url and not meeting.get('transcript_url'):
+                            meeting['transcript_url'] = transcript_url
+                        if graph_event_id and not meeting.get('graph_event_id'):
+                            meeting['graph_event_id'] = graph_event_id
+                        meeting['updated_at'] = datetime.utcnow().isoformat() + 'Z'
+                        _save_meetings_raw(meetings)
+                        return meeting
+                except ValueError:
+                    continue
+        except ValueError:
+            pass
     
     # No match — create new meeting
     now = datetime.utcnow().isoformat() + 'Z'

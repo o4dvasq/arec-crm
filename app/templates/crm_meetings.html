@@ -39,10 +39,15 @@
     /* Tabs + Search row */
     .controls-row {
       display: flex;
-      justify-content: space-between;
+      justify-content: center;
       align-items: center;
       margin-bottom: 16px;
       gap: 16px;
+      position: relative;
+    }
+    .search-bar {
+      position: absolute;
+      right: 0;
     }
 
     /* Tab switcher */
@@ -69,9 +74,6 @@
     .tab-btn.active { background: #3b82f6; color: #fff; }
 
     /* Search bar */
-    .search-bar {
-      flex: 0 0 320px;
-    }
     .search-bar input {
       width: 100%;
       padding: 9px 14px;
@@ -222,14 +224,13 @@
       <thead>
         <tr>
           <th style="width:90px">Date</th>
-          <th>Prospect</th>
+          <th>Organization</th>
           <th>Title</th>
           <th>Attendees</th>
-          <th id="notes-header" style="display:none;">Notes</th>
         </tr>
       </thead>
       <tbody id="meetings-body">
-        <tr class="empty-row"><td colspan="5">Loading...</td></tr>
+        <tr class="empty-row"><td colspan="4">Loading...</td></tr>
       </tbody>
     </table>
   </div>
@@ -242,12 +243,13 @@
     <div class="modal-header">Add Meeting</div>
     <form id="add-meeting-form">
       <div class="form-group">
-        <label class="form-label">Prospect <span class="required">*</span></label>
-        <select id="form-org" class="form-select" required></select>
+        <label class="form-label">Organization</label>
+        <select id="form-org" class="form-select" onchange="checkProspectStatus()"></select>
       </div>
       <div class="form-group">
-        <label class="form-label">Offering <span class="required">*</span></label>
-        <input type="text" id="form-offering" class="form-input" placeholder="e.g., AREC Debt Fund II" required>
+        <label class="form-label">Offering</label>
+        <select id="form-offering" class="form-select" onchange="checkProspectStatus()"></select>
+        <div id="prospect-status" style="margin-top:8px;font-size:12px;"></div>
       </div>
       <div class="form-group">
         <label class="form-label">Meeting Date <span class="required">*</span></label>
@@ -290,7 +292,7 @@ let currentEditMeetingId = null;
 
 // Load meetings on page load
 (async function init() {
-  await Promise.all([loadMeetings(), loadOrgs()]);
+  await Promise.all([loadMeetings(), loadOrgs(), loadOfferings()]);
   renderTable();
 })();
 
@@ -303,11 +305,24 @@ async function loadOrgs() {
   const resp = await fetch('/crm/api/orgs');
   const orgs = await resp.json();
   const select = document.getElementById('form-org');
-  select.innerHTML = '<option value="">— Select Prospect —</option>';
+  select.innerHTML = '<option value="">— No Organization —</option>';
   orgs.forEach(org => {
     const opt = document.createElement('option');
     opt.value = org;
     opt.textContent = org;
+    select.appendChild(opt);
+  });
+}
+
+async function loadOfferings() {
+  const resp = await fetch('/crm/api/offerings');
+  const offerings = await resp.json();
+  const select = document.getElementById('form-offering');
+  select.innerHTML = '<option value="">— No Offering —</option>';
+  offerings.forEach(offering => {
+    const opt = document.createElement('option');
+    opt.value = offering;
+    opt.textContent = offering;
     select.appendChild(opt);
   });
 }
@@ -322,11 +337,7 @@ function switchTab(tab) {
 
 function renderTable() {
   const tbody = document.getElementById('meetings-body');
-  const notesHeader = document.getElementById('notes-header');
   const query = document.getElementById('meeting-search').value.toLowerCase();
-
-  // Show/hide Notes column
-  notesHeader.style.display = activeTab === 'past' ? '' : 'none';
 
   // Filter by tab
   const today = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' });
@@ -359,7 +370,7 @@ function renderTable() {
   tbody.innerHTML = '';
   if (visible.length === 0) {
     const emptyMsg = activeTab === 'scheduled' ? 'No upcoming meetings scheduled.' : 'No past meetings found.';
-    tbody.innerHTML = `<tr class="empty-row"><td colspan="${activeTab === 'past' ? 5 : 4}">${emptyMsg}</td></tr>`;
+    tbody.innerHTML = `<tr class="empty-row"><td colspan="4">${emptyMsg}</td></tr>`;
     return;
   }
 
@@ -371,12 +382,16 @@ function renderTable() {
     const date = formatDate(m.meeting_date);
     row.innerHTML += `<td style="color:#cbd5e1">${date}</td>`;
 
-    // Prospect — only wrap in a link when both org and offering are present
-    if (m.org && m.offering) {
-      const orgLink = `/crm/prospect/${encodeURIComponent(m.offering)}/${encodeURIComponent(m.org)}/detail`;
-      row.innerHTML += `<td><a class="org-link" href="${orgLink}" onclick="event.stopPropagation()">${m.org}</a></td>`;
+    // Organization — show org name with optional offering badge
+    if (m.org) {
+      let orgCell = `<div>${m.org}`;
+      if (m.offering) {
+        orgCell += `<div style="font-size:11px;color:#94a3b8;margin-top:2px;">${m.offering}</div>`;
+      }
+      orgCell += `</div>`;
+      row.innerHTML += `<td>${orgCell}</td>`;
     } else {
-      row.innerHTML += `<td>—</td>`;
+      row.innerHTML += `<td style="color:#64748b;">—</td>`;
     }
 
     // Title
@@ -386,21 +401,6 @@ function renderTable() {
     const attendees = (m.attendees || '—').substring(0, 30);
     const attendeesTrunc = m.attendees && m.attendees.length > 30 ? attendees + '...' : attendees;
     row.innerHTML += `<td><span class="text-trunc">${attendeesTrunc}</span></td>`;
-
-    // Notes (Past tab only)
-    if (activeTab === 'past') {
-      const pendingCount = (m.insights || []).filter(i => i.status === 'pending').length;
-      let notesCell = '';
-      if (pendingCount > 0) {
-        notesCell = `<a class="review-link" href="#" onclick="event.preventDefault(); event.stopPropagation(); openMeetingDetail('${m.id}')">Review (${pendingCount})</a>`;
-      } else if (m.notes_summary) {
-        const summary = m.notes_summary.substring(0, 60);
-        notesCell = summary.length < m.notes_summary.length ? summary + '...' : summary;
-      } else {
-        notesCell = '—';
-      }
-      row.innerHTML += `<td>${notesCell}</td>`;
-    }
 
     tbody.appendChild(row);
   });
@@ -439,6 +439,7 @@ function openMeetingDetail(meetingId) {
   document.getElementById('form-attendees').value = m.attendees || '';
   document.getElementById('form-notes').value = m.notes_raw || '';
   toggleProcessAI();
+  checkProspectStatus();
 
   document.getElementById('add-meeting-modal').classList.add('show');
 }
@@ -489,19 +490,46 @@ function toggleProcessAI() {
   group.style.display = notes ? 'flex' : 'none';
 }
 
+async function checkProspectStatus() {
+  const org = document.getElementById('form-org').value;
+  const offering = document.getElementById('form-offering').value;
+  const statusDiv = document.getElementById('prospect-status');
+
+  if (!org || !offering) {
+    statusDiv.innerHTML = '';
+    return;
+  }
+
+  try {
+    const resp = await fetch(`/crm/api/prospect/${encodeURIComponent(offering)}/${encodeURIComponent(org)}`);
+    if (resp.ok) {
+      statusDiv.innerHTML = '<span style="color:#22c55e;">✓ Linked to existing prospect</span>';
+    } else {
+      statusDiv.innerHTML = '<span style="color:#94a3b8;">No prospect for this org/offering</span>';
+    }
+  } catch (err) {
+    statusDiv.innerHTML = '';
+  }
+}
+
 document.getElementById('add-meeting-form').addEventListener('submit', async (e) => {
   e.preventDefault();
 
   const org = document.getElementById('form-org').value;
-  const offering = document.getElementById('form-offering').value.trim();
+  const offering = document.getElementById('form-offering').value;
   const meetingDate = document.getElementById('form-date').value;
   const title = document.getElementById('form-title').value.trim();
   const attendees = document.getElementById('form-attendees').value.trim();
   const notes = document.getElementById('form-notes').value.trim();
   const processAI = document.getElementById('form-process-ai').checked;
 
-  if (!org || !offering || !meetingDate) {
-    alert('Please fill in all required fields.');
+  if (!meetingDate) {
+    alert('Meeting date is required.');
+    return;
+  }
+
+  if (offering && !org) {
+    alert('Cannot set offering without organization.');
     return;
   }
 
