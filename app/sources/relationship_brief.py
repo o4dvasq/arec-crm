@@ -175,6 +175,32 @@ Your audience is the COO who is actively managing LP relationships. He needs to 
 4. What needs to happen next — pending tasks, upcoming meetings, open items
 5. Any strategic context — prior AREC relationship, investor type nuances, decision-making process
 
+MEETING-CENTRIC PRIORITY FRAMEWORK:
+Your brief should be organized around the most important meeting — past or future.
+
+1. IF there is a RECENT PAST MEETING (within the last ~2 weeks):
+   - Lead with it: when it happened, who attended, key outcomes
+   - Read through meeting notes and summaries carefully
+   - Focus on follow-up tasks and next steps that emerged FROM that meeting
+   - Any prep tasks that were for this meeting are DONE — never present them as pending
+
+2. IF there is an UPCOMING FUTURE MEETING (scheduled):
+   - Lead with it: when, where, who's attending, what format
+   - Focus on preparation: what needs to happen before the meeting
+   - Surface any notes, comments, or tasks related to meeting prep
+
+3. IF there is NEITHER a recent past nor a scheduled future meeting:
+   - Look at open tasks and recent activity to infer what's happening
+   - Focus on what outreach or action is needed to GET to a next meeting
+   - Note how long since last meaningful contact
+
+TEMPORAL AWARENESS RULES:
+- TODAY'S DATE is provided at the top of the context. Use it to determine what is current vs. past.
+- If a meeting or call was scheduled and its date has PASSED, treat it as completed. Focus on outcomes and follow-up, not preparation.
+- Never present completed action items as pending. If notes say "prepare deck for March 17 meeting" and today is March 19, that meeting happened — do NOT say "prepare deck."
+- Resolve relative time references: if notes from March 12 say "meeting next week", that means ~March 17-19.
+- Prioritize the MOST RECENT events and their follow-up over historical context.
+
 RULES:
 - Write in direct, professional prose. No headers, no bullet points, no markdown formatting.
 - Write 2-4 short paragraphs. First paragraph = current status and recent momentum. Second = key relationships and contact dynamics. Third = next steps and open items. Fourth (optional) = strategic context if available.
@@ -197,12 +223,31 @@ Your audience is the COO tracking dozens of active prospects. He needs to know f
 3. Current stage context (why this stage, what's blocking progress)
 4. Any immediate blockers or pending items
 
+MEETING-CENTRIC PRIORITY FRAMEWORK:
+Your brief should be organized around the most important meeting — past or future.
+
+1. IF there is a RECENT PAST MEETING (within the last ~2 weeks):
+   - Lead with it: when it happened, who attended, key outcomes
+   - Focus on follow-up tasks and next steps that emerged FROM that meeting
+   - Any prep tasks that were for this meeting are DONE — never present them as pending
+
+2. IF there is an UPCOMING FUTURE MEETING (scheduled):
+   - Lead with it: when, who's attending, what format
+   - Focus on preparation: what needs to happen before the meeting
+
+3. IF there is NEITHER a recent past nor a scheduled future meeting:
+   - Start with the most recent touchpoint and focus on what's needed to advance
+
+TEMPORAL AWARENESS RULES:
+- TODAY'S DATE is provided at the top of the context. Use it to determine what is current vs. past.
+- If a meeting or call was scheduled and its date has PASSED, treat it as completed. Focus on outcomes and follow-up, not preparation.
+- Never present completed action items as pending. If notes say "prepare deck for March 17 meeting" and today is March 19, that meeting happened — do NOT say "prepare deck."
+- Resolve relative time references: if notes from March 12 say "meeting next week", that means ~March 17-19.
+- Prioritize the MOST RECENT events and their follow-up over historical context.
+
 RULES:
 - Write exactly 2-3 sentences. Be ruthlessly concise.
 - Focus ONLY on this specific offering — do not repeat org-level context.
-- Start with the most recent activity. Example: "Last touched Feb 12 via email with Julia McArdle confirming Q2 call."
-- Second sentence: Next action. Example: "DD call scheduled for March 20."
-- Third sentence (optional): Any blocker or stage context. Example: "Waiting on IC approval to move to commitment."
 - Be specific: use names, dates, dollar amounts. Never be vague.
 - Never invent information. Only use what is provided in the context.
 - Currency: use abbreviations ($50M, not $50,000,000).

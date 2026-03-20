@@ -380,7 +380,7 @@ def prospect_detail(offering, org):
     org_brief_saved = load_saved_brief('org', org)
 
     # Load prospect brief for editable display
-    prospect_brief_key = f"prospect_brief:{offering}:{org}"
+    prospect_brief_key = f"{org}::{offering}"
     prospect_brief_saved = load_saved_brief('prospect', prospect_brief_key)
 
     # Load meetings (org-owned, displayed on both pages)
@@ -494,7 +494,7 @@ def api_synthesize_brief():
 
 def _run_focused_prospect_brief(org: str, offering: str) -> tuple:
     """Generate a short, offering-specific prospect brief.
-    Returns (narrative, content_hash).
+    Returns (narrative, at_a_glance, content_hash).
     """
     try:
         raw_data = collect_relationship_data(org, offering, base_dir=PROJECT_ROOT)
@@ -503,15 +503,15 @@ def _run_focused_prospect_brief(org: str, offering: str) -> tuple:
         raw_data = {}
     content_hash = compute_content_hash(raw_data)
     context_block = build_context_block(raw_data)
-    narrative, _ = call_claude_brief(
+    narrative, at_a_glance = call_claude_brief(
         PROSPECT_BRIEF_SYSTEM_PROMPT,
         f"Generate a concise prospect brief for {offering} at {org}.\n\n{context_block}",
-        max_tokens=600,
-        want_json=False,
+        max_tokens=800,
+        want_json=True,
     )
-    brief_key = f"prospect_brief:{offering}:{org}"
-    save_brief('prospect', brief_key, narrative, content_hash)
-    return narrative, content_hash
+    brief_key = f"{org}::{offering}"
+    save_brief('prospect', brief_key, narrative, content_hash, at_a_glance=at_a_glance)
+    return narrative, at_a_glance, content_hash
 
 
 @crm_bp.route('/api/prospect/<offering>/<path:org>/prospect-brief', methods=['GET', 'POST'])
@@ -519,15 +519,16 @@ def _run_focused_prospect_brief(org: str, offering: str) -> tuple:
 def api_prospect_brief_focused(offering, org):
     """Prospect-specific brief (short, offering-focused status)."""
     if request.method == 'GET':
-        brief_key = f"prospect_brief:{offering}:{org}"
+        brief_key = f"{org}::{offering}"
         saved = load_saved_brief('prospect', brief_key)
         return jsonify(saved or {})
 
     # POST — synthesize and persist
     try:
-        narrative, content_hash = _run_focused_prospect_brief(org, offering)
+        narrative, at_a_glance, content_hash = _run_focused_prospect_brief(org, offering)
         return jsonify({
             'narrative': narrative,
+            'at_a_glance': at_a_glance,
             'content_hash': content_hash,
             'generated_at': datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ'),
         })

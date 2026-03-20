@@ -778,3 +778,19 @@
 **Rationale:** The old format ("Follow-up meeting scheduled for March 24") was too sparse to be useful on the pipeline view — it forced the user to click into the prospect to understand relationship context. A 2-sentence summary with specific names, dates, and next steps gives actionable context at a glance without leaving the pipeline.
 
 **Impact:** `app/briefing/brief_synthesizer.py` (prompt), `app/templates/crm_pipeline.html` (cell renderer). No schema changes — `at_a_glance` already existed as a string field in `briefs.json`. Old values display correctly until regenerated.
+
+## 2026-03-19 — Unified Brief Key Format + Temporal Awareness in Prompts
+
+**Decision:** Unified all prospect brief storage to `{org}::{offering}` key format. The focused prospect brief route (`/prospect-brief`) previously used `prospect_brief:{offering}:{org}` — a different format that made its output invisible to the pipeline. All three key references in `crm_blueprint.py` now use the unified format.
+
+**Rationale:** Two routes generating prospect briefs with different storage keys meant the pipeline `at_a_glance` was never updated from the prospect detail page. Unifying the format ensures any brief generation route feeds the pipeline.
+
+**Impact:** `app/delivery/crm_blueprint.py` — 3 key format locations updated. `_run_focused_prospect_brief()` upgraded to `want_json=True` + `max_tokens=800` so the focused route now generates and stores `at_a_glance`. 3 orphaned `prospect_brief:` keys removed from `crm/briefs.json`.
+
+---
+
+**Decision:** Added meeting-centric priority framework and temporal awareness rules to both `BRIEF_SYSTEM_PROMPT` and `PROSPECT_BRIEF_SYSTEM_PROMPT`.
+
+**Rationale:** Briefs were producing stale, backwards-looking summaries — referencing prep tasks for meetings that had already occurred, and treating completed action items as pending. Prompts lacked any instruction to reason about time or to prioritize by meeting recency. The new rules instruct Claude to use today's date (already injected at context top) to determine past vs. future meetings and to lead the brief with the most temporally relevant meeting.
+
+**Impact:** `app/sources/relationship_brief.py` — both system prompts updated. No schema or API changes.

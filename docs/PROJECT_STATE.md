@@ -6,7 +6,7 @@
 ---
 
 ## Last Updated
-2026-03-19 — SPEC_enhanced-at-a-glance implementation
+2026-03-19 — SPEC_enhanced-at-a-glance full implementation (Part 2)
 
 ---
 
@@ -58,10 +58,14 @@
   - **Aliases field editable** — click to edit, comma-separated list, saves via PATCH endpoint
 - **Tony Excel Sync**: Daily Egnyte polling for Tony's Excel tracker, fuzzy org matching with alias support (`crm_reader.get_org_aliases_map()`), auto-syncs high-confidence changes to CRM with prospect notes integration
 - **Pipeline Polish**: At a Glance 2-line clamp display, Tasks column 350px width, assignee initials in parentheses, markdown stripping throughout
-- **Enhanced At a Glance (NEW — FULLY WORKING)**: Pipeline "At a Glance" column upgraded from 10-word status tags to 2-sentence condensed relationship summaries
-  - Claude prompt updated to request 2-sentence max, ~150-char summaries with specific names, dates, and next steps
-  - Pipeline column now wraps to 2 lines with `-webkit-line-clamp:2` overflow; tooltip preserves full text
-  - Old short values continue to display correctly until regenerated
+- **Enhanced At a Glance (FULLY COMPLETE)**: Brief system fully upgraded:
+  - `AT_A_GLANCE_JSON_SUFFIX` requests 2-sentence max, ~150-char condensed narrative with specific names, dates, next steps
+  - `BRIEF_SYSTEM_PROMPT` and `PROSPECT_BRIEF_SYSTEM_PROMPT` both include meeting-centric priority framework and temporal awareness rules
+  - Today's date injected at top of every context block — briefs are always temporally aware
+  - Focused prospect brief route (`/prospect-brief`) now uses `want_json=True`, stores `at_a_glance`, and uses unified key format
+  - All brief routes use unified `{org}::{offering}` key format — no more split between `/brief` and `/prospect-brief` routes
+  - Pipeline column wraps to 2 lines with `-webkit-line-clamp:2`; tooltip preserves full text
+  - 3 orphaned `prospect_brief:` keys removed from `briefs.json`
 - **Person Name Linking**: App-wide clickable person names linking to `/crm/people/<slug>` using client-side `linkifyPersonNames()` function
 - **Task Grouping APIs**: `/crm/api/tasks/by-prospect` and `/crm/api/tasks/by-owner` fully functional with filtering, sorting, and enrichment
 - **Drain Inbox Hardening**: `drain_inbox.py` runs safely as unattended launchd process — dedup via `drain_seen_ids.json`, last-run metadata in `drain_last_run.json`, `Mail.ReadWrite.Shared` scope added to fix 403 on mark-as-read
@@ -74,24 +78,25 @@
 
 ## What Was Just Completed (March 19, 2026)
 
-### Enhanced At a Glance Brief
+### SPEC_enhanced-at-a-glance — Part 2 (Full Completion)
 
-**Spec:** `SPEC_enhanced-at-a-glance.md` (moved to `docs/specs/implemented/`)
+**Part 1** (previous session) covered: `AT_A_GLANCE_JSON_SUFFIX` upgrade + pipeline CSS.
 
-**What Was Done:**
-- ✅ Updated `AT_A_GLANCE_JSON_SUFFIX` in `brief_synthesizer.py` — prompt now requests 2-sentence max, ~150-char condensed narrative summary with specific names, dates, and next steps
-- ✅ Replaced 10-word status tag examples with 2-sentence condensed brief examples
-- ✅ Instruction changed from "10 words MAX" to "150 characters MAX, 2 sentences MAX"
-- ✅ Updated `at_a_glance` cell renderer in `crm_pipeline.html` — removed 60-char truncation, added 2-line clamp CSS (`-webkit-line-clamp:2`, `white-space:normal`, `max-width:300px`), tooltip preserved
+**Part 2** (this session) completed the remaining items:
+
+- ✅ Added meeting-centric priority framework + temporal awareness rules to `BRIEF_SYSTEM_PROMPT`
+- ✅ Added meeting-centric priority framework + temporal awareness rules to `PROSPECT_BRIEF_SYSTEM_PROMPT`
+- ✅ `_run_focused_prospect_brief()`: key format `prospect_brief:{offering}:{org}` → `{org}::{offering}`, `want_json=False` → `want_json=True`, `max_tokens=600` → `max_tokens=800`, now returns `(narrative, at_a_glance, content_hash)`
+- ✅ `api_prospect_brief_focused()` GET: key format unified to `{org}::{offering}`
+- ✅ `prospect_detail()` route: `prospect_brief_key` unified to `{org}::{offering}`
+- ✅ POST handler updated to unpack 3-tuple and return `at_a_glance` in response
+- ✅ 3 orphaned `prospect_brief:` entries removed from `crm/briefs.json`
 - ✅ All 84 tests passing
 
 **Files Modified:**
-- `app/briefing/brief_synthesizer.py`
-- `app/templates/crm_pipeline.html`
-
-**Business Impact:**
-- Next time a prospect brief is generated, the At a Glance column will show a meaningful 2-sentence relationship summary instead of a sparse status tag
-- Existing short values continue to render correctly until regenerated
+- `app/sources/relationship_brief.py` — Both prompts updated
+- `app/delivery/crm_blueprint.py` — 4 locations updated (key format + focused brief upgrade)
+- `crm/briefs.json` — 3 orphaned keys removed
 
 ---
 
