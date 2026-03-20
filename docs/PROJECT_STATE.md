@@ -6,7 +6,7 @@
 ---
 
 ## Last Updated
-2026-03-19 — SPEC_primary-contact-display-fix implementation
+2026-03-19 — SPEC_briefing-persistence implementation
 
 ---
 
@@ -39,6 +39,7 @@
   - All cross-reference cards have blue dot + navigation badge linking to owning page
   - No auto-synthesis on page load — all briefs show "Generate" button when empty
   - Org Brief is strictly read-only — shows "Generate one from the Org page" when empty
+  - **Both brief cards server-rendered** — saved briefs appear instantly on page load without AJAX
 - **Org Edit Page**: Context-dependent color coding with clear ownership boundaries (FULLY WORKING):
   - **Native sections (GREEN left-border)**: Org Card (Type, Domain, Contacts), Org Brief, Org Notes Log, Meeting Summaries, Email History
   - **Cross-reference sections (BLUE right-border)**: Prospect summary cards (one per offering, read-only)
@@ -46,6 +47,7 @@
   - Add Note button styled consistently (blue, not white)
   - Brief renamed "Org Brief" (was "Relationship Brief")
   - No auto-synthesis on page load — shows "Generate" button when no cached brief exists
+  - **Org brief server-rendered** — saved brief appears instantly on page load without AJAX
 - **Tony Excel Sync**: Daily Egnyte polling for Tony's Excel tracker, fuzzy org matching with alias support (`crm_reader.get_org_aliases_map()`), auto-syncs high-confidence changes to CRM with prospect notes integration
 - **Pipeline Polish**: At a Glance text with 2-line wrap, Tasks column 350px width, assignee initials in parentheses, markdown stripping throughout
 - **Person Name Linking**: App-wide clickable person names linking to `/crm/people/<slug>` using client-side `linkifyPersonNames()` function
@@ -54,27 +56,32 @@
 - **Primary Contact — Prospect-Level (FULLY WORKING)**: Primary Contact is a prospect-level field. `Primary Contact` field in `PROSPECT_FIELD_ORDER` survives write/read round trips. Pipeline API and Prospect Detail route both read from the prospect record — no more contact-file lookups for these two paths. Multi-prospect orgs (e.g., UTIMCO) can show different primary contacts per prospect.
 - **Pipeline Type Column**: Type column now correctly displays org Type for each prospect. Type filter works on pipeline view.
 - **Email Scan**: Header "Scan Email" button on prospect detail uses the `/crm/api/prospect/.../email-scan` route (via `runScanEmail()`). The per-prospect "Deep Scan (90d)" button has been removed — email scanning is now handled exclusively by the `/email-scan` Cowork skill.
+- **Contact Title Field (FULLY WORKING)**: "Role" field renamed to "Title" throughout. `load_person()` returns `title` key. All 287 contact files migrated (`**Role:**` → `**Title:**`). Backward-compatible: files with `**Role:**` still parse correctly (mapped to `title`, but `**Title:**` always wins if both present).
 
 ---
 
 ## What Was Just Completed (March 19, 2026)
 
-### Primary Contact Display Fix
+### Briefing Persistence & Cross-Page Display Fix
 
-**Spec:** `SPEC_primary-contact-display-fix.md` (moved to `docs/specs/implemented/`)
+**Spec:** `SPEC_briefing-persistence.md` (moved to `docs/specs/implemented/`)
 
 **What Was Done:**
-- ✅ `prospect_detail()` route: removed `get_primary_contact(org)` call — now reads `prospect.get('Primary Contact', '')` directly from the loaded prospect dict
-- ✅ `api_prospects()` route: removed override that clobbered the prospect's `Primary Contact` field with a contact-file lookup — `load_prospects()` already carries the field
-- ✅ Pipeline page now shows correct Primary Contact as gray text under org name
-- ✅ Prospect Detail page now shows correct Primary Contact in header
-- ✅ Multi-prospect orgs show different primary contacts per prospect (data model is prospect-level, display matches)
-- ✅ Org Detail page unaffected (already worked correctly)
+- ✅ Removed duplicate code block in `prospect_detail()` route (lines 388-399 were duplicated)
+- ✅ `org_edit()` route now loads and passes `org_brief_saved` to template (was missing — root cause of org brief not appearing on Prospect Detail)
+- ✅ `crm_prospect_detail.html`: Prospect Brief card server-renders saved content via Jinja `{% if %}` blocks
+- ✅ `crm_prospect_detail.html`: Org Brief card server-renders saved content via Jinja `{% if %}` blocks
+- ✅ `crm_org_edit.html`: Org Brief card server-renders saved content via Jinja `{% if %}` blocks
+- ✅ `loadProspectBrief()` and `loadOrgBrief()` in prospect detail skip AJAX fetch if `.brief-narrative` already present
+- ✅ `loadOrgBrief()` in org edit skips AJAX fetch if `.brief-narrative` already present
+- ✅ `narrativeToHtml()` hardened in both templates (backtick → `&#96;`, `${` → `&#36;{`)
+- ✅ `console.warn` added to all brief AJAX catch blocks
 - ✅ All 67 tests passing
-- ✅ Spec moved to `docs/specs/implemented/`
 
 **Files Modified:**
-- `app/delivery/crm_blueprint.py` — Two code paths fixed (lines 355-356 and ~985-986)
+- `app/delivery/crm_blueprint.py`
+- `app/templates/crm_prospect_detail.html`
+- `app/templates/crm_org_edit.html`
 
 ---
 
@@ -86,8 +93,8 @@
 
 ## In Progress / Next Up
 
-### 1. No Pending Specs
-All specs in `docs/specs/` have been implemented.
+### 1. One Pending Spec
+- `docs/specs/SPEC_meeting-org-primary.md` — ready for implementation
 
 ### 2. Tony Sync Setup Required
 - **EGNYTE_API_TOKEN needed** — Must be obtained from Egnyte developer console and added to `app/.env`

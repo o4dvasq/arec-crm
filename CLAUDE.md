@@ -39,7 +39,7 @@ python3 -m pytest app/tests/ -v                       # 98 tests
 - **Brief synthesis JSON contract**: Claude must return `{narrative, at_a_glance}`. `brief_synthesizer.py` handles parse fallbacks.
 - **Graph-dependent routes return 501**: Email scan and auto-capture routes return 501 with a message pointing to the Claude Desktop skill.
 - **Update orchestrator (`main.py`) degrades gracefully**: If Graph dependencies are unavailable, it skips calendar/email fetch and proceeds with local data only. NOTE: "Morning briefing" refers ONLY to a future scheduled report delivery feature (see `docs/FUTURE_FEATURES.md`) — it is NOT the interactive update flow.
-- **Meetings are first-class objects**: `crm/meetings.json` is the unified store. Two-tier dedup (graph_event_id exact + fuzzy org+date ±1 day). Status lifecycle: scheduled → completed → reviewed. No manual "Add Meeting" UI — meetings enter via Graph calendar scan only.
+- **Meetings are organization-primary**: `crm/meetings.json` is the unified store. Meetings are associated with an Organization (optional), with optional Offering link. Meetings can exist with org+offering, org only, or neither. Offering requires org (validated). Two-tier dedup (graph_event_id exact + fuzzy org+date ±1 day). Status lifecycle: scheduled → completed → reviewed. Full CRUD via `/crm/meetings` UI.
 - **Calendar users config**: `crm/calendar_users.json` lists emails for Graph calendar scanning. Update when team members change.
 
 ## Active Constraints

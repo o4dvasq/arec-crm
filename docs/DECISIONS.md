@@ -680,3 +680,47 @@
 - `app/delivery/crm_blueprint.py` — Two code paths fixed
 
 ---
+
+## 2026-03-19 — Canonical Field Name: Title (not Role) for Contact Job Title
+
+**Decision:** Renamed the contact job title field from `role` to `title` throughout — in `load_person()` dict keys, `create_person_file()` markdown output, `update_person_fields()` field_map, and all HTML templates. Backward-compatible: files with `**Role:**` still parse (mapped to `title`), but `**Title:**` always wins if both are present. All 287 contact files migrated via `scripts/migrate_role_to_title.py`.
+
+**Rationale:** The codebase had two conflicting names for the same concept. The person detail page (via `parse_kb_person_file`) already used "Title" correctly. The org detail and prospect detail pages showed "ROLE" because `load_person()` used `role` as the dict key. Standardizing on "Title" eliminates the confusion and matches natural language (job title, not role).
+
+**Impact:** `app/sources/crm_reader.py`, `app/templates/crm_org_detail.html`, `app/templates/crm_prospect_detail.html`, `app/templates/_contacts_table.html`, all `contacts/*.md` files.
+
+---
+
+## 2026-03-19 — Meeting Data Model: Organization-Primary, Offering Optional
+
+**Decision:** Changed the meeting data model so meetings are primarily associated with an **Organization** (optional), with an optional **Offering** link. Previously, both `org` and `offering` were required, making every meeting implicitly prospect-level. Now meetings can exist with: org+offering (prospect-linked), org only (org-level), or neither (general).
+
+**Rationale:** You meet with an organization, not a prospect. A prospect is the pairing of an org with a specific offering (e.g., "UTIMCO + AREC Debt Fund II"). Many meetings happen before any specific offering is discussed, or are general relationship-building sessions. Forcing every meeting to have an offering was incorrect modeling.
+
+**Key implementation choices:**
+
+1. **`save_meeting()` signature** — All parameters (org, offering, meeting_date) now default to `""`. The function is fully permissive; validation happens at the API layer.
+
+2. **API validation** — `POST /api/meetings` only requires `meeting_date`. Business rule: offering requires org (cannot have offering without org). Returns 400 if offering is provided without org.
+
+3. **Offering dropdown validation** — New `GET /crm/api/offerings` endpoint sources dropdown from `offerings.md`. If offering is provided, it must match a known offering name.
+
+4. **Form field order** — Organization first (with "— No Organization —" option), then Offering (with "— No Offering —" option sourced from API). Both fields are optional.
+
+5. **Prospect auto-linking** — When org+offering are both provided, the UI calls `GET /api/prospect/{offering}/{org}` and shows "✓ Linked to existing prospect" or "No prospect for this org/offering". This is informational only — the meeting saves regardless.
+
+6. **Table rendering** — Column header changed from "Prospect" to "Organization". Cells show org name with optional offering badge beneath (not a clickable prospect link anymore).
+
+7. **Insight approval graceful degradation** — `approve_meeting_insight()` already has `if org and offering:` check at line 2602. When offering is blank, insight is marked approved on the meeting but prospect Notes writeback is skipped. No code change needed.
+
+8. **Dedup unchanged** — Fuzzy match on org+date±1 day already ignores offering. Only change: dedup now skips when org is blank (no point fuzzy-matching on blank org).
+
+**For the next designer:**
+- All existing meetings have org+offering set (all use "AREC Debt Fund II"). No data migration was needed.
+- The `prospect_meetings.json` store (keyed by `org::offering`) naturally excludes meetings with blank offerings. This is correct — only prospect-linked meetings belong there.
+- Meetings without an org will be excluded from org-level brief generation and relationship summaries (correct behavior).
+
+**Impact:**
+- `app/sources/crm_reader.py` — `save_meeting()` signature, fuzzy dedup guard
+- `app/delivery/crm_blueprint.py` — New `/api/offerings` endpoint, validation logic changes
+- `app/templates/crm_meetings.html` — Form reorder, dropdowns, table rendering, prospect status indicator
