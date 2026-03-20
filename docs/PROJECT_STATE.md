@@ -6,7 +6,7 @@
 ---
 
 ## Last Updated
-2026-03-20 — SPEC_eliminate-task-sections implementation
+2026-03-20 — SPEC_stale-page-cleanup implementation
 
 ---
 
@@ -19,14 +19,15 @@
 - **CRM Features**: Pipeline, prospect detail, org management, relationship briefs, contact intelligence, interaction history, tasks, meetings
 - **Brief Synthesis**: Two-tier brief system — Prospect Brief (offering-specific, 2-3 sentences) + Org Brief (comprehensive, org-level)
 - **Dark Theme**: Full dark theme throughout
-- **Navigation**: Global search, centered nav tabs (Pipeline, People, Orgs, Tasks, Meetings) with bullseye icon and hover user menu
-- **Tasks Page (`/tasks`)**: Owner-grouped Kanban board. Flat task list (no sections). Responsive add-form per owner group.
-  - `GET /tasks/api/tasks` returns `{"open": [...], "done": [...]}` — flat structure, no sections
-  - All CRUD routes use index-only: `/tasks/api/task/<index>` (no section in URL)
-  - Complete/restore physically move tasks to/from `## Done` in TASKS.md
-  - Task cards show org link only in metadata (no section label)
+- **Navigation**: Global search, centered nav tabs (Tasks | Pipeline | People | Orgs | Meetings) with bullseye icon and hover user menu
+- **Flat Task CRUD (`/crm/tasks`)**: Canonical tasks page — owner-grouped Kanban board. Flat task list (no sections). All CRUD routes live on `crm_blueprint.py` at `/crm/api/task/<index>`.
+  - `GET /crm/api/all-tasks` returns `{"open": [...], "done": [...]}`
+  - `POST /crm/api/task` → create; `PUT /crm/api/task/<index>` → edit; `DELETE` → delete
+  - `POST /crm/api/task/<index>/complete` and `/restore` physically move tasks to/from `## Done`
+  - `PATCH /crm/api/task/<index>/status` and `/priority` for quick updates
+  - `task-edit-modal.js` (shared by crm_tasks and pipeline) calls `/crm/api/task/...`
 - **CRM Tasks Page (`/crm/tasks`)**: Two-section view (My Tasks | Team Tasks) with search, sorting by priority then deal size, enriched with prospect data
-- **Meetings Page**: `/crm/meetings` — two-tab view (Scheduled | Past) with full CRUD, AI notes processing, insight approval workflow
+- **Meetings Page**: `/crm/meetings` — two-tab view (Scheduled | Past) with full CRUD, AI notes processing, insight approval workflow. In main nav.
   - Data backed by `crm/meetings.json` (migrated from `meeting_history.md`)
   - Row click opens edit modal pre-populated from meeting record
   - Three-tier deduplication: graph_event_id exact match + org+date±1 day fuzzy match + read-time dedup safety net
@@ -48,33 +49,36 @@
 
 ## What Was Just Completed (March 20, 2026)
 
-### SPEC_eliminate-task-sections
+### SPEC_stale-page-cleanup
 
 **What Was Done:**
-- ✅ TASKS.md flattened: section headers removed (except `## Done`), 70 open tasks in flat list, 95 done tasks under `## Done`, 11 bracket-format `[org:] [owner:]` tasks from `## IR / Fundraising` converted to `(OrgName) — assigned:Name` standard format
-- ✅ `GET /tasks/api/tasks` now returns `{"open": [...], "done": [...]}` instead of section-keyed dict
-- ✅ All CRUD routes changed from `/<section>/<index>` → `/<index>` (8 routes updated)
-- ✅ `TASK_SECTIONS` constant removed from `tasks_blueprint.py`
-- ✅ Complete/restore now physically move tasks between open list and `## Done` section
-- ✅ `_parse_task_line` and `_format_task_line` — `section` parameter removed
-- ✅ `load_tasks()` in `memory_reader.py` returns `{"open": [...], "personal": [...]}` from flat structure
-- ✅ `update_task_status()` searches by text without section parameter
-- ✅ `append_task_to_section()` → `append_task()` — inserts before `## Done`
-- ✅ `load_tasks_by_org()`, `get_tasks_for_prospect()`, `get_all_prospect_tasks()` — section tracking removed, flat index used
-- ✅ `add_prospect_task()` — writes `(OrgName) — assigned:Name` format, inserts before `## Done`, `section` param removed
-- ✅ `tasks.js` — consumes flat `{open, done}` response; section removed from all API URLs and card metadata; section dropdown removed from add form
-- ✅ `task-edit-modal.js` — `_section` state removed; all save/delete/restore URLs index-only
-- ✅ `tasks.html` — `TASK_MODAL_SECTIONS` and `SECTIONS` window variables removed
+- ✅ `tasks_blueprint.py` deleted — all flat task CRUD migrated to `crm_blueprint.py` under `/crm/api/task/...`
+- ✅ `GET /crm/api/all-tasks` added (returns `{open, done}`)
+- ✅ `task-edit-modal.js` updated: all paths changed from `/tasks/api/task` → `/crm/api/task`
+- ✅ `dashboard.html` deleted — `/dashboard` route removed from `dashboard.py`
+- ✅ `crm_org_detail.html` deleted (orphaned template, no route)
+- ✅ `app/templates/tasks/tasks.html`, `tasks.js`, `tasks.css` deleted
+- ✅ Legacy `/api/task/complete`, `/api/task/add`, `/api/task/status` routes removed from `dashboard.py`
+- ✅ `tasks_blueprint` import/registration removed from `dashboard.py`
+- ✅ `_load_recent_meetings` and `_load_calendar` removed from `dashboard.py` (only used by deleted dashboard route); `_render_meeting_markdown` kept (used by meeting_detail)
+- ✅ "Meetings" tab added to `_nav.html` (after Orgs)
+- ✅ `test_task_parsing.py` import updated from `delivery.tasks_blueprint` → `sources.memory_reader`
 - ✅ 84/84 tests passing
 
 **Files Modified:**
-- `TASKS.md` — flattened
-- `app/delivery/tasks_blueprint.py` — full rewrite of task helpers and all 8 CRUD routes
-- `app/sources/memory_reader.py` — section removed from parse/format/load/update/append functions
-- `app/sources/crm_reader.py` — 4 task functions updated
-- `app/static/tasks/tasks.js` — full rewrite of board render and API calls
-- `app/static/task-edit-modal.js` — section state and URL references removed
-- `app/templates/tasks/tasks.html` — section window variables removed
+- `app/delivery/crm_blueprint.py` — added task helpers + 8 new flat CRUD routes
+- `app/delivery/dashboard.py` — stripped to just meeting routes + root redirect
+- `app/static/task-edit-modal.js` — API paths updated
+- `app/templates/_nav.html` — Meetings tab added
+- `app/tests/test_task_parsing.py` — import fixed
+
+**Files Deleted:**
+- `app/delivery/tasks_blueprint.py`
+- `app/templates/dashboard.html`
+- `app/templates/crm_org_detail.html`
+- `app/templates/tasks/tasks.html`
+- `app/static/tasks/tasks.js`
+- `app/static/tasks/tasks.css`
 
 ---
 
@@ -107,7 +111,6 @@ After adding `Mail.ReadWrite.Shared` scope, delete `~/.arec_briefing_token_cache
 - **33 orgs without primary contact** — Migration skipped contacts where Primary Contact string didn't match a contact file (e.g., "TBD"). These orgs show "—" for primary contact.
 - **meeting_history.md still exists** — Old format file retained for backward compatibility.
 - **Existing data not retroactively normalized** — `resolve_org_name()` only affects new writes.
-- **CRM tasks page (`/crm/tasks`) not yet updated** — Still uses old section-based task format internally. Works for display but `section` field in its response is now a no-op. Follow-up spec if needed.
 
 ---
 

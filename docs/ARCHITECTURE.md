@@ -5,7 +5,7 @@
 
 **Location:** `~/Dropbox/projects/arec-crm/`
 
-**Last audited:** 2026-03-20 (updated: tasks are section-free flat list; tasks_blueprint.py added; TASKS.md is at project root)
+**Last audited:** 2026-03-20 (updated: tasks_blueprint.py deleted; flat task CRUD migrated to crm_blueprint; stale pages removed; Meetings in nav)
 
 ---
 
@@ -49,9 +49,8 @@ arec-crm/                        (~/Dropbox/projects/arec-crm/)
 │   ├── .env                   ← Environment variables (DEV_USER, ANTHROPIC_API_KEY, EGNYTE_API_TOKEN)
 │   ├── main.py                ← Morning briefing orchestrator (now includes Tony sync)
 │   ├── delivery/
-│   │   ├── dashboard.py       ← Flask main app (sets g.user from DEV_USER)
-│   │   ├── crm_blueprint.py   ← CRM routes + brief synthesis endpoints
-│   │   └── tasks_blueprint.py ← Tasks CRUD API + /tasks page (flat, section-free)
+│   │   ├── dashboard.py       ← Flask main app (sets g.user, meeting file routes)
+│   │   └── crm_blueprint.py   ← CRM routes + brief synthesis + flat task CRUD
 │   ├── sources/
 │   │   ├── crm_reader.py      ← Markdown backend (all read/write functions)
 │   │   ├── relationship_brief.py  ← Context aggregation for briefs
@@ -170,7 +169,7 @@ app/main.py (morning briefing)
 
 ## Key Design Patterns
 
-**TASKS.md is flat (no sections)** — `TASKS.md` at project root has one implicit open-task list (no `##` headers) followed by `## Done`. All tasks use `(OrgName) — assigned:Name` format. The Tasks API uses flat 0-based index: `/tasks/api/task/<index>`. Complete/restore physically move lines to/from `## Done`. `memory_reader.append_task_to_section()` is gone — use `append_task()`.
+**TASKS.md is flat (no sections)** — `TASKS.md` at project root has one implicit open-task list (no `##` headers) followed by `## Done`. All tasks use `(OrgName) — assigned:Name` format. The flat task CRUD API lives in `crm_blueprint.py` at `/crm/api/task/<index>` and `/crm/api/all-tasks`. Complete/restore physically move lines to/from `## Done`.
 
 **Markdown-only backend** — All CRM data in markdown files and JSON files. `crm_reader.py` is the single source of truth. `crm_db.py` exists in the codebase (PostgreSQL layer) but is NOT active — do not import from it in new code.
 

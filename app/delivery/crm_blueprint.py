@@ -21,6 +21,7 @@ if _APP_DIR not in sys.path:
     sys.path.insert(0, _APP_DIR)
 
 PROJECT_ROOT = os.path.dirname(_APP_DIR)
+TASKS_PATH = os.path.join(PROJECT_ROOT, "TASKS.md")
 
 # Simple pass-through decorator for local dev (no auth needed)
 def login_required(f):
@@ -53,7 +54,9 @@ from sources.crm_reader import (
     get_merge_preview, merge_organizations,
     get_primary_contact, set_primary_contact, clear_primary_contact,
     resolve_org_name,
+    normalize_team_name,
 )
+from sources.memory_reader import _parse_task_line, _format_task_line
 from sources.relationship_brief import (
     find_people_files, find_glossary_entry, find_meeting_summaries, find_org_tasks,
     collect_relationship_data, build_context_block, build_fallback_summary,
@@ -2043,3 +2046,265 @@ def api_meetings_insight_dismiss(meeting_id, insight_id):
     if not updated:
         abort(404)
     return jsonify(updated)
+
+
+# ---------------------------------------------------------------------------
+# Flat Task CRUD — helpers (migrated from tasks_blueprint)
+# ---------------------------------------------------------------------------
+
+def _load_tasks_full() -> dict:
+    """Parse TASKS.md → {'open': [...], 'done': [...]}. Each task includes 'index'."""
+    if not os.path.exists(TASKS_PATH):
+        return {'open': [], 'done': []}
+
+    open_tasks = []
+    done_tasks = []
+    in_done = False
+
+    with open(TASKS_PATH, encoding='utf-8') as f:
+        for line in f:
+            stripped = line.rstrip()
+            if re.match(r'^## Done', stripped):
+                in_done = True
+                continue
+            if re.match(r'^## ', stripped):
+                continue
+            if line.startswith('- [ ] ') or line.startswith('- [x] '):
+                if in_done:
+                    task = _parse_task_line(line)
+                    task['index'] = len(done_tasks)
+                    done_tasks.append(task)
+                else:
+                    task = _parse_task_line(line)
+                    task['index'] = len(open_tasks)
+                    open_tasks.append(task)
+
+    return {'open': open_tasks, 'done': done_tasks}
+
+
+def _read_task_lines() -> list:
+    if not os.path.exists(TASKS_PATH):
+        return []
+    with open(TASKS_PATH, 'r', encoding='utf-8') as f:
+        return f.readlines()
+
+
+def _write_task_file(lines: list) -> None:
+    with open(TASKS_PATH, 'w', encoding='utf-8') as f:
+        f.writelines(lines)
+
+
+def _find_task_line(lines: list, index: int, done: bool = False) -> int:
+    """Find the file line number for the nth task (0-based).
+
+    If done=False: counts open tasks before ## Done.
+    If done=True: counts tasks after ## Done.
+    """
+    in_done_section = False
+    count = 0
+    for i, ln in enumerate(lines):
+        if re.match(r'^## Done', ln.rstrip()):
+            in_done_section = True
+            continue
+        if re.match(r'^## ', ln.rstrip()):
+            in_done_section = False
+            continue
+        if in_done_section == done and (ln.startswith('- [ ] ') or ln.startswith('- [x] ')):
+            if count == index:
+                return i
+            count += 1
+    return -1
+
+
+def _find_done_insertion_point(lines: list) -> int:
+    """Return the line index immediately after '## Done' header."""
+    for i, ln in enumerate(lines):
+        if re.match(r'^## Done', ln.rstrip()):
+            return i + 1
+    return len(lines)
+
+
+def _find_open_insertion_point(lines: list) -> int:
+    """Return the line index just before '## Done' (to append open tasks)."""
+    for i, ln in enumerate(lines):
+        if re.match(r'^## Done', ln.rstrip()):
+            return i
+    return len(lines)
+
+
+# ---------------------------------------------------------------------------
+# Flat Task CRUD — routes (migrated from tasks_blueprint)
+# ---------------------------------------------------------------------------
+
+@crm_bp.route('/api/all-tasks', methods=['GET'])
+@login_required
+def api_all_tasks():
+    """Return all tasks as {open: [...], done: [...]}."""
+    return jsonify(_load_tasks_full())
+
+
+@crm_bp.route('/api/task', methods=['POST'])
+@login_required
+def api_task_create():
+    data = request.get_json(force=True)
+    text = data.get('text', '').strip()
+    priority = data.get('priority', 'Med').strip()
+    context = data.get('context', '').strip()
+    assigned_to = normalize_team_name(data.get('assigned_to', ''))
+    status = data.get('status', 'new').strip()
+    org = data.get('org', '').strip()
+
+    if not text:
+        return jsonify({'ok': False, 'error': 'text required'}), 400
+
+    new_line = _format_task_line(text, priority, context, assigned_to, status=status, org=org)
+    lines = _read_task_lines()
+    insert_at = _find_open_insertion_point(lines)
+    lines.insert(insert_at, new_line)
+    _write_task_file(lines)
+    return jsonify({'ok': True})
+
+
+@crm_bp.route('/api/task/<int:index>', methods=['PUT'])
+@login_required
+def api_task_update(index):
+    data = request.get_json(force=True)
+    text = data.get('text', '').strip()
+    priority = data.get('priority', 'Med').strip()
+    context = data.get('context', '').strip()
+    assigned_to = normalize_team_name(data.get('assigned_to', ''))
+    status = data.get('status', 'open').strip()
+    org = data.get('org', '').strip()
+
+    if not text:
+        return jsonify({'ok': False, 'error': 'text required'}), 400
+
+    lines = _read_task_lines()
+    li = _find_task_line(lines, index)
+    if li == -1:
+        return jsonify({'ok': False, 'error': 'task not found'}), 404
+
+    original = lines[li]
+    was_done = original.startswith('- [x] ')
+    cdm = re.search(r'—\s*completed\s+(\d{4}-\d{2}-\d{2})', original)
+    completion_date = cdm.group(1) if cdm else None
+
+    new_line = _format_task_line(text, priority, context, assigned_to,
+                                  done=was_done, completion_date=completion_date,
+                                  status=status, org=org)
+    lines[li] = new_line
+    _write_task_file(lines)
+    return jsonify({'ok': True})
+
+
+@crm_bp.route('/api/task/<int:index>', methods=['DELETE'])
+@login_required
+def api_task_delete(index):
+    lines = _read_task_lines()
+    li = _find_task_line(lines, index)
+    if li == -1:
+        return jsonify({'ok': False, 'error': 'task not found'}), 404
+    lines.pop(li)
+    _write_task_file(lines)
+    return jsonify({'ok': True})
+
+
+@crm_bp.route('/api/task/<int:index>/complete', methods=['POST'])
+@login_required
+def api_task_complete(index):
+    today = date.today().isoformat()
+    lines = _read_task_lines()
+    li = _find_task_line(lines, index)
+    if li == -1:
+        return jsonify({'ok': False, 'error': 'task not found'}), 404
+    ln = lines[li]
+    if not ln.startswith('- [ ] '):
+        return jsonify({'ok': False, 'error': 'task already complete'}), 400
+
+    ln = '- [x] ' + ln[6:].rstrip()
+    if 'completed' not in ln:
+        ln += f' — completed {today}'
+    ln += '\n'
+
+    lines.pop(li)
+    insert_at = _find_done_insertion_point(lines)
+    lines.insert(insert_at, ln)
+    _write_task_file(lines)
+    return jsonify({'ok': True})
+
+
+@crm_bp.route('/api/task/<int:index>/restore', methods=['POST'])
+@login_required
+def api_task_restore(index):
+    lines = _read_task_lines()
+    li = _find_task_line(lines, index, done=True)
+    if li == -1:
+        return jsonify({'ok': False, 'error': 'task not found'}), 404
+    ln = lines[li]
+    if not ln.startswith('- [x] '):
+        return jsonify({'ok': False, 'error': 'task not complete'}), 400
+
+    ln = '- [ ] ' + ln[6:]
+    ln = re.sub(r'\s*—\s*completed\s+\d{4}-\d{2}-\d{2}', '', ln.rstrip())
+    ln += '\n'
+
+    lines.pop(li)
+    insert_at = _find_open_insertion_point(lines)
+    lines.insert(insert_at, ln)
+    _write_task_file(lines)
+    return jsonify({'ok': True})
+
+
+@crm_bp.route('/api/task/<int:index>/status', methods=['PATCH'])
+@login_required
+def api_task_status_update(index):
+    data = request.get_json(force=True)
+    new_status = data.get('status', '').strip()
+
+    valid_statuses = ['New', 'In Progress', 'Complete']
+    if new_status not in valid_statuses:
+        return jsonify({'ok': False, 'error': f'status must be one of: {", ".join(valid_statuses)}'}), 400
+
+    lines = _read_task_lines()
+    li = _find_task_line(lines, index)
+    if li == -1:
+        return jsonify({'ok': False, 'error': 'task not found'}), 404
+
+    task = _parse_task_line(lines[li])
+    done = new_status == 'Complete'
+    completion_date = date.today().isoformat() if done and not task['complete'] else task.get('completion_date')
+
+    new_line = _format_task_line(
+        task['text'], task['priority'], task['context'], task['assigned_to'],
+        done=done, completion_date=completion_date,
+        status=new_status, org=task.get('org', '')
+    )
+    lines[li] = new_line
+    _write_task_file(lines)
+    return jsonify({'ok': True, 'status': new_status})
+
+
+@crm_bp.route('/api/task/<int:index>/priority', methods=['PATCH'])
+@login_required
+def api_task_priority_update(index):
+    data = request.get_json(force=True)
+    new_priority = data.get('priority', '').strip()
+
+    valid_priorities = ['Hi', 'Med', 'Low']
+    if new_priority not in valid_priorities:
+        return jsonify({'ok': False, 'error': f'priority must be one of: {", ".join(valid_priorities)}'}), 400
+
+    lines = _read_task_lines()
+    li = _find_task_line(lines, index)
+    if li == -1:
+        return jsonify({'ok': False, 'error': 'task not found'}), 404
+
+    task = _parse_task_line(lines[li])
+    new_line = _format_task_line(
+        task['text'], new_priority, task['context'], task['assigned_to'],
+        done=task['complete'], completion_date=task.get('completion_date'),
+        status=task.get('status', 'New'), org=task.get('org', '')
+    )
+    lines[li] = new_line
+    _write_task_file(lines)
+    return jsonify({'ok': True, 'priority': new_priority})

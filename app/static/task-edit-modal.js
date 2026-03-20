@@ -201,7 +201,7 @@
     let res;
     if (_index < 0) {
       // CREATE mode
-      res = await fetch('/tasks/api/task', {
+      res = await fetch('/crm/api/task', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -216,7 +216,7 @@
     } else {
       // EDIT mode
       res = await fetch(
-        `/tasks/api/task/${_index}`,
+        `/crm/api/task/${_index}`,
         {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
@@ -300,7 +300,7 @@
     if (!confirm('Delete this task?')) return;
 
     const res = await fetch(
-      `/tasks/api/task/${_index}`,
+      `/crm/api/task/${_index}`,
       { method: 'DELETE' }
     );
 

@@ -1464,7 +1464,7 @@ def get_tasks_for_prospect(org_name: str) -> list[dict]:
     """Scan TASKS.md for tasks tagged with (org_name). Case-insensitive.
 
     Each returned task includes 'section_index' — its 0-based position in the
-    flat open-task list. This index matches the /tasks/api/task/<index> endpoints.
+    flat open-task list. This index matches the /crm/api/task/<index> endpoints.
     """
     if not os.path.exists(TASKS_MD_PATH):
         return []

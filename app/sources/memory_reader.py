@@ -11,7 +11,7 @@ PRODUCTIVITY_ROOT = os.path.dirname(_APP_ROOT)  # project root (works in any loc
 
 
 # ---------------------------------------------------------------------------
-# Task line parsing — shared by tasks_blueprint.py and update_task_status()
+# Task line parsing — shared by crm_blueprint.py and update_task_status()
 # ---------------------------------------------------------------------------
 
 def _parse_task_line(line: str) -> dict:

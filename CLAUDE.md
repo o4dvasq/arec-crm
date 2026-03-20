@@ -13,7 +13,7 @@ CRM and fundraising platform for the AREC team. Manages investor pipeline, relat
 ```bash
 echo "DEV_USER=oscar" > app/.env                       # First time only
 python3 app/delivery/dashboard.py                     # Web dashboard — http://localhost:8000
-python3 -m pytest app/tests/ -v                       # 98 tests
+python3 -m pytest app/tests/ -v                       # 84 tests
 ```
 
 ## Key Files
@@ -21,9 +21,8 @@ python3 -m pytest app/tests/ -v                       # 98 tests
 | File | Purpose |
 |------|---------|
 | `app/sources/crm_reader.py` | Markdown backend — single source of truth (70+ functions, includes org_notes + brief attribution) |
-| `app/delivery/dashboard.py` | Flask app factory (load env → register blueprints) |
-| `app/delivery/crm_blueprint.py` | CRM routes + relationship brief synthesis endpoints |
-| `app/delivery/tasks_blueprint.py` | Tasks page routes |
+| `app/delivery/dashboard.py` | Flask app factory (load env → register blueprints, meeting file routes) |
+| `app/delivery/crm_blueprint.py` | CRM routes + relationship brief synthesis + flat task CRUD endpoints |
 | `app/auth/decorators.py` | `require_api_key_or_login` — no-op passthrough for local dev |
 | `app/tests/conftest.py` | pytest path setup (no DB fixtures) |
 | `app/sources/email_matching.py` | Org/participant fuzzy matching utilities |

@@ -1,8 +1,5 @@
 """
 test_task_parsing.py — Tests for task line parsing logic.
-
-Imports _parse_task_line directly from tasks_blueprint so tests always
-exercise the canonical implementation with no risk of drift.
 """
 
 import os
@@ -13,7 +10,7 @@ _APP_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if _APP_DIR not in sys.path:
     sys.path.insert(0, _APP_DIR)
 
-from delivery.tasks_blueprint import _parse_task_line as parse_task_line
+from sources.memory_reader import _parse_task_line as parse_task_line
 
 
 # ---------------------------------------------------------------------------

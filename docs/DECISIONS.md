@@ -804,3 +804,13 @@
 **Impact:** `TASKS.md`, `tasks_blueprint.py`, `memory_reader.py`, `crm_reader.py`, `tasks.js`, `task-edit-modal.js`, `tasks.html`. The `/crm/tasks` page (crm_blueprint.py) was left unchanged per spec scope — it still calls `get_tasks_for_prospect()` which now returns flat-indexed tasks.
 
 ---
+
+## 2026-03-20 — Consolidated Task CRUD into crm_blueprint; Removed Stale Pages (SPEC_stale-page-cleanup)
+
+**Decision:** Deleted `tasks_blueprint.py` and migrated all flat task CRUD routes to `crm_blueprint.py` under `/crm/api/task/...`. Deleted the old `/tasks/` page (tasks.html, tasks.js, tasks.css) and the `/dashboard` page (dashboard.html). Removed the orphaned `crm_org_detail.html` template. Added Meetings to the main navigation bar.
+
+**Rationale:** `tasks_blueprint.py` existed as a separate module for historical reasons (extracted from dashboard.py). After the section elimination, its only remaining value was hosting the flat CRUD routes. Keeping two blueprints for task logic was unnecessary split. The `/tasks/` page was unreachable from the nav and duplicated `/crm/tasks`. The `/dashboard` page was similarly stale — it only displayed meetings and calendar data but was superseded by the Meetings page in crm_blueprint. Centralizing task routes into crm_blueprint removes the only reason to import tasks_blueprint from anywhere.
+
+**Impact:** `app/delivery/tasks_blueprint.py` deleted; 8 new routes + task helpers added to `crm_blueprint.py`; `dashboard.py` stripped to meeting file routes + root redirect; `task-edit-modal.js` paths updated from `/tasks/api/task` → `/crm/api/task`; `_nav.html` now shows Tasks | Pipeline | People | Orgs | Meetings.
+
+---
