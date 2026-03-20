@@ -6,7 +6,7 @@
 ---
 
 ## Last Updated
-2026-03-19 — SPEC_alias-normalization implementation
+2026-03-19 — SPEC_enhanced-at-a-glance implementation
 
 ---
 
@@ -31,7 +31,7 @@
   - Column header and label renamed "Organization" → "Prospect"
   - **Three-tier deduplication**: graph_event_id exact match + org+date±1 day fuzzy match (any status) + read-time dedup safety net
 - **Organization Aliases**: Single source of truth is the `Aliases` field on each org in `organizations.md`. Used by search, briefs, merge, and Tony sync. `crm/org_aliases.json` retired and deleted.
-- **Alias Normalization (NEW — FULLY WORKING)**: Write-path normalization prevents org name drift
+- **Alias Normalization (FULLY WORKING)**: Write-path normalization prevents org name drift
   - `resolve_org_name()` function in `crm_reader.py` converts aliases to canonical names before storage
   - All 5 write endpoints normalized: meeting create/update, prospect create, org contacts add, org notes add
   - Aliases field visible and editable on Org Detail page (inline edit, same pattern as Type/Domain)
@@ -57,7 +57,11 @@
   - **Org brief server-rendered** — saved brief appears instantly on page load without AJAX
   - **Aliases field editable** — click to edit, comma-separated list, saves via PATCH endpoint
 - **Tony Excel Sync**: Daily Egnyte polling for Tony's Excel tracker, fuzzy org matching with alias support (`crm_reader.get_org_aliases_map()`), auto-syncs high-confidence changes to CRM with prospect notes integration
-- **Pipeline Polish**: At a Glance text with 2-line wrap, Tasks column 350px width, assignee initials in parentheses, markdown stripping throughout
+- **Pipeline Polish**: At a Glance 2-line clamp display, Tasks column 350px width, assignee initials in parentheses, markdown stripping throughout
+- **Enhanced At a Glance (NEW — FULLY WORKING)**: Pipeline "At a Glance" column upgraded from 10-word status tags to 2-sentence condensed relationship summaries
+  - Claude prompt updated to request 2-sentence max, ~150-char summaries with specific names, dates, and next steps
+  - Pipeline column now wraps to 2 lines with `-webkit-line-clamp:2` overflow; tooltip preserves full text
+  - Old short values continue to display correctly until regenerated
 - **Person Name Linking**: App-wide clickable person names linking to `/crm/people/<slug>` using client-side `linkifyPersonNames()` function
 - **Task Grouping APIs**: `/crm/api/tasks/by-prospect` and `/crm/api/tasks/by-owner` fully functional with filtering, sorting, and enrichment
 - **Drain Inbox Hardening**: `drain_inbox.py` runs safely as unattended launchd process — dedup via `drain_seen_ids.json`, last-run metadata in `drain_last_run.json`, `Mail.ReadWrite.Shared` scope added to fix 403 on mark-as-read
@@ -70,38 +74,24 @@
 
 ## What Was Just Completed (March 19, 2026)
 
-### Alias Normalization & Org Detail Display
+### Enhanced At a Glance Brief
 
-**Spec:** `SPEC_alias-normalization.md` (moved to `docs/specs/implemented/`)
+**Spec:** `SPEC_enhanced-at-a-glance.md` (moved to `docs/specs/implemented/`)
 
 **What Was Done:**
-- ✅ Added `resolve_org_name()` function in `crm_reader.py` — converts variant/alias names to canonical names
-- ✅ Updated 5 write-path endpoints in `crm_blueprint.py` to call `resolve_org_name()`:
-  - POST `/api/meetings` — normalizes org before creation
-  - PATCH `/api/meetings/<id>` — normalizes org if updated
-  - POST `/api/prospect` — normalizes org before creation
-  - POST `/api/org/<name>/contacts` — normalizes org_name from URL
-  - POST `/api/org/<name>/notes` — normalizes name from URL
-- ✅ Enhanced `_fuzzy_match_org()` in `email_matching.py` to check aliases in addition to org names (preserves 6-char threshold)
-- ✅ Added Aliases field to Org Detail page (`crm_org_edit.html`) with inline editing (same pattern as Type/Domain)
-- ✅ Created comprehensive test suite: `test_resolve_org_name.py` (11 tests)
-- ✅ Added alias-based fuzzy matching tests to `test_email_matching.py` (6 new tests)
+- ✅ Updated `AT_A_GLANCE_JSON_SUFFIX` in `brief_synthesizer.py` — prompt now requests 2-sentence max, ~150-char condensed narrative summary with specific names, dates, and next steps
+- ✅ Replaced 10-word status tag examples with 2-sentence condensed brief examples
+- ✅ Instruction changed from "10 words MAX" to "150 characters MAX, 2 sentences MAX"
+- ✅ Updated `at_a_glance` cell renderer in `crm_pipeline.html` — removed 60-char truncation, added 2-line clamp CSS (`-webkit-line-clamp:2`, `white-space:normal`, `max-width:300px`), tooltip preserved
 - ✅ All 84 tests passing
 
 **Files Modified:**
-- `app/sources/crm_reader.py`
-- `app/delivery/crm_blueprint.py`
-- `app/sources/email_matching.py`
-- `app/templates/crm_org_edit.html`
-
-**Files Created:**
-- `app/tests/test_resolve_org_name.py`
+- `app/briefing/brief_synthesizer.py`
+- `app/templates/crm_pipeline.html`
 
 **Business Impact:**
-- Prevents org name drift — new meetings/prospects/notes will always use canonical org names
-- Aliases visible and manageable on Org Detail page
-- Email matching now finds orgs by their aliases (e.g., "MassMutual" resolves to "Mass Mutual Life Insurance Co.")
-- Unknown org names still pass through (meetings for orgs not in CRM still work)
+- Next time a prospect brief is generated, the At a Glance column will show a meaningful 2-sentence relationship summary instead of a sparse status tag
+- Existing short values continue to render correctly until regenerated
 
 ---
 
@@ -134,6 +124,7 @@ After adding `Mail.ReadWrite.Shared` scope, the cached MSAL token needs to be re
 - **33 orgs without primary contact** — Migration skipped contacts where the prospect's Primary Contact string didn't match a contact file (e.g., "TBD", informal descriptions, email-appended names). These orgs show "—" for primary contact.
 - **meeting_history.md still exists** — Old format file retained for backward compatibility with org detail pages that use `load_meeting_history()`. The two systems (meeting_history.md + meetings.json) are not yet unified.
 - **Existing data not retroactively normalized** — `resolve_org_name()` only affects new writes. Old meetings/prospects with variant names remain as-is (alias-based reads handle them correctly).
+- **Existing at_a_glance values are short tags** — Old 10-word status tags remain in `briefs.json` until each prospect's brief is regenerated. No backfill needed.
 
 ---
 

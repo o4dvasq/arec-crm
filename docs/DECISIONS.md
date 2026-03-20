@@ -770,3 +770,11 @@
 - `app/tests/test_resolve_org_name.py` — New test file (11 tests)
 - `app/tests/test_email_matching.py` — 6 new alias-based fuzzy matching tests
 
+
+## 2026-03-19 — Enhanced At a Glance: 2-Sentence Condensed Brief
+
+**Decision:** Changed the `at_a_glance` field in prospect briefs from a ≤10-word status tag to a ≤2-sentence (~150-char) condensed narrative summary. Updated both the Claude prompt and the pipeline column renderer.
+
+**Rationale:** The old format ("Follow-up meeting scheduled for March 24") was too sparse to be useful on the pipeline view — it forced the user to click into the prospect to understand relationship context. A 2-sentence summary with specific names, dates, and next steps gives actionable context at a glance without leaving the pipeline.
+
+**Impact:** `app/briefing/brief_synthesizer.py` (prompt), `app/templates/crm_pipeline.html` (cell renderer). No schema changes — `at_a_glance` already existed as a string field in `briefs.json`. Old values display correctly until regenerated.
