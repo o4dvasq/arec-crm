@@ -6,7 +6,7 @@
 ---
 
 ## Last Updated
-2026-03-20 — SPEC_stale-page-cleanup implementation
+2026-03-21 — SPEC_teams-transcript-retrieval implementation
 
 ---
 
@@ -39,6 +39,7 @@
 - **Organization Merge**: Full merge workflow on org edit page
 - **Prospect Detail Page**: Context-dependent color coding; both brief cards server-rendered; resilient loading
 - **Tony Excel Sync**: Daily Egnyte polling for Tony's Excel tracker, fuzzy org matching with alias support
+- **Teams Transcript Auto-Retrieval**: `crm-update` skill Step 4b pulls Teams transcripts for past meetings after calendar scan, converts WEBVTT to speaker-labeled text, stores as `notes_raw` → auto-processed by Step 5 AI summarization
 - **Enhanced At a Glance**: Temporal awareness, meeting-centric priority framework, unified `{org}::{offering}` brief key format
 - **Person Name Linking**: App-wide clickable person names linking to `/crm/people/<slug>`
 - **Task Grouping APIs**: `/crm/api/tasks/by-prospect` and `/crm/api/tasks/by-owner` fully functional
@@ -47,7 +48,27 @@
 
 ---
 
-## What Was Just Completed (March 20, 2026)
+## What Was Just Completed (March 21, 2026)
+
+### SPEC_teams-transcript-retrieval
+
+**What Was Done:**
+- ✅ Step 4b added to `crm-update` skill — pulls Teams transcripts for past meetings after calendar scan
+- ✅ Full `read_resource(uri=event.uri)` → `read_resource(uri=meetingTranscriptUrl)` retrieval pattern
+- ✅ WEBVTT parser: speaker-labeled output (`**Name** [HH:MM:SS]\nText`), consecutive-line consolidation
+- ✅ Stores `transcript_url` + `notes_raw` on meeting record, marks `status="completed"`
+- ✅ Step 5 AI processing picks up transcript-enriched meetings automatically (no changes needed)
+- ✅ Silent skip when `meetingTranscriptUrl` absent (transcription not enabled — normal)
+- ✅ Error reporting without aborting for failed transcript reads
+- ✅ Report line: `"Transcripts: checked N past meetings, T transcripts pulled"`
+- ✅ 84/84 tests passing
+
+**Files Modified:**
+- `crm-update.skill` — ZIP bundle containing updated `crm-update/SKILL.md` with Step 4b
+
+---
+
+## What Was Completed (March 20, 2026)
 
 ### SPEC_stale-page-cleanup
 
@@ -60,25 +81,8 @@
 - ✅ `app/templates/tasks/tasks.html`, `tasks.js`, `tasks.css` deleted
 - ✅ Legacy `/api/task/complete`, `/api/task/add`, `/api/task/status` routes removed from `dashboard.py`
 - ✅ `tasks_blueprint` import/registration removed from `dashboard.py`
-- ✅ `_load_recent_meetings` and `_load_calendar` removed from `dashboard.py` (only used by deleted dashboard route); `_render_meeting_markdown` kept (used by meeting_detail)
 - ✅ "Meetings" tab added to `_nav.html` (after Orgs)
-- ✅ `test_task_parsing.py` import updated from `delivery.tasks_blueprint` → `sources.memory_reader`
 - ✅ 84/84 tests passing
-
-**Files Modified:**
-- `app/delivery/crm_blueprint.py` — added task helpers + 8 new flat CRUD routes
-- `app/delivery/dashboard.py` — stripped to just meeting routes + root redirect
-- `app/static/task-edit-modal.js` — API paths updated
-- `app/templates/_nav.html` — Meetings tab added
-- `app/tests/test_task_parsing.py` — import fixed
-
-**Files Deleted:**
-- `app/delivery/tasks_blueprint.py`
-- `app/templates/dashboard.html`
-- `app/templates/crm_org_detail.html`
-- `app/templates/tasks/tasks.html`
-- `app/static/tasks/tasks.js`
-- `app/static/tasks/tasks.css`
 
 ---
 
@@ -92,6 +96,9 @@
 
 ### 1. No Pending Specs
 `docs/specs/` is empty. Write the next spec in CoWork, save to `docs/specs/`, then `/code-start`.
+
+### 2. Test `crm-update` Transcript Retrieval in Practice
+Step 4b is implemented in the skill bundle. Run `/crm-update` after a Teams meeting to verify the full retrieval → WEBVTT conversion → notes_raw storage pipeline works end-to-end.
 
 ### 2. Tony Sync Setup Required
 - **EGNYTE_API_TOKEN needed** — Must be obtained from Egnyte developer console and added to `app/.env`
