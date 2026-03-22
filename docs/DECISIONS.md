@@ -834,3 +834,23 @@
 **Impact:** `crm_blueprint.py` — 3 references removed; Excel export is now 11 columns (Notes shifts to col 10, Last Touch to col 11).
 
 ---
+
+## 2026-03-22 — Fundraising Ally Pass-Through: Email-Keyed for Individual Allies
+
+**Decision:** Ally detection uses two separate mechanisms: (1) domain-based for org allies (placement agents with known domains like south40capital.com), and (2) email-address-keyed for individual connectors (Ira Lubert). Individual ally check runs BEFORE domain-based org resolution. The ally config lives in `crm/fundraising_allies.json`.
+
+**Rationale:** Ira Lubert's domain (`belgravialp.com`) belongs to Belgravia Management — a real Stage 7 prospect. Matching by domain alone would incorrectly suppress legitimate Belgravia emails. Email-keyed individual ally detection, running before domain lookup, handles this edge case cleanly without domain pollution.
+
+**Impact:** `crm/fundraising_allies.json` (new), `crm_reader.py` (is_ally_org, is_ally_email, get_individual_ally_name), `email_matching.py` (ALLY_DOMAINS), `graph_poller.py` (match_email_to_org rewrite, via_ally in staged items), `deep_scan_team.py` (match_calendar_event_to_org rewrite).
+
+---
+
+## 2026-03-22 — Ally Pass-Through: via_ally Field is Nullable, Not Required
+
+**Decision:** The `via_ally` field is added to all staged items (email + calendar) but is `null` for direct matches. It is only populated when a match was routed through an ally. No schema migration needed — existing items without the field behave identically.
+
+**Rationale:** Backward-compatible addition. Older staged items in `email_staging_queue.json` that lack `via_ally` are handled gracefully by `match.get("via_ally")` returning None. The skill (`/crm-update`) can optionally surface "via South40 Capital" in suggested action text but is not required to.
+
+**Impact:** `graph_poller.py::build_staged_item()`, `deep_scan_team.py::build_calendar_staged_item()`.
+
+---

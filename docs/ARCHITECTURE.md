@@ -5,7 +5,7 @@
 
 **Location:** `~/Dropbox/projects/arec-crm/`
 
-**Last audited:** 2026-03-21 (updated: Health page + engagement heatmap added; next_action fully removed from crm_blueprint)
+**Last audited:** 2026-03-22 (updated: fundraising ally pass-through added; graph_poller.py + deep_scan_team.py now tracked)
 
 ---
 
@@ -48,11 +48,13 @@ arec-crm/                        (~/Dropbox/projects/arec-crm/)
 ├── app/                       ← Python backend
 │   ├── .env                   ← Environment variables (DEV_USER, ANTHROPIC_API_KEY, EGNYTE_API_TOKEN)
 │   ├── main.py                ← Morning briefing orchestrator (now includes Tony sync)
+│   ├── graph_poller.py        ← Team email polling via MS Graph; ally pass-through matching
 │   ├── delivery/
 │   │   ├── dashboard.py       ← Flask main app (sets g.user, meeting file routes)
 │   │   └── crm_blueprint.py   ← CRM routes + brief synthesis + flat task CRUD
 │   ├── sources/
 │   │   ├── crm_reader.py      ← Markdown backend (all read/write functions)
+│   │   ├── email_matching.py  ← Participant/org matching utilities; ALLY_DOMAINS
 │   │   ├── relationship_brief.py  ← Context aggregation for briefs
 │   │   └── tony_sync.py       ← Egnyte polling + Excel parsing + fuzzy org matching
 │   ├── briefing/
@@ -83,13 +85,18 @@ arec-crm/                        (~/Dropbox/projects/arec-crm/)
 │   ├── meetings.json          ← Meeting records (UUID-keyed)
 │   ├── org_notes.json         ← Organization notes log
 │   ├── meeting_history.md     ← Legacy meeting history (used by org detail pages)
+│   ├── fundraising_allies.json ← Ally orgs (placement agents) + individual connectors config
+│   ├── email_staging_queue.json ← Staged emails/meetings pending Oscar's review
 │   ├── tony_sync_state.json   ← Tony Excel sync state (last processed file)
 │   ├── tony_sync_pending.json ← Low-confidence matches awaiting manual review
 │   ├── drain_last_run.json    ← Last drain_inbox.py run metadata (gitignored)
 │   └── drain_seen_ids.json    ← Message IDs already written to inbox.md (gitignored)
 │
-└── contacts/                  ← People knowledge base
-    └── {slug}.md              ← Individual person profiles
+├── contacts/                  ← People knowledge base
+│   └── {slug}.md              ← Individual person profiles
+│
+└── scripts/
+    └── deep_scan_team.py      ← One-time 90-day deep scan for team mailboxes + calendar
 ```
 
 ---
@@ -120,6 +127,28 @@ User clicks "Refresh Brief" on person detail page
   → build_person_context_block()
   → Claude API (claude-sonnet-4-6) with PERSON_BRIEF_SYSTEM_PROMPT
   → Parse JSON {narrative, at_a_glance}
+```
+
+### Email Polling + Ally Pass-Through (graph_poller.py, runs via launchd)
+```
+graph_poller.py scans 6 AREC mailboxes (48h lookback)
+  → For each message:
+      1. Is sender internal (AREC domain)? → outbound path, scan recipients
+      2. Is sender an individual ally email? (is_ally_email) → pass-through
+      3. Does sender domain resolve to an ally org? (is_ally_org) → pass-through
+      4. Normal match: return {org, contact, match_tier}
+  → Pass-through path:
+      - Scan remaining participants for first non-ally, non-internal CRM org
+      - If found: return match with via_ally="<ally name>"
+      - If not found: return None (email skipped, no staging)
+  → Matched items → build_staged_item() → email_staging_queue.json
+  → Summary email sent to oscar@avilacapllc.com
+
+Ally config: crm/fundraising_allies.json
+  → orgs: South40 Capital, Angeloni & Co, JTP Capital (domain-keyed)
+  → individuals: Greg Kostka (no email yet), Scott Richland, Ira Lubert (email-keyed only)
+  → Ira Lubert constraint: belgravialp.com = Belgravia Management (Stage 7 prospect)
+    Individual ally check runs BEFORE domain lookup to handle this overlap.
 ```
 
 ### Tony Excel Sync (daily, 6 AM)
