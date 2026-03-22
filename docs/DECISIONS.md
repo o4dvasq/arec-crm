@@ -814,3 +814,23 @@
 **Impact:** `app/delivery/tasks_blueprint.py` deleted; 8 new routes + task helpers added to `crm_blueprint.py`; `dashboard.py` stripped to meeting file routes + root redirect; `task-edit-modal.js` paths updated from `/tasks/api/task` → `/crm/api/task`; `_nav.html` now shows Tasks | Pipeline | People | Orgs | Meetings.
 
 ---
+
+## 2026-03-21 — Engagement Heatmap Scoring: Python-Side, No New Storage
+
+**Decision:** Heatmap scoring (`get_heatmap_prospects()`) is computed entirely at request time in `crm_reader.py`, with no cache or new data file. Scores are derived by joining prospects.md + meetings.json + email_log.json + interactions.md in memory on every `/crm/health` load.
+
+**Rationale:** Stage 5 typically has 20–50 prospects. The 21-day cutoff means relevant meetings/emails are a small slice. Computing at request time is fast enough (<2s) and avoids the complexity of a stale cache invalidation strategy. Any new meeting or email is immediately reflected on next page load.
+
+**Impact:** `crm_reader.py` (new `get_heatmap_prospects()` function + `AREC_DOMAINS` constant), `crm_blueprint.py` (new `/crm/health` route), `crm_health.html` (new template), `_nav.html` (Health tab added).
+
+---
+
+## 2026-03-21 — next_action Field: Fully Removed from Production Code
+
+**Decision:** Removed the last 3 references to `next_action` from `crm_blueprint.py`. The silent reject guard in `crm_reader.py` (`update_prospect_field()`) is intentionally preserved as a safety net.
+
+**Rationale:** The field was removed from the data model earlier. The inline-edit reject guard in `crm_blueprint.py` was redundant — the `EDITABLE_FIELDS` check on the next line already rejects unknown fields. The Excel export column was simply dead weight. The `crm_reader.py` guard stays as a last-resort protection against any external callers that might still pass `next_action`.
+
+**Impact:** `crm_blueprint.py` — 3 references removed; Excel export is now 11 columns (Notes shifts to col 10, Last Touch to col 11).
+
+---

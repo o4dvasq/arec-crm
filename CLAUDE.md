@@ -8,6 +8,49 @@ CRM and fundraising platform for the AREC team. Manages investor pipeline, relat
 
 ---
 
+## ⚠️ Architecture — READ THIS FIRST
+
+**NO DATABASE. NO SQL. NO ORM. NO CLOUD HOSTING.**
+
+This is a **markdown-and-JSON-file CRM** running locally on Oscar's Mac. Every spec, design, and code change must respect these hard constraints:
+
+- **Storage:** All data lives in flat files under `crm/` — markdown (`.md`) and JSON (`.json`). There is no SQLite, Postgres, or any database.
+- **Backend:** `app/sources/crm_reader.py` is the sole data access layer (70+ functions). All reads and writes go through it. Never parse data files directly from routes or scripts.
+- **No ORM / No Models:** `crm_db.py`, `models.py`, `db.py`, `auto_migrate.py` do not exist. Never reference them. There are no "db sessions", no "migrations", no "ALTER TABLE".
+- **Deployment:** Runs locally at `http://localhost:8000` on Oscar's Mac. Not on Azure, AWS, or any cloud. No WebJobs, no App Service. Scheduled tasks use macOS `launchd`.
+- **Auth:** `login_required` in `crm_blueprint.py` is a no-op passthrough. No real authentication.
+
+### Data Files (under `crm/`)
+
+| File | Format | Key Fields | Notes |
+|------|--------|------------|-------|
+| `prospects.md` | Markdown: `## Offering` → `### OrgName` → bullet fields | Stage, Target, Assigned To, Primary Contact, Notes, Last Touch | Prospects keyed by (org, offering) — NOT integer IDs |
+| `organizations.md` | Markdown: `## OrgName` → bullet fields | Type, Location, Domain, AUM, Notes | |
+| `meetings.json` | JSON array of objects | org, offering, meeting_date, status, notes_raw, attendees, source | Status lifecycle: scheduled → completed → reviewed |
+| `email_log.json` | JSON: `{emails: [...], lastScan: ...}` | from, fromName, orgMatch, date, subject, summary | No "direction" field — infer from `from` domain |
+| `interactions.md` | Markdown: `## Date` → `### Org — Type — Offering` → bullet fields | Contact, Subject, Summary, Source | No direction field. Type = Email/Meeting/Call |
+| `briefs.json` | JSON keyed by org | narrative, at_a_glance, updated | AI-synthesized relationship briefs |
+| `org_notes.json` | JSON keyed by org | notes array with text, source, date | |
+| `prospect_notes.json` | JSON keyed by `org|offering` | notes array | |
+
+### Prospect Identity
+
+Prospects are identified by the tuple `(org_name, offering_name)` — string pair, not an integer ID. URLs use `/crm/prospect/<org>/<offering>` (URL-encoded). The `load_prospects()` function returns dicts with keys like `Org`, `Offering`, `Stage`, `Target`, etc. Stage values are strings like `"5. Interested"`, `"8. Closed"`, `"0. Declined"`.
+
+### Email Direction
+
+`email_log.json` has no explicit direction field. Infer direction from the `from` address domain:
+- **Outbound:** domain ∈ `{avilacapllc.com, arecllc.com}`
+- **Inbound:** domain ∉ those AREC domains
+
+Match emails to prospects via the `orgMatch` field (case-insensitive org name match).
+
+### Removed Fields
+
+`next_action` was removed from the data model. `crm_reader.py` silently rejects writes to it. A few vestigial references remain in `crm_blueprint.py` (reject guard + Excel export column) — these are tracked for cleanup.
+
+---
+
 ## Run Commands
 
 ```bash

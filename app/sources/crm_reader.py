@@ -530,12 +530,16 @@ def get_contacts_for_org(org_name: str) -> list[dict]:
     """Return list of person dicts for all contacts linked to this org."""
     index = load_contacts_index()
     contacts = []
+    seen_slugs = set()
     # Case-insensitive match
     for indexed_org, slugs in index.items():
         # Strip disambiguator for matching: "UTIMCO (Jared Brimberry)" → "UTIMCO"
         base_org = re.sub(r'\s*\([^)]+\)\s*$', '', indexed_org).strip()
         if base_org.lower() == org_name.lower() or indexed_org.lower() == org_name.lower():
             for slug in slugs:
+                if slug in seen_slugs:
+                    continue
+                seen_slugs.add(slug)
                 person = load_person(slug)
                 if person:
                     contacts.append(person)
@@ -1502,6 +1506,36 @@ def get_all_prospect_tasks() -> list[dict]:
         task = _parse_org_tagged_task(line, '')
         if task:
             results.append(task)
+    return results
+
+
+def get_all_prospect_tasks_with_index() -> list[dict]:
+    """Scan TASKS.md for all open org-tagged tasks, including flat-file index.
+
+    'task_index' is the 0-based count of task lines before ## Done, matching
+    the indexing scheme used by _find_task_line() and the /crm/api/task/<index>
+    endpoints. Both open (- [ ]) and completed (- [x]) lines before ## Done
+    count toward the index, so completed lines still advance the counter.
+    """
+    if not os.path.exists(TASKS_MD_PATH):
+        return []
+    results = []
+    flat_index = 0
+    in_done = False
+    for line in _read_file(TASKS_MD_PATH).splitlines():
+        stripped = line.strip()
+        if stripped.startswith('## '):
+            heading = stripped[3:].strip().lower()
+            in_done = (heading == 'done')
+            continue
+        if in_done:
+            continue
+        if stripped.startswith('- [ ] ') or stripped.startswith('- [x] '):
+            task = _parse_org_tagged_task(line, '')
+            if task and task['status'] == 'open':
+                task['task_index'] = flat_index
+                results.append(task)
+            flat_index += 1
     return results
 
 
@@ -3313,3 +3347,166 @@ def _merge_prospect_meetings(source: str, target: str) -> int:
             json.dump(meetings_data, f, indent=2, ensure_ascii=False)
 
     return count
+
+
+# ---------------------------------------------------------------------------
+# Engagement Heatmap
+# ---------------------------------------------------------------------------
+
+AREC_DOMAINS = {'avilacapllc.com', 'arecllc.com'}
+
+def get_heatmap_prospects() -> list[dict]:
+    """
+    Returns all Stage 5 prospects with engagement status computed.
+
+    Each dict contains:
+      org               str   — organization name
+      offering          str   — offering name
+      target            float — target amount (raw number)
+      target_display    str   — formatted target (e.g. "$50M")
+      assigned_to       str or None
+      primary_contact   str or None
+      status            str   — 'scheduled' | 'held' | 'inbound' | 'outbound_only' | 'no_contact'
+      status_date       str or None  — ISO date of most recent qualifying interaction
+      days_since        int or None  — days since status_date
+      next_meeting_date str or None  — ISO date of next future meeting
+      staleness         str   — 'fresh' | 'aging' | 'stale'
+    """
+    from datetime import timedelta
+
+    today = date.today()
+    cutoff = today - timedelta(days=21)
+    cutoff_iso = cutoff.isoformat()
+    today_iso = today.isoformat()
+
+    all_prospects = load_prospects()
+    stage5 = [p for p in all_prospects if p.get('Stage', '').startswith('5.')]
+
+    all_meetings = load_meetings()
+    email_log = load_email_log()
+    all_emails = email_log.get('emails', [])
+
+    results = []
+    for p in stage5:
+        org = p['org']
+        offering = p['offering']
+        target_str = p.get('Target', '$0') or '$0'
+        target_float = _parse_currency(target_str)
+
+        # Format target for display
+        if target_float >= 1_000_000_000:
+            target_display = f"${target_float / 1_000_000_000:.0f}B"
+        elif target_float >= 1_000_000:
+            target_display = f"${target_float / 1_000_000:.0f}M"
+        elif target_float >= 1_000:
+            target_display = f"${target_float / 1_000:.0f}K"
+        elif target_float > 0:
+            target_display = f"${target_float:,.0f}"
+        else:
+            target_display = "—"
+
+        org_lower = org.lower()
+        offering_lower = offering.lower()
+
+        # Filter meetings for this prospect
+        prospect_meetings = [
+            m for m in all_meetings
+            if m.get('org', '').lower() == org_lower
+            and (not m.get('offering') or m.get('offering', '').lower() == offering_lower)
+        ]
+
+        status = None
+        status_date = None
+        days_since = None
+        next_meeting_date = None
+
+        # 1. Check for future/scheduled meetings
+        future_meetings = [
+            m for m in prospect_meetings
+            if m.get('meeting_date', '') >= today_iso or m.get('status') == 'scheduled'
+        ]
+        if future_meetings:
+            future_meetings.sort(key=lambda m: m.get('meeting_date', ''))
+            status = 'scheduled'
+            next_meeting_date = future_meetings[0].get('meeting_date')
+
+        # 2. Check for recently held meetings
+        if status is None:
+            held_meetings = [
+                m for m in prospect_meetings
+                if m.get('meeting_date', '') < today_iso
+                and m.get('meeting_date', '') >= cutoff_iso
+                and m.get('status') in ('completed', 'reviewed')
+            ]
+            if held_meetings:
+                held_meetings.sort(key=lambda m: m.get('meeting_date', ''), reverse=True)
+                status = 'held'
+                status_date = held_meetings[0].get('meeting_date')
+                days_since = (today - date.fromisoformat(status_date)).days
+
+        # 3. Check email log
+        if status is None:
+            org_emails = [
+                e for e in all_emails
+                if e.get('orgMatch', '').lower() == org_lower
+                and e.get('date', '') >= cutoff_iso
+            ]
+            if org_emails:
+                # Check if any email in window is inbound
+                inbound = [
+                    e for e in org_emails
+                    if e.get('from', '').split('@')[-1].lower() not in AREC_DOMAINS
+                ]
+                if inbound:
+                    inbound.sort(key=lambda e: e.get('date', ''), reverse=True)
+                    status = 'inbound'
+                    status_date = inbound[0].get('date', '')
+                else:
+                    org_emails.sort(key=lambda e: e.get('date', ''), reverse=True)
+                    status = 'outbound_only'
+                    status_date = org_emails[0].get('date', '')
+                days_since = (today - date.fromisoformat(status_date)).days if status_date else None
+
+        # 4. Check interactions.md
+        if status is None:
+            org_interactions = [
+                i for i in load_interactions(org=org)
+                if i.get('date', '') >= cutoff_iso
+            ]
+            if org_interactions:
+                # load_interactions returns newest first
+                status = 'outbound_only'
+                status_date = org_interactions[0].get('date')
+                days_since = (today - date.fromisoformat(status_date)).days if status_date else None
+
+        # 5. No contact
+        if status is None:
+            status = 'no_contact'
+
+        # Compute staleness
+        if status == 'scheduled':
+            staleness = 'fresh'
+        elif days_since is None:
+            staleness = 'stale'
+        elif days_since <= 7:
+            staleness = 'fresh'
+        elif days_since <= 14:
+            staleness = 'aging'
+        else:
+            staleness = 'stale'
+
+        results.append({
+            'org': org,
+            'offering': offering,
+            'target': target_float,
+            'target_display': target_display,
+            'assigned_to': p.get('Assigned To') or None,
+            'primary_contact': p.get('Primary Contact') or None,
+            'status': status,
+            'status_date': status_date,
+            'days_since': days_since,
+            'next_meeting_date': next_meeting_date,
+            'staleness': staleness,
+        })
+
+    return results

@@ -6,7 +6,7 @@
 ---
 
 ## Last Updated
-2026-03-21 — SPEC_teams-transcript-retrieval implementation
+2026-03-21 — SPEC_engagement-heatmap implementation
 
 ---
 
@@ -16,10 +16,10 @@
 - **Local URL**: http://localhost:8000/crm
 - **Backend**: Markdown-only (`crm_reader.py`). All data in `crm/*.md` and `crm/*.json` files.
 - **Authentication**: DEV_USER env var sets g.user. No database, no MSAL.
-- **CRM Features**: Pipeline, prospect detail, org management, relationship briefs, contact intelligence, interaction history, tasks, meetings
+- **CRM Features**: Pipeline, prospect detail, org management, relationship briefs, contact intelligence, interaction history, tasks, meetings, engagement health
 - **Brief Synthesis**: Two-tier brief system — Prospect Brief (offering-specific, 2-3 sentences) + Org Brief (comprehensive, org-level)
 - **Dark Theme**: Full dark theme throughout
-- **Navigation**: Global search, centered nav tabs (Tasks | Pipeline | People | Orgs | Meetings) with bullseye icon and hover user menu
+- **Navigation**: Global search, centered nav tabs (Tasks | Pipeline | Health | People | Orgs | Meetings) with bullseye icon and hover user menu
 - **Flat Task CRUD (`/crm/tasks`)**: Canonical tasks page — owner-grouped Kanban board. Flat task list (no sections). All CRUD routes live on `crm_blueprint.py` at `/crm/api/task/<index>`.
   - `GET /crm/api/all-tasks` returns `{"open": [...], "done": [...]}`
   - `POST /crm/api/task` → create; `PUT /crm/api/task/<index>` → edit; `DELETE` → delete
@@ -31,6 +31,12 @@
   - Data backed by `crm/meetings.json` (migrated from `meeting_history.md`)
   - Row click opens edit modal pre-populated from meeting record
   - Three-tier deduplication: graph_event_id exact match + org+date±1 day fuzzy match + read-time dedup safety net
+- **Health Page (`/crm/health`)**: Engagement heatmap for all Stage 5 prospects
+  - 5 status tiers: No Contact (red) → Outbound Only (orange) → Inbound Reply (yellow) → Meeting Held (light green) → Meeting Scheduled (green)
+  - Staleness muting: chip--aging (75% opacity, 8–14 days), chip--stale (50% opacity, 15–21 days)
+  - Prospects >21 days since any interaction fall to No Contact
+  - Within each tier sorted by Target descending
+  - Data sourced from meetings.json, email_log.json, interactions.md
 - **Organization Aliases**: Single source of truth is the `Aliases` field on each org in `organizations.md`. Used by search, briefs, merge, and Tony sync.
 - **Alias Normalization (FULLY WORKING)**: Write-path normalization prevents org name drift
   - `resolve_org_name()` converts aliases to canonical names before storage
@@ -50,38 +56,36 @@
 
 ## What Was Just Completed (March 21, 2026)
 
+### SPEC_engagement-heatmap
+
+**What Was Done:**
+- ✅ `get_heatmap_prospects()` added to `crm_reader.py` — scores all Stage 5 prospects across meetings.json, email_log.json, and interactions.md with a 21-day recency cutoff
+- ✅ `/crm/health` route added to `crm_blueprint.py` — server-side scoring + group/sort, renders `crm_health.html`
+- ✅ `crm_health.html` created — full dark theme, 5-tier color sections, status chips with staleness muting, prospect links, refresh button
+- ✅ "Health" nav tab added to `_nav.html` (after Pipeline, before People)
+- ✅ 3 `next_action` references removed from `crm_blueprint.py`:
+  - `if field == 'next_action'` reject guard in inline-edit route (lines 1039–1040)
+  - `('Next Action', 35)` column from Excel export column list
+  - `next_action = p.get('Next Action', '')` + `cell_next` write in Excel row loop (shifted Notes → col 10, Last Touch → col 11)
+- ✅ 84/84 tests passing
+
+**Files Modified:**
+- `app/sources/crm_reader.py` — added `get_heatmap_prospects()` and `AREC_DOMAINS` constant
+- `app/delivery/crm_blueprint.py` — added `/crm/health` route, imported `get_heatmap_prospects`, removed 3 `next_action` refs
+- `app/templates/crm_health.html` — new file
+- `app/templates/_nav.html` — Health tab added
+
+---
+
+## What Was Completed (March 21, 2026 — earlier session)
+
 ### SPEC_teams-transcript-retrieval
 
 **What Was Done:**
 - ✅ Step 4b added to `crm-update` skill — pulls Teams transcripts for past meetings after calendar scan
 - ✅ Full `read_resource(uri=event.uri)` → `read_resource(uri=meetingTranscriptUrl)` retrieval pattern
-- ✅ WEBVTT parser: speaker-labeled output (`**Name** [HH:MM:SS]\nText`), consecutive-line consolidation
+- ✅ WEBVTT parser: speaker-labeled output, consecutive-line consolidation
 - ✅ Stores `transcript_url` + `notes_raw` on meeting record, marks `status="completed"`
-- ✅ Step 5 AI processing picks up transcript-enriched meetings automatically (no changes needed)
-- ✅ Silent skip when `meetingTranscriptUrl` absent (transcription not enabled — normal)
-- ✅ Error reporting without aborting for failed transcript reads
-- ✅ Report line: `"Transcripts: checked N past meetings, T transcripts pulled"`
-- ✅ 84/84 tests passing
-
-**Files Modified:**
-- `crm-update.skill` — ZIP bundle containing updated `crm-update/SKILL.md` with Step 4b
-
----
-
-## What Was Completed (March 20, 2026)
-
-### SPEC_stale-page-cleanup
-
-**What Was Done:**
-- ✅ `tasks_blueprint.py` deleted — all flat task CRUD migrated to `crm_blueprint.py` under `/crm/api/task/...`
-- ✅ `GET /crm/api/all-tasks` added (returns `{open, done}`)
-- ✅ `task-edit-modal.js` updated: all paths changed from `/tasks/api/task` → `/crm/api/task`
-- ✅ `dashboard.html` deleted — `/dashboard` route removed from `dashboard.py`
-- ✅ `crm_org_detail.html` deleted (orphaned template, no route)
-- ✅ `app/templates/tasks/tasks.html`, `tasks.js`, `tasks.css` deleted
-- ✅ Legacy `/api/task/complete`, `/api/task/add`, `/api/task/status` routes removed from `dashboard.py`
-- ✅ `tasks_blueprint` import/registration removed from `dashboard.py`
-- ✅ "Meetings" tab added to `_nav.html` (after Orgs)
 - ✅ 84/84 tests passing
 
 ---
@@ -94,18 +98,18 @@
 
 ## In Progress / Next Up
 
-### 1. No Pending Specs
-`docs/specs/` is empty. Write the next spec in CoWork, save to `docs/specs/`, then `/code-start`.
+### 1. One Pending Spec
+`docs/specs/SPEC_daily-health-report.md` is ready to implement. Run `/code-start` to begin.
 
 ### 2. Test `crm-update` Transcript Retrieval in Practice
 Step 4b is implemented in the skill bundle. Run `/crm-update` after a Teams meeting to verify the full retrieval → WEBVTT conversion → notes_raw storage pipeline works end-to-end.
 
-### 2. Tony Sync Setup Required
+### 3. Tony Sync Setup Required
 - **EGNYTE_API_TOKEN needed** — Must be obtained from Egnyte developer console and added to `app/.env`
 - **Not scheduled yet** — Needs launchd job for 6 AM daily run
 - **Manual review workflow not implemented** — Desktop/CoWork workflow for resolving low-confidence matches from `crm/tony_sync_pending.json`
 
-### 3. Drain Inbox Re-auth
+### 4. Drain Inbox Re-auth
 After adding `Mail.ReadWrite.Shared` scope, delete `~/.arec_briefing_token_cache.json` and re-run `drain_inbox.py` to trigger re-auth with the new scope.
 
 ---

@@ -5,7 +5,7 @@
 
 **Location:** `~/Dropbox/projects/arec-crm/`
 
-**Last audited:** 2026-03-20 (updated: tasks_blueprint.py deleted; flat task CRUD migrated to crm_blueprint; stale pages removed; Meetings in nav)
+**Last audited:** 2026-03-21 (updated: Health page + engagement heatmap added; next_action fully removed from crm_blueprint)
 
 ---
 
@@ -61,6 +61,7 @@ arec-crm/                        (~/Dropbox/projects/arec-crm/)
 │   │   ├── crm_pipeline.html
 │   │   ├── crm_prospect_detail.html
 │   │   ├── crm_tasks.html
+│   │   ├── crm_health.html        ← Engagement heatmap (Stage 5 only)
 │   │   ├── crm_org_edit.html
 │   │   ├── crm_people.html
 │   │   └── crm_person_detail.html

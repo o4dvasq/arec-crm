@@ -38,6 +38,7 @@ from sources.crm_reader import (
     delete_prospect, load_meeting_history, add_meeting_entry,
     get_tasks_for_prospect as get_tasks_for_prospect_db,
     get_all_prospect_tasks as get_all_tasks_for_dashboard,
+    get_all_prospect_tasks_with_index,
     add_prospect_task, complete_prospect_task,
     get_tasks_grouped_by_prospect, get_tasks_grouped_by_owner,
     load_email_log, get_emails_for_org, find_email_by_message_id,
@@ -55,6 +56,7 @@ from sources.crm_reader import (
     get_primary_contact, set_primary_contact, clear_primary_contact,
     resolve_org_name,
     normalize_team_name,
+    get_heatmap_prospects,
 )
 from sources.memory_reader import _parse_task_line, _format_task_line
 from sources.relationship_brief import (
@@ -1035,8 +1037,6 @@ def api_patch_prospect_field():
     value = str(raw_value).strip() if isinstance(raw_value, str) else raw_value
     if not org or not offering or not field:
         return jsonify({'error': 'org, offering, and field are required'}), 400
-    if field == 'next_action':
-        return jsonify({'error': 'next_action field has been removed from the data model'}), 400
     if field not in EDITABLE_FIELDS:
         return jsonify({'error': f'Field "{field}" is not editable'}), 400
     config = load_crm_config()
@@ -1068,7 +1068,7 @@ PRIORITY_ORDER = {'Hi': 1, 'High': 1, 'Med': 2, 'Medium': 2, 'Lo': 3, 'Low': 3}
 @crm_bp.route('/tasks')
 @login_required
 def crm_tasks():
-    all_tasks = get_all_tasks_for_dashboard()
+    all_tasks = get_all_prospect_tasks_with_index()
 
     # Load prospect data to enrich tasks with target and offering
     prospects = load_prospects()
@@ -1081,8 +1081,6 @@ def crm_tasks():
     # Enrich tasks with prospect data
     enriched_tasks = []
     for task in all_tasks:
-        if task.get('status') == 'done':
-            continue
         if not task.get('owner', '').strip():
             continue
 
@@ -1674,7 +1672,7 @@ def api_export_pipeline():
     columns = [
         ('Organization', 30), ('Type', 16), ('Stage', 20), ('Target', 16),
         ('Committed', 16), ('Closing', 10), ('Urgency', 10), ('Assigned To', 20),
-        ('Primary Contact', 22), ('Next Action', 35), ('Notes', 40), ('Last Touch', 14),
+        ('Primary Contact', 22), ('Notes', 40), ('Last Touch', 14),
     ]
 
     for idx, (col_name, width) in enumerate(columns, start=1):
@@ -1763,18 +1761,13 @@ def api_export_pipeline():
         cell_contact.font = data_font
         cell_contact.alignment = Alignment(horizontal='left', vertical='top')
 
-        next_action = p.get('Next Action', '')
-        cell_next = ws.cell(row=row_idx, column=10, value=next_action)
-        cell_next.font = data_font
-        cell_next.alignment = Alignment(horizontal='left', vertical='top', wrap_text=True)
-
         notes = p.get('Notes', '')
-        cell_notes = ws.cell(row=row_idx, column=11, value=notes)
+        cell_notes = ws.cell(row=row_idx, column=10, value=notes)
         cell_notes.font = data_font
         cell_notes.alignment = Alignment(horizontal='left', vertical='top', wrap_text=True)
 
         last_touch = p.get('Last Touch', '')
-        cell_last_touch = ws.cell(row=row_idx, column=12, value=last_touch)
+        cell_last_touch = ws.cell(row=row_idx, column=11, value=last_touch)
         cell_last_touch.font = data_font
         cell_last_touch.alignment = Alignment(horizontal='center', vertical='top')
 
@@ -1902,6 +1895,43 @@ def api_org_merge():
 
 # /api/followup endpoint removed — use /crm/api/tasks POST instead
 # Tasks are now managed in prospect_tasks table, not TASKS.md
+
+
+# ---------------------------------------------------------------------------
+# Health / Engagement Heatmap
+# ---------------------------------------------------------------------------
+
+@crm_bp.route('/health')
+@login_required
+def health_page():
+    from datetime import datetime as _dt
+    prospects = get_heatmap_prospects()
+
+    STATUS_ORDER = ['no_contact', 'outbound_only', 'inbound', 'held', 'scheduled']
+
+    # Sort: worst status first, within tier by target descending
+    def sort_key(p):
+        status_rank = STATUS_ORDER.index(p['status']) if p['status'] in STATUS_ORDER else 0
+        return (status_rank, -(p['target'] or 0))
+
+    prospects.sort(key=sort_key)
+
+    # Group by status
+    from collections import OrderedDict
+    groups = OrderedDict()
+    for key in STATUS_ORDER:
+        groups[key] = []
+    for p in prospects:
+        groups[p['status']].append(p)
+
+    last_updated = _dt.now().strftime('%-I:%M %p')
+    return render_template(
+        'crm_health.html',
+        active_tab='health',
+        groups=groups,
+        total=len(prospects),
+        last_updated=last_updated,
+    )
 
 
 # ---------------------------------------------------------------------------
