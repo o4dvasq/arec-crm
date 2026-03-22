@@ -12,6 +12,24 @@ INTERNAL_DOMAINS = {
     "builderadvisorgroup.com",
 }
 
+# Fundraising ally org domains — emails from these are pass-through, not direct matches.
+# Note: individual ally emails (e.g. ilubert@belgravialp.com) are keyed by full address
+# in crm/fundraising_allies.json, not by domain, because their domain belongs to a real prospect.
+def _load_ally_domains() -> frozenset:
+    """Load ally org domains from fundraising_allies.json at import time."""
+    try:
+        from sources.crm_reader import load_fundraising_allies
+        allies = load_fundraising_allies()
+        return frozenset(
+            a["domain"].lower().lstrip("@")
+            for a in allies.get("orgs", [])
+            if a.get("domain")
+        )
+    except Exception:
+        return frozenset()
+
+ALLY_DOMAINS = _load_ally_domains()
+
 
 def _get_user_email() -> str:
     """Get user email from config or env."""

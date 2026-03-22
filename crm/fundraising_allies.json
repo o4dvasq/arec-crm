@@ -1,0 +1,43 @@
+{
+  "version": 1,
+  "orgs": [
+    {
+      "name": "South40 Capital",
+      "domain": "south40capital.com",
+      "type": "Placement Agent"
+    },
+    {
+      "name": "Angeloni & Co",
+      "domain": "angeloniandco.com",
+      "type": "Placement Agent"
+    },
+    {
+      "name": "JTP Capital",
+      "domain": "jtpllc.com",
+      "type": "Placement Agent"
+    }
+  ],
+  "individuals": [
+    {
+      "name": "Greg Kostka",
+      "email": "",
+      "org": "Greg Kostka",
+      "type": "INTRODUCER",
+      "notes": "Hillwood connection. TODO: add email when known — no email on file in contacts/."
+    },
+    {
+      "name": "Scott Richland",
+      "email": "scott@lunadabayinv.com",
+      "org": "Scott Richland",
+      "type": "INTRODUCER",
+      "notes": ""
+    },
+    {
+      "name": "Ira Lubert",
+      "email": "ilubert@belgravialp.com",
+      "org": "Belgravia Management",
+      "type": "INTRODUCER",
+      "notes": "PSERS/SERS connector. Domain belgravialp.com belongs to Belgravia Management (Stage 7 prospect) — pass-through keyed by email only, NOT domain."
+    }
+  ]
+}

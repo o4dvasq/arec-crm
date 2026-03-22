@@ -239,3 +239,202 @@ def test_fuzzy_match_no_alias_match_returns_none():
             result = _fuzzy_match_org('Goldman Sachs', orgs_with_aliases)
 
     assert result is None
+
+
+# ---------------------------------------------------------------------------
+# Fundraising ally helpers (crm_reader.is_ally_org, is_ally_email)
+# ---------------------------------------------------------------------------
+
+MOCK_ALLIES = {
+    "version": 1,
+    "orgs": [
+        {"name": "South40 Capital", "domain": "south40capital.com", "type": "Placement Agent"},
+        {"name": "Angeloni & Co", "domain": "angeloniandco.com", "type": "Placement Agent"},
+        {"name": "JTP Capital", "domain": "jtpllc.com", "type": "Placement Agent"},
+    ],
+    "individuals": [
+        {"name": "Scott Richland", "email": "scott@lunadabayinv.com", "org": "Scott Richland",
+         "type": "INTRODUCER", "notes": ""},
+        {"name": "Ira Lubert", "email": "ilubert@belgravialp.com", "org": "Belgravia Management",
+         "type": "INTRODUCER", "notes": "belgravialp.com is a real prospect domain"},
+    ],
+}
+
+
+def test_is_ally_org_returns_true_for_placement_agent():
+    """is_ally_org returns True for known ally org names."""
+    from sources.crm_reader import is_ally_org
+    with patch('sources.crm_reader.load_fundraising_allies', return_value=MOCK_ALLIES):
+        assert is_ally_org("South40 Capital") is True
+        assert is_ally_org("Angeloni & Co") is True
+        assert is_ally_org("JTP Capital") is True
+
+
+def test_is_ally_org_returns_false_for_real_prospect():
+    """is_ally_org returns False for orgs not in the allies list."""
+    from sources.crm_reader import is_ally_org
+    with patch('sources.crm_reader.load_fundraising_allies', return_value=MOCK_ALLIES):
+        assert is_ally_org("Belgravia Management") is False
+        assert is_ally_org("UTIMCO") is False
+
+
+def test_is_ally_org_case_insensitive():
+    """is_ally_org is case-insensitive."""
+    from sources.crm_reader import is_ally_org
+    with patch('sources.crm_reader.load_fundraising_allies', return_value=MOCK_ALLIES):
+        assert is_ally_org("south40 capital") is True
+        assert is_ally_org("ANGELONI & CO") is True
+
+
+def test_is_ally_email_returns_true_for_individual_ally():
+    """is_ally_email returns True for known individual ally email addresses."""
+    from sources.crm_reader import is_ally_email
+    with patch('sources.crm_reader.load_fundraising_allies', return_value=MOCK_ALLIES):
+        assert is_ally_email("scott@lunadabayinv.com") is True
+        assert is_ally_email("ilubert@belgravialp.com") is True
+
+
+def test_is_ally_email_returns_false_for_non_ally():
+    """is_ally_email returns False for emails not in the individual allies list."""
+    from sources.crm_reader import is_ally_email
+    with patch('sources.crm_reader.load_fundraising_allies', return_value=MOCK_ALLIES):
+        assert is_ally_email("jsmith@belgravialp.com") is False
+        assert is_ally_email("oscar@avilacapllc.com") is False
+
+
+def test_lubert_email_keyed_not_domain_keyed():
+    """Ira Lubert's specific email is ally, but other @belgravialp.com addresses are not."""
+    from sources.crm_reader import is_ally_email
+    with patch('sources.crm_reader.load_fundraising_allies', return_value=MOCK_ALLIES):
+        # Ira's specific email → ally
+        assert is_ally_email("ilubert@belgravialp.com") is True
+        # Different person at same domain → NOT ally (Belgravia is a real Stage 7 prospect)
+        assert is_ally_email("jdoe@belgravialp.com") is False
+        assert is_ally_email("info@belgravialp.com") is False
+
+
+# ---------------------------------------------------------------------------
+# match_email_to_org ally pass-through (graph_poller)
+# ---------------------------------------------------------------------------
+
+def _make_msg(sender_email: str, sender_name: str = "", recipients: list = None) -> dict:
+    """Build a minimal Graph message dict for testing match_email_to_org."""
+    to_recipients = [
+        {"emailAddress": {"address": r, "name": r}} for r in (recipients or [])
+    ]
+    return {
+        "id": "test-msg-id",
+        "subject": "Test Subject",
+        "from": {"emailAddress": {"address": sender_email, "name": sender_name}},
+        "toRecipients": to_recipients,
+        "ccRecipients": [],
+        "receivedDateTime": "2026-03-22T10:00:00Z",
+    }
+
+
+def test_ally_inbound_passthrough_finds_real_prospect():
+    """Inbound from ally org (South40) → scans recipients → returns real prospect org."""
+    import sys
+    import os
+    sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
+    from graph_poller import match_email_to_org
+
+    msg = _make_msg(
+        sender_email="ian@south40capital.com",
+        sender_name="Ian Morgan",
+        recipients=["oscar@avilacapllc.com", "jbrimberry@utimco.org"],
+    )
+
+    with patch('graph_poller.is_ally_email', return_value=False), \
+         patch('graph_poller.get_org_by_domain', side_effect=lambda d: {
+             "south40capital.com": "South40 Capital",
+             "utimco.org": "UTIMCO",
+         }.get(d)), \
+         patch('graph_poller.is_ally_org', side_effect=lambda o: o == "South40 Capital"), \
+         patch('graph_poller.find_person_by_email', return_value=None), \
+         patch('graph_poller.get_individual_ally_name', return_value=None):
+        result = match_email_to_org(msg)
+
+    assert result is not None
+    assert result["org"] == "UTIMCO"
+    assert result["via_ally"] == "South40 Capital"
+
+
+def test_ally_only_email_returns_none():
+    """Email with only ally participants (no real prospect) → returns None, skipped."""
+    import sys
+    import os
+    sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
+    from graph_poller import match_email_to_org
+
+    msg = _make_msg(
+        sender_email="max@angeloniandco.com",
+        sender_name="Max Angeloni",
+        recipients=["oscar@avilacapllc.com", "tony@avilacapllc.com"],
+    )
+
+    with patch('graph_poller.is_ally_email', return_value=False), \
+         patch('graph_poller.get_org_by_domain', side_effect=lambda d: {
+             "angeloniandco.com": "Angeloni & Co",
+         }.get(d)), \
+         patch('graph_poller.is_ally_org', side_effect=lambda o: o == "Angeloni & Co"), \
+         patch('graph_poller.find_person_by_email', return_value=None), \
+         patch('graph_poller.get_individual_ally_name', return_value=None):
+        result = match_email_to_org(msg)
+
+    assert result is None
+
+
+def test_lubert_inbound_passthrough():
+    """Ira Lubert's email triggers individual-ally pass-through even though domain matches Belgravia."""
+    import sys
+    import os
+    sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
+    from graph_poller import match_email_to_org
+
+    msg = _make_msg(
+        sender_email="ilubert@belgravialp.com",
+        sender_name="Ira Lubert",
+        recipients=["oscar@avilacapllc.com", "jdoe@iowapersra.org"],
+    )
+
+    with patch('graph_poller.is_ally_email', side_effect=lambda e: e == "ilubert@belgravialp.com"), \
+         patch('graph_poller.get_org_by_domain', side_effect=lambda d: {
+             "belgravialp.com": "Belgravia Management",
+             "iowapersra.org": "Iowa PERS",
+         }.get(d)), \
+         patch('graph_poller.is_ally_org', return_value=False), \
+         patch('graph_poller.find_person_by_email', return_value=None), \
+         patch('graph_poller.get_individual_ally_name', return_value="Ira Lubert"):
+        result = match_email_to_org(msg)
+
+    assert result is not None
+    assert result["org"] == "Iowa PERS"
+    assert result["via_ally"] == "Ira Lubert"
+
+
+def test_other_belgravia_email_matches_belgravia_directly():
+    """Non-Ira @belgravialp.com email matches Belgravia Management directly (no pass-through)."""
+    import sys
+    import os
+    sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
+    from graph_poller import match_email_to_org
+
+    msg = _make_msg(
+        sender_email="jsmith@belgravialp.com",
+        sender_name="John Smith",
+        recipients=["oscar@avilacapllc.com"],
+    )
+
+    with patch('graph_poller.is_ally_email', return_value=False), \
+         patch('graph_poller.get_org_by_domain', side_effect=lambda d: {
+             "belgravialp.com": "Belgravia Management",
+         }.get(d)), \
+         patch('graph_poller.is_ally_org', return_value=False), \
+         patch('graph_poller.find_person_by_email', return_value=None), \
+         patch('graph_poller.get_individual_ally_name', return_value=None):
+        result = match_email_to_org(msg)
+
+    assert result is not None
+    assert result["org"] == "Belgravia Management"
+    assert result.get("via_ally") is None

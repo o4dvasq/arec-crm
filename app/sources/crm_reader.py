@@ -20,6 +20,7 @@ PROSPECT_NOTES_PATH = os.path.join(CRM_ROOT, "prospect_notes.json")
 PROSPECT_MEETINGS_PATH = os.path.join(CRM_ROOT, "prospect_meetings.json")
 MEETINGS_PATH = os.path.join(CRM_ROOT, "meetings.json")
 ORG_NOTES_PATH = os.path.join(CRM_ROOT, "org_notes.json")
+FUNDRAISING_ALLIES_PATH = os.path.join(CRM_ROOT, "fundraising_allies.json")
 
 # Field write order for prospects
 PROSPECT_FIELD_ORDER = [
@@ -3366,7 +3367,7 @@ def get_heatmap_prospects() -> list[dict]:
       target_display    str   — formatted target (e.g. "$50M")
       assigned_to       str or None
       primary_contact   str or None
-      status            str   — 'scheduled' | 'held' | 'inbound' | 'outbound_only' | 'no_contact'
+      status            str   — 'scheduled' | 'held' | 'inbound' | 'outbound_only' | 'stale' | 'no_contact'
       status_date       str or None  — ISO date of most recent qualifying interaction
       days_since        int or None  — days since status_date
       next_meeting_date str or None  — ISO date of next future meeting
@@ -3479,15 +3480,38 @@ def get_heatmap_prospects() -> list[dict]:
                 status_date = org_interactions[0].get('date')
                 days_since = (today - date.fromisoformat(status_date)).days if status_date else None
 
-        # 5. No contact
+        # 5. No recent activity — check all-time history to distinguish stale vs truly no contact
         if status is None:
-            status = 'no_contact'
+            any_held = [
+                m for m in prospect_meetings
+                if m.get('meeting_date', '') < today_iso
+                and m.get('status') in ('completed', 'reviewed')
+            ]
+            any_emails = [e for e in all_emails if e.get('orgMatch', '').lower() == org_lower]
+            any_interactions = load_interactions(org=org)
 
-        # Compute staleness
-        if status == 'scheduled':
+            if any_held or any_emails or any_interactions:
+                # Has prior history but no engagement in 21+ days → stale
+                candidate_dates = []
+                if any_held:
+                    any_held.sort(key=lambda m: m.get('meeting_date', ''), reverse=True)
+                    candidate_dates.append(any_held[0].get('meeting_date', ''))
+                if any_emails:
+                    any_emails.sort(key=lambda e: e.get('date', ''), reverse=True)
+                    candidate_dates.append(any_emails[0].get('date', ''))
+                if any_interactions:
+                    candidate_dates.append(any_interactions[0].get('date', ''))
+                candidate_dates = [d for d in candidate_dates if d]
+                candidate_dates.sort(reverse=True)
+                status = 'stale'
+                status_date = candidate_dates[0] if candidate_dates else None
+                days_since = (today - date.fromisoformat(status_date)).days if status_date else None
+            else:
+                status = 'no_contact'
+
+        # Compute staleness (muting only applies to tiers held/inbound/outbound_only within 21 days)
+        if status in ('scheduled', 'stale', 'no_contact'):
             staleness = 'fresh'
-        elif days_since is None:
-            staleness = 'stale'
         elif days_since <= 7:
             staleness = 'fresh'
         elif days_since <= 14:
@@ -3508,5 +3532,133 @@ def get_heatmap_prospects() -> list[dict]:
             'next_meeting_date': next_meeting_date,
             'staleness': staleness,
         })
+
+
+# ---------------------------------------------------------------------------
+# Email Staging Queue (crm/email_staging_queue.json)
+# ---------------------------------------------------------------------------
+
+STAGING_QUEUE_PATH = os.path.join(CRM_ROOT, "email_staging_queue.json")
+
+
+def load_staging_queue() -> dict:
+    """Load email_staging_queue.json. Returns structure with 'items' list."""
+    if not os.path.exists(STAGING_QUEUE_PATH):
+        return {"version": 1, "lastPollRun": None, "items": []}
+    with open(STAGING_QUEUE_PATH, 'r', encoding='utf-8') as f:
+        return json.load(f)
+
+
+def save_staging_queue(data: dict) -> None:
+    """Atomically write email_staging_queue.json."""
+    with open(STAGING_QUEUE_PATH, 'w', encoding='utf-8') as f:
+        json.dump(data, f, indent=2, ensure_ascii=False)
+
+
+def get_pending_staged_items() -> list:
+    """Return all items with status='pending', ordered by email_date desc."""
+    queue = load_staging_queue()
+    pending = [item for item in queue.get('items', []) if item.get('status') == 'pending']
+    pending.sort(key=lambda x: x.get('email_date', ''), reverse=True)
+    return pending
+
+
+def append_staged_items(items: list) -> int:
+    """Append new items to the staging queue. Returns count added.
+    Skips items whose graph_message_id already exists in queue."""
+    queue = load_staging_queue()
+    existing_ids = {item.get('graph_message_id') for item in queue.get('items', [])}
+    added = 0
+    for item in items:
+        mid = item.get('graph_message_id')
+        if mid and mid not in existing_ids:
+            queue['items'].append(item)
+            existing_ids.add(mid)
+            added += 1
+    queue['lastPollRun'] = datetime.now().isoformat() + 'Z'
+    save_staging_queue(queue)
+    return added
+
+
+def accept_staged_item(graph_message_id: str) -> bool:
+    """Mark a staged item as 'accepted' and set reviewed_at timestamp.
+    Returns True if found and updated."""
+    queue = load_staging_queue()
+    for item in queue.get('items', []):
+        if item.get('graph_message_id') == graph_message_id:
+            item['status'] = 'accepted'
+            item['reviewed_at'] = datetime.now().isoformat() + 'Z'
+            save_staging_queue(queue)
+            return True
+    return False
+
+
+def dismiss_staged_item(graph_message_id: str) -> bool:
+    """Mark a staged item as 'dismissed' and set reviewed_at timestamp.
+    Returns True if found and updated."""
+    queue = load_staging_queue()
+    for item in queue.get('items', []):
+        if item.get('graph_message_id') == graph_message_id:
+            item['status'] = 'dismissed'
+            item['reviewed_at'] = datetime.now().isoformat() + 'Z'
+            save_staging_queue(queue)
+            return True
+    return False
+
+
+def get_staging_dedup_ids() -> set:
+    """Return set of all graph_message_ids in the staging queue (any status)."""
+    queue = load_staging_queue()
+    return {item.get('graph_message_id') for item in queue.get('items', []) if item.get('graph_message_id')}
+
+
+# ---------------------------------------------------------------------------
+# Fundraising ally helpers
+# ---------------------------------------------------------------------------
+
+def load_fundraising_allies() -> dict:
+    """Load crm/fundraising_allies.json. Returns {orgs: [...], individuals: [...]}."""
+    if not os.path.exists(FUNDRAISING_ALLIES_PATH):
+        return {"orgs": [], "individuals": []}
+    with open(FUNDRAISING_ALLIES_PATH) as f:
+        return json.load(f)
+
+
+def is_ally_org(org_name: str) -> bool:
+    """Return True if org_name is a fundraising ally (Placement Agent or listed individual org)."""
+    if not org_name:
+        return False
+    org_lower = org_name.lower()
+    allies = load_fundraising_allies()
+    for ally in allies.get("orgs", []):
+        if ally.get("name", "").lower() == org_lower:
+            return True
+    return False
+
+
+def is_ally_email(email: str) -> bool:
+    """Return True if email belongs to an ally individual (email-keyed, not domain-keyed).
+    Use this for cases like Ira Lubert where the domain belongs to a real prospect org."""
+    if not email:
+        return False
+    email_lower = email.lower()
+    allies = load_fundraising_allies()
+    for individual in allies.get("individuals", []):
+        ind_email = individual.get("email", "").lower()
+        if ind_email and ind_email == email_lower:
+            return True
+    return False
+
+
+def get_individual_ally_name(email: str) -> str | None:
+    """Return the display name for an individual ally email (for via_ally attribution)."""
+    if not email:
+        return None
+    email_lower = email.lower()
+    allies = load_fundraising_allies()
+    for individual in allies.get("individuals", []):
+        if individual.get("email", "").lower() == email_lower:
+            return individual.get("name") or individual.get("org")
+    return None
 
     return results

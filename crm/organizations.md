@@ -339,8 +339,8 @@ Cheers,
 - **Notes:**
 
 
-## JRT Partners
-- **Type:** Asset Manager
+## JTP Capital
+- **Type:** Placement Agent
 - **Domain:** @jtpllc.com
 - **Notes:**
 
@@ -793,7 +793,7 @@ Cheers,
 - **Domain:** @blackstone.com
 - **Notes:**
 
-## Doc Street Capital
+## Dock Street Capital
 - **Type:** Asset Manager
 - **Notes:** Follow-up call with Greg scheduled 3/27. Robert Fichtner relationship.
 
@@ -826,9 +826,10 @@ Cheers,
 - **Type:** Insurance
 - **Notes:** Korean conglomerate. Tony meeting at AREC Irvine office on Tuesday 3/17 afternoon.
 
-## Diamond Capital
+## Diamond Investment House
+- **Aliases:** Diamond Capital
 - **Type:** HNWI / FO
-- **Notes:** Contact: Alon. Max Angeloni connection. Paige coordinating meeting for Monday 3/16 (Tony + Alon). Two emails sent with availability, no response yet.
+- **Notes:** Contact: Alon. Max Angeloni connection. Paige coordinating meeting for Monday 3/16 (Tony + Alon). Two emails sent with availability, no response yet. 3/20: Declined.
 
 ## IPGL (Michael Spencer Family Office)
 - **Type:** HNWI / FO
@@ -1127,6 +1128,17 @@ Cheers,
 - **Domain:** ggfinance.co.il
 - **Notes:** Placement Agent in Israel
 
-## Dock Street
-- **Type:** 
+
+## South40 Capital
+- **Type:** Placement Agent
+- **Domain:** @south40capital.com
+- **Notes:** Placement agent. Ian Morgan (ian@south40capital.com) is embedded on the AREC team.
+
+
+## Angeloni & Co
+- **Type:** Placement Agent
+- **Domain:** @angeloniandco.com
+- **Notes:** Placement agent. Max Angeloni manages multiple prospect introductions.
+
+
 - **Notes:** 

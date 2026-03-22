@@ -31,6 +31,7 @@
 - Private Credit
 - BUILDER
 - INTRODUCER
+- Placement Agent
 
 ## Closing Options
 - 1st
